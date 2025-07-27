@@ -118,7 +118,7 @@ cp .env.example .env
 
 # Docker Composeで実行（推奨）
 export TAG_NAME=$(git symbolic-ref --short HEAD | sed -e "s:/:-:g")
-docker compose up -d --wait
+docker compose up -d
 
 # 自動リロード付き開発モード（airを使用）
 docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build

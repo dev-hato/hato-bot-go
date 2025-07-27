@@ -109,10 +109,6 @@ jobs:
           push: true
           files: docker-compose.yml
           source: .
-      - name: Start docker
-        env:
-          DOCKER_CONTENT_TRUST: 1
-        run: docker compose up -d --wait
   # pyproject.toml をDockerイメージと同期させる
   update-version-pyproject:
     runs-on: ubuntu-latest
