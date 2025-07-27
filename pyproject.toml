@@ -1,0 +1,17 @@
+[project]
+name = "hato-bot-go"
+version = "1.0"
+description = "愛嬌のあるBot"
+requires-python = "==3.13.5"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pre-commit==4.2.0",
+]
+
+[tool.uv]
+required-version = "0.8.3"
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
