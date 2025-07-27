@@ -15,6 +15,7 @@ on:
   push:
     branches:
       - main
+permissions: {}
 jobs:
   update-uv-version:
     runs-on: ubuntu-latest
