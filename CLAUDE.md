@@ -181,6 +181,28 @@ go test ./...
 - **Execute**: テスト値の作成・実行
 - **Verify**: assertEqualなどでの検証
 
+## コーディング規約
+
+### コメント記述
+
+- **ソースコード内のコメントは日本語で記述すること**
+- 関数の説明、変数の説明、処理の説明はすべて日本語を使用
+- 英語のコメントは避け、日本語で分かりやすく記述する
+- パッケージレベルのドキュメントコメントも日本語で記述
+
+例：
+```go
+// CreateAmeshImage 気象レーダー画像を作成する
+func CreateAmeshImage(lat, lng float64, zoom, aroundTiles int) (*image.RGBA, error) {
+    // 最新のタイムスタンプを取得
+    timestamps, err := getLatestTimestamps()
+    if err != nil {
+        return nil, errors.Wrap(err, "タイムスタンプの取得に失敗")
+    }
+    // ...
+}
+```
+
 ## 開発ノート
 
 - **Goモジュール**: Go 1.24とモジュール依存関係管理を使用

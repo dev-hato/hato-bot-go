@@ -35,7 +35,7 @@ type GeocodeResult struct {
 
 const Version = "1.0"
 
-// Error constants
+// エラー定数
 var (
 	ErrGeocodingAPIError        = errors.New("geocoding API returned error status")
 	ErrNoResultsFound           = errors.New("no results found for place")
@@ -43,8 +43,8 @@ var (
 	ErrJSONUnmarshal            = errors.New("failed to json.Unmarshal")
 )
 
-// TimeJsonElement targetTimes JSON要素の構造体
-type TimeJsonElement struct {
+// TimeJSONElement targetTimes JSON要素の構造体
+type TimeJSONElement struct {
 	BaseTime  string   `json:"basetime"`
 	ValidTime string   `json:"validtime"`
 	Elements  []string `json:"elements"`
@@ -74,7 +74,7 @@ func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroun
 	// 最新のタイムスタンプを取得
 	timestamps, err := getLatestTimestampsWithClient(client)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to getLatestTimestamps")
+		return nil, errors.Wrap(err, "最新タイムスタンプの取得に失敗")
 	}
 
 	hrpnsTimestamp := timestamps["hrpns_nd"]
@@ -83,7 +83,7 @@ func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroun
 	// 落雷データを取得
 	lightningData, err := getLightningDataWithClient(client, lidenTimestamp)
 	if err != nil {
-		log.Printf("Failed to get lightning data: %v", err)
+		log.Printf("落雷データの取得に失敗: %v", err)
 		lightningData = []LightningPoint{}
 	}
 
@@ -109,7 +109,7 @@ func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroun
 
 			baseTile, err := downloadTileWithClient(client, baseURL)
 			if err != nil {
-				log.Printf("Failed to download base tile: %v", err)
+				log.Printf("ベースタイルのダウンロードに失敗: %v", err)
 				continue
 			}
 
@@ -126,7 +126,7 @@ func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroun
 			radarURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png", hrpnsTimestamp, hrpnsTimestamp, zoom, tileX, tileY)
 			radarTile, err := downloadTileWithClient(client, radarURL)
 			if err != nil {
-				log.Printf("Failed to download radar tile: %v", err)
+				log.Printf("レーダータイルのダウンロードに失敗: %v", err)
 				continue
 			}
 
@@ -163,21 +163,21 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 
 	resp, err := client.Get(requestURL)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "failed to http.Get")
+		return GeocodeResult{}, errors.Wrap(err, "HTTPリクエストに失敗")
 	}
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			panic(err)
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		return GeocodeResult{}, errors.Wrapf(ErrGeocodingAPIError, "status %d", resp.StatusCode)
+		return GeocodeResult{}, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "failed to io.ReadAll")
+		return GeocodeResult{}, errors.Wrap(err, "レスポンスの読み取りに失敗")
 	}
 
 	var result struct {
@@ -189,8 +189,8 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 		} `json:"Feature"`
 	}
 
-	if err := json.Unmarshal(body, &result); err != nil {
-		return GeocodeResult{}, errors.Wrap(ErrJSONUnmarshal, err.Error())
+	if unmarshalErr := json.Unmarshal(body, &result); unmarshalErr != nil {
+		return GeocodeResult{}, errors.Wrap(ErrJSONUnmarshal, unmarshalErr.Error())
 	}
 
 	if len(result.Feature) == 0 {
@@ -205,12 +205,12 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 
 	lng, err := strconv.ParseFloat(coords[0], 64)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "failed to strconv.ParseFloat lng")
+		return GeocodeResult{}, errors.Wrap(err, "経度のパースに失敗")
 	}
 
 	lat, err := strconv.ParseFloat(coords[1], 64)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "failed to strconv.ParseFloat lat")
+		return GeocodeResult{}, errors.Wrap(err, "緯度のパースに失敗")
 	}
 
 	return GeocodeResult{
@@ -226,29 +226,29 @@ func GeocodePlace(place, apiKey string) (GeocodeResult, error) {
 }
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
-func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJsonElement, error) {
+func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSONElement, error) {
 	resp, err := client.Get(apiURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to http.Get")
+		return nil, errors.Wrap(err, "HTTPリクエストに失敗")
 	}
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			panic(err)
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
+		return nil, fmt.Errorf("ステータスコード: %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to io.ReadAll")
+		return nil, errors.Wrap(err, "レスポンスの読み取りに失敗")
 	}
 
-	var timeData []TimeJsonElement
+	var timeData []TimeJSONElement
 	if err := json.Unmarshal(body, &timeData); err != nil {
-		return nil, errors.Wrap(err, "failed to json.Unmarshal")
+		return nil, errors.Wrap(err, "JSONのアンマーシャルに失敗")
 	}
 
 	return timeData, nil
@@ -262,7 +262,7 @@ func getLatestTimestampsWithClient(client HTTPClient) (map[string]string, error)
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N3.json",
 	}
 
-	var allTimeData []TimeJsonElement
+	var allTimeData []TimeJSONElement
 
 	for _, apiURL := range urls {
 		timeData, err := fetchTimeDataFromURLWithClient(client, apiURL)
@@ -306,11 +306,11 @@ func getLightningDataWithClient(client HTTPClient, timestamp string) ([]Lightnin
 
 	resp, err := client.Get(apiURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to http.Get")
+		return nil, errors.Wrap(err, "HTTPリクエストに失敗")
 	}
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			panic(err)
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(resp.Body)
 
@@ -320,12 +320,12 @@ func getLightningDataWithClient(client HTTPClient, timestamp string) ([]Lightnin
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to io.ReadAll")
+		return nil, errors.Wrap(err, "レスポンスの読み取りに失敗")
 	}
 
 	var geoJSON LightningGeoJSON
 	if err := json.Unmarshal(body, &geoJSON); err != nil {
-		return nil, errors.Wrap(err, "failed to json.Unmarshal")
+		return nil, errors.Wrap(err, "JSONのアンマーシャルに失敗")
 	}
 
 	var lightningPoints []LightningPoint
@@ -350,7 +350,10 @@ func deg2rad(degrees float64) float64 {
 
 // getWebMercatorPixel 地理座標をWebメルカトルピクセル座標に変換する
 func getWebMercatorPixel(lat, lng float64, zoom int) (float64, float64) {
-	zoomFactor := float64(int(1) << uint(zoom))
+	if zoom < 0 || zoom > 30 {
+		return 0, 0
+	}
+	zoomFactor := float64(1 << zoom)
 	x := 256.0 * zoomFactor * (lng + 180) / 360.0
 	y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(lat)/2))/(2.0*math.Pi))
 	return x, y
@@ -365,27 +368,27 @@ func getTileFromPixel(pixelX, pixelY float64) (int, int) {
 func downloadTileWithClient(client HTTPClient, tileURL string) (image.Image, error) {
 	req, err := http.NewRequest("GET", tileURL, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create request")
+		return nil, errors.Wrap(err, "リクエストの作成に失敗")
 	}
 	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to http.Get")
+		return nil, errors.Wrap(err, "HTTPリクエストに失敗")
 	}
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			panic(err)
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to download tile: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("タイルのダウンロードに失敗: ステータス %d", resp.StatusCode)
 	}
 
 	img, _, err := image.Decode(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to image.Decode")
+		return nil, errors.Wrap(err, "画像のデコードに失敗")
 	}
 	return img, nil
 }

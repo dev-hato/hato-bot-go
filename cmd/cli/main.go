@@ -48,9 +48,9 @@ func main() {
 
 	if err != nil || placeName == "" {
 		// 地名をジオコーディング
-		result, err := amesh.GeocodePlace(place, apiKey)
-		if err != nil {
-			panic(errors.Wrap(err, "Failed to amesh.GeocodePlace"))
+		result, geocodeErr := amesh.GeocodePlace(place, apiKey)
+		if geocodeErr != nil {
+			panic(errors.Wrap(geocodeErr, "Failed to amesh.GeocodePlace"))
 		}
 		lat, lng, placeName = result.Lat, result.Lng, result.Name
 	}
@@ -70,8 +70,8 @@ func main() {
 		panic(errors.Wrap(err, "Failed to os.Create"))
 	}
 	defer func(file *os.File) {
-		if err := file.Close(); err != nil {
-			panic(err)
+		if closeErr := file.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(file)
 

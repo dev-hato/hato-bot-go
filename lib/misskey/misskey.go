@@ -2,19 +2,19 @@ package misskey
 
 import "strings"
 
-// MisskeyNote Misskeyのノート構造体
-type MisskeyNote struct {
-	ID         string      `json:"id"`
-	Text       string      `json:"text,omitempty"`
-	Visibility string      `json:"visibility,omitempty"`
-	FileIDs    []string    `json:"fileIds,omitempty"`
-	ReplyID    string      `json:"replyId,omitempty"`
-	CW         *string     `json:"cw,omitempty"`
-	User       MisskeyUser `json:"user"`
+// Note Misskeyのノート構造体
+type Note struct {
+	ID         string   `json:"id"`
+	Text       string   `json:"text,omitempty"`
+	Visibility string   `json:"visibility,omitempty"`
+	FileIDs    []string `json:"fileIds,omitempty"`
+	ReplyID    string   `json:"replyId,omitempty"`
+	CW         *string  `json:"cw,omitempty"`
+	User       User     `json:"user"`
 }
 
-// MisskeyUser Misskeyのユーザー構造体
-type MisskeyUser struct {
+// User Misskeyのユーザー構造体
+type User struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
 	Host     string `json:"host,omitempty"`

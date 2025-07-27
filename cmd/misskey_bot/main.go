@@ -21,7 +21,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// MisskeyBot Misskey bot client
+// MisskeyBot Misskeyボットクライアント
 type MisskeyBot struct {
 	Domain    string
 	Token     string
@@ -47,9 +47,9 @@ type WebSocketMessage struct {
 type StreamingMessage struct {
 	Type string `json:"type"`
 	Body struct {
-		ID   string              `json:"id"`
-		Type string              `json:"type"`
-		Body misskey.MisskeyNote `json:"body"`
+		ID   string       `json:"id"`
+		Type string       `json:"type"`
+		Body misskey.Note `json:"body"`
 	} `json:"body"`
 }
 
@@ -134,7 +134,7 @@ func (bot *MisskeyBot) Connect() error {
 }
 
 // Listen WebSocketメッセージを監視
-func (bot *MisskeyBot) Listen(messageHandler func(note *misskey.MisskeyNote)) error {
+func (bot *MisskeyBot) Listen(messageHandler func(note *misskey.Note)) error {
 	if messageHandler == nil {
 		return errors.New("messageHandler cannot be nil")
 	}
@@ -159,7 +159,7 @@ func (bot *MisskeyBot) Listen(messageHandler func(note *misskey.MisskeyNote)) er
 }
 
 // CreateNote ノートを作成
-func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *misskey.MisskeyNote) (*misskey.MisskeyNote, error) {
+func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *misskey.Note) (*misskey.Note, error) {
 	if originalNote == nil {
 		return nil, errors.New("originalNote cannot be nil")
 	}
@@ -196,8 +196,8 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 		return nil, errors.Wrap(err, "failed to create note")
 	}
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			panic(err)
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(resp.Body)
 
@@ -206,7 +206,7 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 	}
 
 	var result struct {
-		CreatedNote misskey.MisskeyNote `json:"createdNote"`
+		CreatedNote misskey.Note `json:"createdNote"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -223,8 +223,8 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 		return nil, errors.Wrap(err, "failed to open file")
 	}
 	defer func(file *os.File) {
-		if err := file.Close(); err != nil {
-			panic(err)
+		if closeErr := file.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(file)
 
@@ -232,8 +232,8 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 	writer := multipart.NewWriter(&buf)
 
 	// トークンフィールドを追加
-	if err := writer.WriteField("i", bot.Token); err != nil {
-		return nil, errors.Wrap(err, "failed to write token field")
+	if writeErr := writer.WriteField("i", bot.Token); writeErr != nil {
+		return nil, errors.Wrap(writeErr, "failed to write token field")
 	}
 
 	// ファイルフィールドを追加
@@ -242,8 +242,8 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 		return nil, errors.Wrap(err, "failed to create form file")
 	}
 
-	if _, err := io.Copy(part, file); err != nil {
-		return nil, errors.Wrap(err, "failed to copy file")
+	if _, copyErr := io.Copy(part, file); copyErr != nil {
+		return nil, errors.Wrap(copyErr, "failed to copy file")
 	}
 
 	if err := writer.Close(); err != nil {
@@ -264,8 +264,8 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 		return nil, errors.Wrap(err, "failed to send request")
 	}
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			panic(err)
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(resp.Body)
 
@@ -293,8 +293,8 @@ func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
 		return errors.Wrap(err, "failed to add reaction")
 	}
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			panic(err)
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(closeErr)
 		}
 	}(resp.Body)
 
@@ -305,13 +305,63 @@ func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
 	return nil
 }
 
+// parseLocation 地名文字列から位置を解析し、座標と地名を返す
+func (bot *MisskeyBot) parseLocation(place, apiKey string) (lat, lng float64, placeName string, err error) {
+	// 座標が直接提供されているかチェック
+	parts := strings.Fields(place)
+	if len(parts) == 2 {
+		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
+			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
+				return parsedLat, parsedLng, fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng), nil
+			}
+		}
+	}
+
+	// 地名をジオコーディング
+	result, geocodeErr := amesh.GeocodePlace(place, apiKey)
+	if geocodeErr != nil {
+		return 0, 0, "", errors.Wrap(geocodeErr, "failed to geocode place")
+	}
+	return result.Lat, result.Lng, result.Name, nil
+}
+
+// createAndSaveImage amesh画像を作成して一時ファイルに保存する
+func (bot *MisskeyBot) createAndSaveImage(lat, lng float64, placeName string) (string, error) {
+	img, err := amesh.CreateAmeshImage(lat, lng, 10, 2)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create amesh image")
+	}
+
+	filename := fmt.Sprintf("amesh_%s_%d.png", strings.ReplaceAll(placeName, " ", "_"), time.Now().Unix())
+	filePath := "/tmp/" + filename
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create temporary file")
+	}
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			panic(closeErr)
+		}
+		if removeErr := os.Remove(filePath); removeErr != nil {
+			panic(removeErr)
+		}
+	}()
+
+	if err := png.Encode(file, img); err != nil {
+		return "", errors.Wrap(err, "failed to encode PNG")
+	}
+
+	return filePath, nil
+}
+
 // ProcessAmeshCommand ameshコマンドを処理
-func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.MisskeyNote, place string) error {
+func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) error {
 	if note == nil {
 		return errors.New("note cannot be nil")
 	}
 
-	// 処理中のリアクションを追加
+	// 処理中リアクションを追加
 	if err := bot.AddReaction(note.ID, "👀"); err != nil {
 		log.Printf("Failed to add reaction: %v", err)
 	}
@@ -322,58 +372,16 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.MisskeyNote, place stri
 		return errors.New("YAHOO_API_TOKEN environment variable not set")
 	}
 
-	// 地名から座標を取得
-	var lat, lng float64
-	var placeName string
-	var err error
-
-	// 座標が直接提供された場合の解析
-	parts := strings.Fields(place)
-	if len(parts) == 2 {
-		// 座標として解析を試行
-		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
-			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
-				lat, lng = parsedLat, parsedLng
-				placeName = fmt.Sprintf("%.2f,%.2f", lat, lng)
-			}
-		}
-	}
-
-	if placeName == "" {
-		// 地名をジオコーディング
-		result, err := amesh.GeocodePlace(place, apiKey)
-		if err != nil {
-			return errors.Wrap(err, "failed to geocode place")
-		}
-		lat, lng, placeName = result.Lat, result.Lng, result.Name
-	}
-
-	// amesh画像を生成
-	img, err := amesh.CreateAmeshImage(lat, lng, 10, 2)
+	// 位置を解析
+	lat, lng, placeName, err := bot.parseLocation(place, apiKey)
 	if err != nil {
-		return errors.Wrap(err, "failed to create amesh image")
+		return err
 	}
 
-	// 一時ファイルに保存
-	filename := fmt.Sprintf("amesh_%s_%d.png", strings.ReplaceAll(placeName, " ", "_"), time.Now().Unix())
-	filePath := "/tmp/" + filename
-
-	file, err := os.Create(filePath)
+	// 画像を作成して保存
+	filePath, err := bot.createAndSaveImage(lat, lng, placeName)
 	if err != nil {
-		return errors.Wrap(err, "failed to create temporary file")
-	}
-	defer func() {
-		// ファイルを先にクローズしてから削除
-		if err := file.Close(); err != nil {
-			panic(err)
-		}
-		if err := os.Remove(filePath); err != nil {
-			panic(err)
-		}
-	}()
-
-	if err := png.Encode(file, img); err != nil {
-		return errors.Wrap(err, "failed to encode PNG")
+		return err
 	}
 
 	// Misskeyにファイルをアップロード
@@ -384,7 +392,6 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.MisskeyNote, place stri
 
 	// 結果をノートとして投稿
 	text := fmt.Sprintf("📡 %s (%.4f, %.4f) の雨雲レーダー画像だっぽ", placeName, lat, lng)
-
 	if _, err := bot.CreateNote(text, []string{uploadedFile.ID}, note); err != nil {
 		return errors.Wrap(err, "failed to create reply note")
 	}
@@ -420,7 +427,13 @@ func startHTTPServer() {
 	port := "8080"
 	log.Printf("Starting HTTP server on port %s", port)
 
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	server := &http.Server{
+		Addr:         ":" + port,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Printf("HTTP server error: %v", err)
 	}
 }
@@ -454,7 +467,7 @@ func main() {
 	log.Printf("hato-bot-go started on %s", domain)
 
 	// メッセージハンドラー
-	messageHandler := func(note *misskey.MisskeyNote) {
+	messageHandler := func(note *misskey.Note) {
 		// ameshコマンドを解析
 		parseResult := misskey.ParseAmeshCommand(note.Text)
 

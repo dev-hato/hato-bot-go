@@ -145,7 +145,7 @@ func TestGeocodeWithClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := &MockHTTPClient{
-				GetFunc: func(url string) (*http.Response, error) {
+				GetFunc: func(_ string) (*http.Response, error) {
 					return mockResponse(tt.responseCode, tt.responseBody), nil
 				},
 			}
@@ -177,20 +177,84 @@ func createDummyPNGBytes(width, height int, c color.Color) []byte {
 	return buf.Bytes()
 }
 
-// TestCreateAmeshImageWithClient CreateAmeshImageWithClient関数をテストする
-func TestCreateAmeshImageWithClient(t *testing.T) {
-	tests := []struct {
-		name               string
-		lat                float64
-		lng                float64
-		zoom               int
-		aroundTiles        int
-		timestampsResponse string
-		lightningResponse  string
-		checkCenterColor   bool
-		expectedImageSize  int
-		expectError        error
-	}{
+// testCase CreateAmeshImageWithClientのテストケース構造体
+type testCase struct {
+	name               string
+	lat                float64
+	lng                float64
+	zoom               int
+	aroundTiles        int
+	timestampsResponse string
+	lightningResponse  string
+	checkCenterColor   bool
+	expectedImageSize  int
+	expectError        error
+}
+
+// createMockClient テスト用のモックHTTPクライアントを作成する
+func createMockClient(tc testCase, dummyTileBytes []byte) *MockHTTPClient {
+	return &MockHTTPClient{
+		GetFunc: func(url string) (*http.Response, error) {
+			switch {
+			case strings.Contains(url, "targetTimes"):
+				if tc.timestampsResponse == "" {
+					return mockResponse(500, "Internal Server Error"), nil
+				}
+				return mockResponse(200, tc.timestampsResponse), nil
+			case strings.Contains(url, "liden/data.geojson"):
+				if tc.lightningResponse == "" {
+					return mockResponse(404, "Not Found"), nil
+				}
+				return mockResponse(200, tc.lightningResponse), nil
+			case strings.Contains(url, ".png"):
+				return &http.Response{
+					StatusCode: 200,
+					Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
+					Header:     make(http.Header),
+				}, nil
+			default:
+				return mockResponse(404, "Not Found"), nil
+			}
+		},
+		DoFunc: func(req *http.Request) (*http.Response, error) {
+			if strings.Contains(req.URL.String(), ".png") {
+				return &http.Response{
+					StatusCode: 200,
+					Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
+					Header:     make(http.Header),
+				}, nil
+			}
+			return mockResponse(404, "Not Found"), nil
+		},
+	}
+}
+
+// validateImageResult CreateAmeshImageWithClientの結果を検証する
+func validateImageResult(t *testing.T, result *image.RGBA, tc testCase) {
+	if result == nil {
+		t.Errorf("CreateAmeshImageWithClient() returned nil image")
+		return
+	}
+
+	bounds := result.Bounds()
+	if bounds.Dx() != tc.expectedImageSize || bounds.Dy() != tc.expectedImageSize {
+		t.Errorf("CreateAmeshImageWithClient() image size = %dx%d, want %dx%d",
+			bounds.Dx(), bounds.Dy(), tc.expectedImageSize, tc.expectedImageSize)
+		return
+	}
+
+	if tc.checkCenterColor {
+		centerColor := result.RGBAAt(bounds.Dx()/2, bounds.Dy()/2)
+		if centerColor.R != 255 || centerColor.G != 255 || centerColor.B != 255 || centerColor.A != 255 {
+			t.Errorf("Expected white center pixel but got R=%d, G=%d, B=%d, A=%d",
+				centerColor.R, centerColor.G, centerColor.B, centerColor.A)
+		}
+	}
+}
+
+// getTestCases CreateAmeshImageWithClientのテストケースを返す
+func getTestCases() []testCase {
+	return []testCase{
 		{
 			name:        "成功した画像作成",
 			lat:         35.6895,
@@ -330,52 +394,16 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 			expectError:       nil,
 		},
 	}
+}
+
+// TestCreateAmeshImageWithClient CreateAmeshImageWithClient関数をテストする
+func TestCreateAmeshImageWithClient(t *testing.T) {
+	tests := getTestCases()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dummyTileBytes := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
-
-			mockClient := &MockHTTPClient{
-				GetFunc: func(url string) (*http.Response, error) {
-					// タイムスタンプAPI
-					if strings.Contains(url, "targetTimes") {
-						if tt.timestampsResponse == "" {
-							return mockResponse(500, "Internal Server Error"), nil
-						}
-						return mockResponse(200, tt.timestampsResponse), nil
-					}
-
-					// 落雷データAPI
-					if strings.Contains(url, "liden/data.geojson") {
-						if tt.lightningResponse == "" {
-							return mockResponse(404, "Not Found"), nil
-						}
-						return mockResponse(200, tt.lightningResponse), nil
-					}
-
-					// タイル画像
-					if strings.Contains(url, ".png") {
-						return &http.Response{
-							StatusCode: 200,
-							Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
-							Header:     make(http.Header),
-						}, nil
-					}
-
-					return mockResponse(404, "Not Found"), nil
-				},
-				DoFunc: func(req *http.Request) (*http.Response, error) {
-					// downloadTileWithClient経由でのリクエスト
-					if strings.Contains(req.URL.String(), ".png") {
-						return &http.Response{
-							StatusCode: 200,
-							Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
-							Header:     make(http.Header),
-						}, nil
-					}
-					return mockResponse(404, "Not Found"), nil
-				},
-			}
+			mockClient := createMockClient(tt, dummyTileBytes)
 
 			result, err := amesh.CreateAmeshImageWithClient(mockClient, tt.lat, tt.lng, tt.zoom, tt.aroundTiles)
 			if !errors.Is(err, tt.expectError) {
@@ -383,29 +411,7 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 				return
 			}
 
-			if result == nil {
-				t.Errorf("CreateAmeshImageWithClient() returned nil image")
-				return
-			}
-
-			// 画像のサイズをチェック
-			bounds := result.Bounds()
-			if bounds.Dx() != tt.expectedImageSize || bounds.Dy() != tt.expectedImageSize {
-				t.Errorf("CreateAmeshImageWithClient() image size = %dx%d, want %dx%d",
-					bounds.Dx(), bounds.Dy(), tt.expectedImageSize, tt.expectedImageSize)
-				return
-			}
-
-			// 背景色が白色になっているかチェック（白い背景で塗りつぶされているはず）
-			centerColor := result.RGBAAt(bounds.Dx()/2, bounds.Dy()/2)
-
-			// 白色であることを確認
-			if tt.checkCenterColor &&
-				(centerColor.R != 255 || centerColor.G != 255 || centerColor.B != 255 || centerColor.A != 255) {
-				t.Errorf("Expected white center pixel but got R=%d, G=%d, B=%d, A=%d",
-					centerColor.R, centerColor.G, centerColor.B, centerColor.A)
-				return
-			}
+			validateImageResult(t, result, tt)
 		})
 	}
 }
