@@ -47,6 +47,21 @@ type GeocodeRequest struct {
 	APIKey string // APIキー
 }
 
+type drawLineParams struct {
+	Img *image.RGBA
+	X1  int
+	Y1  int
+	X2  int
+	Y2  int
+	Col color.RGBA
+}
+
+type drawLightningMarkerParams struct {
+	Img                *image.RGBA
+	Lightning          LightningPoint
+	CreateImageRequest *CreateImageRequest
+}
+
 const Version = "1.0"
 
 // handleHTTPResponse HTTPレスポンスの共通処理を行う
@@ -170,7 +185,7 @@ func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*im
 	}
 
 	// ピクセル座標を計算
-	centerX, centerY := getWebMercatorPixel(req.Lat, req.Lng, req.Zoom)
+	centerX, centerY := getWebMercatorPixel(req)
 	centerTileX, centerTileY := getTileFromPixel(centerX, centerY)
 
 	// ベース画像を作成
@@ -224,7 +239,11 @@ func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*im
 
 	// 落雷マーカーを描画
 	for _, lightning := range lightningData {
-		drawLightningMarker(img, lightning.Lat, lightning.Lng, req.Lat, req.Lng, req.Zoom, req.AroundTiles)
+		drawLightningMarker(&drawLightningMarkerParams{
+			Img:                img,
+			Lightning:          lightning,
+			CreateImageRequest: req,
+		})
 	}
 
 	return img, nil
@@ -412,13 +431,13 @@ func deg2rad(degrees float64) float64 {
 }
 
 // getWebMercatorPixel 地理座標をWebメルカトルピクセル座標に変換する
-func getWebMercatorPixel(lat, lng float64, zoom int) (float64, float64) {
-	if zoom < 0 || zoom > 30 {
+func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
+	if params.Zoom < 0 || params.Zoom > 30 {
 		return 0, 0
 	}
-	zoomFactor := float64(int(1) << uint(zoom))
-	x := 256.0 * zoomFactor * (lng + 180) / 360.0
-	y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(lat)/2))/(2.0*math.Pi))
+	zoomFactor := float64(int(1) << uint(params.Zoom))
+	x := 256.0 * zoomFactor * (params.Lng + 180) / 360.0
+	y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(params.Lat)/2))/(2.0*math.Pi))
 	return x, y
 }
 
@@ -474,11 +493,23 @@ func drawDistanceCircle(img *image.RGBA, centerLat, centerLng, radiusKm float64,
 		lng2 := centerLng + (radiusKm/earthRadius)*math.Sin(angle2)*180/math.Pi/math.Cos(deg2rad(centerLat))
 
 		// ピクセル座標に変換
-		x1, y1 := getWebMercatorPixel(lat1, lng1, zoom)
-		x2, y2 := getWebMercatorPixel(lat2, lng2, zoom)
+		x1, y1 := getWebMercatorPixel(&CreateImageRequest{
+			Lat:  lat1,
+			Lng:  lng1,
+			Zoom: zoom,
+		})
+		x2, y2 := getWebMercatorPixel(&CreateImageRequest{
+			Lat:  lat2,
+			Lng:  lng2,
+			Zoom: zoom,
+		})
 
 		// 画像座標に変換
-		centerX, centerY := getWebMercatorPixel(centerLat, centerLng, zoom)
+		centerX, centerY := getWebMercatorPixel(&CreateImageRequest{
+			Lat:  centerLat,
+			Lng:  centerLng,
+			Zoom: zoom,
+		})
 		imageSize := (2*aroundTiles + 1) * 256
 
 		imgX1 := int(x1 - centerX + float64(imageSize/2))
@@ -487,34 +518,41 @@ func drawDistanceCircle(img *image.RGBA, centerLat, centerLng, radiusKm float64,
 		imgY2 := int(y2 - centerY + float64(imageSize/2))
 
 		// 線分を描画
-		drawLine(img, imgX1, imgY1, imgX2, imgY2, col)
+		drawLine(&drawLineParams{
+			Img: img,
+			X1:  imgX1,
+			Y1:  imgY1,
+			X2:  imgX2,
+			Y2:  imgY2,
+			Col: col,
+		})
 	}
 }
 
 // drawLine 二点間に直線を描画する
-func drawLine(img *image.RGBA, x1, y1, x2, y2 int, col color.RGBA) {
+func drawLine(params *drawLineParams) {
 	// シンプルな直線描画アルゴリズム
-	dx := abs(x2 - x1)
-	dy := abs(y2 - y1)
+	dx := abs(params.X2 - params.X1)
+	dy := abs(params.Y2 - params.Y1)
 	sx := 1
 	sy := 1
 
-	if x1 > x2 {
+	if params.X1 > params.X2 {
 		sx = -1
 	}
-	if y1 > y2 {
+	if params.Y1 > params.Y2 {
 		sy = -1
 	}
 
 	delta := dx - dy
-	x, y := x1, y1
+	x, y := params.X1, params.Y1
 
 	for {
-		if x >= 0 && y >= 0 && x < img.Bounds().Dx() && y < img.Bounds().Dy() {
-			img.Set(x, y, col)
+		if x >= 0 && y >= 0 && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
+			params.Img.Set(x, y, params.Col)
 		}
 
-		if x == x2 && y == y2 {
+		if x == params.X2 && y == params.Y2 {
 			break
 		}
 
@@ -539,13 +577,17 @@ func abs(x int) int {
 }
 
 // drawLightningMarker 画像上に落雷マーカーを描画する
-func drawLightningMarker(img *image.RGBA, lightningLat, lightningLng, centerLat, centerLng float64, zoom, aroundTiles int) {
+func drawLightningMarker(params *drawLightningMarkerParams) {
 	// ピクセル座標に変換
-	x, y := getWebMercatorPixel(lightningLat, lightningLng, zoom)
-	centerX, centerY := getWebMercatorPixel(centerLat, centerLng, zoom)
+	x, y := getWebMercatorPixel(&CreateImageRequest{
+		Lat:  params.Lightning.Lat,
+		Lng:  params.Lightning.Lng,
+		Zoom: params.CreateImageRequest.Zoom,
+	})
+	centerX, centerY := getWebMercatorPixel(params.CreateImageRequest)
 
 	// 画像座標に変換
-	imageSize := (2*aroundTiles + 1) * 256
+	imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
 	imgX := int(x - centerX + float64(imageSize/2))
 	imgY := int(y - centerY + float64(imageSize/2))
 
@@ -560,8 +602,8 @@ func drawLightningMarker(img *image.RGBA, lightningLat, lightningLng, centerLat,
 			}
 			x := imgX + dx
 			y := imgY + dy
-			if x >= 0 && y >= 0 && x < img.Bounds().Dx() && y < img.Bounds().Dy() {
-				img.Set(x, y, lightningColor)
+			if x >= 0 && y >= 0 && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
+				params.Img.Set(x, y, lightningColor)
 			}
 		}
 	}
