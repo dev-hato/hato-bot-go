@@ -35,6 +35,7 @@ jobs:
           VALIDATE_TYPESCRIPT_STANDARD: false
           LINTER_RULES_PATH: .
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           VALIDATE_GIT_COMMITLINT: false
   pr-dotenv-linter:
     runs-on: ubuntu-latest
