@@ -3,12 +3,10 @@ name: pr-test-hato-bot-go
 on:
   pull_request:
     branches:
-      - develop
       - main
   push:
     branches:
       - main
-      - develop
 jobs:
   # unittestを行う
   # testが落ちたらチェックが落ちる

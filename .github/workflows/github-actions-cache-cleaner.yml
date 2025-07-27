@@ -3,7 +3,6 @@ name: github-actions-cache-cleaner
 on:
   push:
     branches:
-      - develop
       - main
   schedule:
     - cron: "0 21 * * *" # 06:00 JST

@@ -9,7 +9,6 @@ on:
       - reopened
       - closed
     branches:
-      - develop
       - main
   push:
     branches:

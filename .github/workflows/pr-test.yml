@@ -3,12 +3,10 @@ name: pr-test
 on:
   pull_request:
     branches:
-      - develop
       - main
   push:
     branches:
       - main
-      - develop
 jobs:
   pr-super-lint:
     runs-on: ubuntu-latest
