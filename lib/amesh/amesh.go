@@ -39,13 +39,13 @@ const Version = "1.0"
 func handleHTTPResponse(resp *http.Response) ([]byte, error) {
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "failed to close response body"))
+			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "レスポンスの読み取りに失敗")
+		return nil, errors.Wrap(err, "Failed to io.ReadAll")
 	}
 	return body, nil
 }
@@ -89,7 +89,7 @@ func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroun
 	// 最新のタイムスタンプを取得
 	timestamps, err := getLatestTimestampsWithClient(client)
 	if err != nil {
-		return nil, errors.Wrap(err, "最新タイムスタンプの取得に失敗")
+		return nil, errors.Wrap(err, "Failed to getLatestTimestampsWithClient")
 	}
 
 	hrpnsTimestamp := timestamps["hrpns_nd"]
@@ -178,19 +178,19 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 
 	resp, err := client.Get(requestURL)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "HTTPリクエストに失敗")
+		return GeocodeResult{}, errors.Wrap(err, "Failed to Get")
 	}
 
 	if resp.StatusCode != 200 {
 		if err := resp.Body.Close(); err != nil {
-			return GeocodeResult{}, errors.Wrap(err, "failed to close response body")
+			return GeocodeResult{}, errors.Wrap(err, "Failed to Close")
 		}
 		return GeocodeResult{}, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
 	}
 
 	body, err := handleHTTPResponse(resp)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "レスポンスの読み取りに失敗")
+		return GeocodeResult{}, errors.Wrap(err, "Failed to handleHTTPResponse")
 	}
 
 	var result struct {
@@ -207,7 +207,7 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 	}
 
 	if len(result.Feature) == 0 {
-		return GeocodeResult{}, errors.Wrapf(ErrNoResultsFound, ": %s", place)
+		return GeocodeResult{}, errors.Wrapf(ErrNoResultsFound, "%s", place)
 	}
 
 	feature := result.Feature[0]
@@ -218,12 +218,12 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 
 	lng, err := strconv.ParseFloat(coords[0], 64)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "経度のパースに失敗")
+		return GeocodeResult{}, errors.Wrap(err, "Failed to strconv.ParseFloat")
 	}
 
 	lat, err := strconv.ParseFloat(coords[1], 64)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "緯度のパースに失敗")
+		return GeocodeResult{}, errors.Wrap(err, "Failed to strconv.ParseFloat")
 	}
 
 	return GeocodeResult{
@@ -242,24 +242,24 @@ func GeocodePlace(place, apiKey string) (GeocodeResult, error) {
 func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSONElement, error) {
 	resp, err := client.Get(apiURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "HTTPリクエストに失敗")
+		return nil, errors.Wrap(err, "Failed to Get")
 	}
 
 	if resp.StatusCode != 200 {
 		if err := resp.Body.Close(); err != nil {
-			return nil, errors.Wrap(err, "failed to close response body")
+			return nil, errors.Wrap(err, "Failed to Close")
 		}
 		return nil, fmt.Errorf("ステータスコード: %d", resp.StatusCode)
 	}
 
 	body, err := handleHTTPResponse(resp)
 	if err != nil {
-		return nil, errors.Wrap(err, "レスポンスの読み取りに失敗")
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
 	}
 
 	var timeData []TimeJSONElement
 	if err := json.Unmarshal(body, &timeData); err != nil {
-		return nil, errors.Wrap(err, "JSONのアンマーシャルに失敗")
+		return nil, errors.Wrap(err, "Failed to json.Unmarshal")
 	}
 
 	return timeData, nil
@@ -317,24 +317,24 @@ func getLightningDataWithClient(client HTTPClient, timestamp string) ([]Lightnin
 
 	resp, err := client.Get(apiURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "HTTPリクエストに失敗")
+		return nil, errors.Wrap(err, "Failed to Get")
 	}
 
 	if resp.StatusCode != 200 {
 		if err := resp.Body.Close(); err != nil {
-			return nil, errors.Wrap(err, "failed to close response body")
+			return nil, errors.Wrap(err, "Failed to Close")
 		}
 		return []LightningPoint{}, nil
 	}
 
 	body, err := handleHTTPResponse(resp)
 	if err != nil {
-		return nil, errors.Wrap(err, "レスポンスの読み取りに失敗")
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
 	}
 
 	var geoJSON LightningGeoJSON
 	if err := json.Unmarshal(body, &geoJSON); err != nil {
-		return nil, errors.Wrap(err, "JSONのアンマーシャルに失敗")
+		return nil, errors.Wrap(err, "Failed to json.Unmarshal")
 	}
 
 	var lightningPoints []LightningPoint
@@ -377,17 +377,17 @@ func getTileFromPixel(pixelX, pixelY float64) (int, int) {
 func downloadTileWithClient(client HTTPClient, tileURL string) (image.Image, error) {
 	req, err := http.NewRequest("GET", tileURL, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "リクエストの作成に失敗")
+		return nil, errors.Wrap(err, "Failed to http.NewRequest")
 	}
 	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "HTTPリクエストに失敗")
+		return nil, errors.Wrap(err, "Failed to Do")
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			panic(errors.Wrap(err, "failed to close response body"))
+			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
@@ -397,7 +397,7 @@ func downloadTileWithClient(client HTTPClient, tileURL string) (image.Image, err
 
 	img, _, err := image.Decode(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "画像のデコードに失敗")
+		return nil, errors.Wrap(err, "Failed to image.Decode")
 	}
 	return img, nil
 }

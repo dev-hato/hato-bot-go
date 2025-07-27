@@ -198,7 +198,7 @@ func CreateAmeshImage(lat, lng float64, zoom, aroundTiles int) (*image.RGBA, err
     // 最新のタイムスタンプを取得
     timestamps, err := getLatestTimestamps()
     if err != nil {
-        return nil, errors.Wrap(err, "タイムスタンプの取得に失敗")
+        return nil, errors.Wrap(err, "Failed to getLatestTimestamps")
     }
     // ...
 }

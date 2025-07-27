@@ -172,7 +172,7 @@ func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
 
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
-		return nil, errors.Wrap(err, "failed to encode png")
+		return nil, errors.Wrap(err, "Failed to png.Encode")
 	}
 	return buf.Bytes(), nil
 }

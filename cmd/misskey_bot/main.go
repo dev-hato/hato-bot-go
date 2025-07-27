@@ -25,12 +25,12 @@ import (
 func handleHTTPResponseWithJSON(resp *http.Response, target interface{}) error {
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "failed to close response body"))
+			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
 	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
-		return errors.Wrap(err, "failed to decode response")
+		return errors.Wrap(err, "Failed to json.NewDecoder")
 	}
 	return nil
 }
@@ -94,13 +94,13 @@ func (bot *MisskeyBot) apiRequest(endpoint string, data interface{}) (*http.Resp
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal JSON")
+		return nil, errors.Wrap(err, "Failed to json.Marshal")
 	}
 
 	url := fmt.Sprintf("https://%s/api/%s", bot.Domain, endpoint)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create request")
+		return nil, errors.Wrap(err, "Failed to http.NewRequest")
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -108,7 +108,7 @@ func (bot *MisskeyBot) apiRequest(endpoint string, data interface{}) (*http.Resp
 
 	resp, err := bot.client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrap(err, "Failed to Do")
 	}
 
 	return resp, nil
@@ -125,7 +125,7 @@ func (bot *MisskeyBot) Connect() error {
 		"User-Agent": []string{bot.UserAgent},
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to WebSocket")
+		return errors.Wrap(err, "Failed to Dial")
 	}
 
 	bot.wsConn = conn
@@ -140,7 +140,7 @@ func (bot *MisskeyBot) Connect() error {
 	}
 
 	if err := bot.wsConn.WriteJSON(connectMsg); err != nil {
-		return errors.Wrap(err, "failed to send connect message")
+		return errors.Wrap(err, "Failed to WriteJSON")
 	}
 
 	log.Printf("Connected to Misskey WebSocket: %s", bot.Domain)
@@ -156,7 +156,7 @@ func (bot *MisskeyBot) Listen(messageHandler func(note *misskey.Note)) error {
 	for {
 		var msg StreamingMessage
 		if err := bot.wsConn.ReadJSON(&msg); err != nil {
-			return errors.Wrap(err, "failed to read WebSocket message")
+			return errors.Wrap(err, "Failed to ReadJSON")
 		}
 
 		// メンションイベントの処理
@@ -207,12 +207,12 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 
 	resp, err := bot.apiRequest("notes/create", data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create note")
+		return nil, errors.Wrap(err, "Failed to apiRequest")
 	}
 
 	if resp.StatusCode != 200 {
 		if err := resp.Body.Close(); err != nil {
-			return nil, errors.Wrap(err, "failed to close response body")
+			return nil, errors.Wrap(err, "Failed to Close")
 		}
 		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
@@ -222,7 +222,7 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 	}
 
 	if err := handleHTTPResponseWithJSON(resp, &result); err != nil {
-		return nil, errors.Wrap(err, "failed to decode response")
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponseWithJSON")
 	}
 
 	return &result.CreatedNote, nil
@@ -232,11 +232,11 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to open file")
+		return nil, errors.Wrap(err, "Failed to os.Open")
 	}
 	defer func(file *os.File) {
 		if closeErr := file.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to close file"))
+			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(file)
 
@@ -245,27 +245,27 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 
 	// トークンフィールドを追加
 	if writeErr := writer.WriteField("i", bot.Token); writeErr != nil {
-		return nil, errors.Wrap(writeErr, "failed to write token field")
+		return nil, errors.Wrap(writeErr, "Failed to WriteField")
 	}
 
 	// ファイルフィールドを追加
 	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create form file")
+		return nil, errors.Wrap(err, "Failed to CreateFormFile")
 	}
 
 	if _, copyErr := io.Copy(part, file); copyErr != nil {
-		return nil, errors.Wrap(copyErr, "failed to copy file")
+		return nil, errors.Wrap(copyErr, "Failed to io.Copy")
 	}
 
 	if closeErr := writer.Close(); closeErr != nil {
-		return nil, errors.Wrap(closeErr, "failed to close writer")
+		return nil, errors.Wrap(closeErr, "Failed to Close")
 	}
 
 	url := fmt.Sprintf("https://%s/api/drive/files/create", bot.Domain)
 	req, err := http.NewRequest("POST", url, &buf)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create request")
+		return nil, errors.Wrap(err, "Failed to http.NewRequest")
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -273,19 +273,19 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 
 	resp, err := bot.client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrap(err, "Failed to Do")
 	}
 
 	if resp.StatusCode != 200 {
 		if err := resp.Body.Close(); err != nil {
-			return nil, errors.Wrap(err, "failed to close response body")
+			return nil, errors.Wrap(err, "Failed to Close")
 		}
 		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
 	var uploadedFile MisskeyFile
 	if err := handleHTTPResponseWithJSON(resp, &uploadedFile); err != nil {
-		return nil, errors.Wrap(err, "failed to decode response")
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponseWithJSON")
 	}
 
 	return &uploadedFile, nil
@@ -300,11 +300,11 @@ func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
 
 	resp, err := bot.apiRequest("notes/reactions/create", data)
 	if err != nil {
-		return errors.Wrap(err, "failed to add reaction")
+		return errors.Wrap(err, "Failed to apiRequest")
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to close response body"))
+			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
@@ -330,7 +330,7 @@ func (bot *MisskeyBot) parseLocation(place, apiKey string) (lat, lng float64, pl
 	// 地名をジオコーディング
 	result, geocodeErr := amesh.GeocodePlace(place, apiKey)
 	if geocodeErr != nil {
-		return 0, 0, "", errors.Wrap(geocodeErr, "failed to geocode place")
+		return 0, 0, "", errors.Wrap(geocodeErr, "Failed to amesh.GeocodePlace")
 	}
 	return result.Lat, result.Lng, result.Name, nil
 }
@@ -339,7 +339,7 @@ func (bot *MisskeyBot) parseLocation(place, apiKey string) (lat, lng float64, pl
 func (bot *MisskeyBot) createAndSaveImage(lat, lng float64, placeName string) (string, error) {
 	img, err := amesh.CreateAmeshImage(lat, lng, 10, 2)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create amesh image")
+		return "", errors.Wrap(err, "Failed to amesh.CreateAmeshImage")
 	}
 
 	filename := fmt.Sprintf("amesh_%s_%d.png", strings.ReplaceAll(placeName, " ", "_"), time.Now().Unix())
@@ -347,19 +347,19 @@ func (bot *MisskeyBot) createAndSaveImage(lat, lng float64, placeName string) (s
 
 	file, err := os.Create(filePath)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create temporary file")
+		return "", errors.Wrap(err, "Failed to os.Create")
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to close temporary file"))
+			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 		if removeErr := os.Remove(filePath); removeErr != nil {
-			panic(errors.Wrap(removeErr, "Failed to remove temporary file"))
+			panic(errors.Wrap(removeErr, "Failed to os.Remove"))
 		}
 	}()
 
 	if err := png.Encode(file, img); err != nil {
-		return "", errors.Wrap(err, "failed to encode PNG")
+		return "", errors.Wrap(err, "Failed to png.Encode")
 	}
 
 	return filePath, nil
@@ -397,13 +397,13 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 	// Misskeyにファイルをアップロード
 	uploadedFile, err := bot.UploadFile(filePath)
 	if err != nil {
-		return errors.Wrap(err, "failed to upload file to Misskey")
+		return errors.Wrap(err, "Failed to UploadFile")
 	}
 
 	// 結果をノートとして投稿
 	text := fmt.Sprintf("📡 %s (%.4f, %.4f) の雨雲レーダー画像だっぽ", placeName, lat, lng)
 	if _, err := bot.CreateNote(text, []string{uploadedFile.ID}, note); err != nil {
-		return errors.Wrap(err, "failed to create reply note")
+		return errors.Wrap(err, "Failed to CreateNote")
 	}
 
 	log.Printf("Successfully processed amesh command for %s", placeName)
