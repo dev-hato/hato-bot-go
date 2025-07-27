@@ -74,6 +74,13 @@ type Location struct {
 	PlaceName string  // 地名
 }
 
+// CreateNoteRequest ノート作成のリクエスト構造体
+type CreateNoteRequest struct {
+	Text         string        // ノートのテキスト
+	FileIDs      []string      // 添付ファイルのID一覧
+	OriginalNote *misskey.Note // 返信元のノート
+}
+
 // WebSocketMessage WebSocketメッセージの構造体
 type WebSocketMessage struct {
 	Type string      `json:"type"`
@@ -196,14 +203,17 @@ func (bot *MisskeyBot) Listen(messageHandler func(note *misskey.Note)) error {
 }
 
 // CreateNote ノートを作成
-func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *misskey.Note) (*misskey.Note, error) {
-	if originalNote == nil {
+func (bot *MisskeyBot) CreateNote(req *CreateNoteRequest) (*misskey.Note, error) {
+	if req == nil {
+		return nil, errors.New("req cannot be nil")
+	}
+	if req.OriginalNote == nil {
 		return nil, errors.New("originalNote cannot be nil")
 	}
 
 	// noteから必要な情報を取得
-	visibility := originalNote.Visibility
-	replyID := originalNote.ID
+	visibility := req.OriginalNote.Visibility
+	replyID := req.OriginalNote.ID
 
 	// 公開範囲がpublicならばhomeにする
 	if visibility == "public" {
@@ -211,7 +221,7 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 	}
 
 	data := map[string]interface{}{
-		"text":       text,
+		"text":       req.Text,
 		"visibility": visibility,
 	}
 
@@ -219,12 +229,12 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 		data["replyId"] = replyID
 	}
 
-	if len(fileIDs) > 0 {
-		data["fileIds"] = fileIDs
+	if len(req.FileIDs) > 0 {
+		data["fileIds"] = req.FileIDs
 	}
 
 	// 元の投稿がCWされていた場合、それに合わせてCW投稿する
-	if originalNote.CW != nil {
+	if req.OriginalNote.CW != nil {
 		data["cw"] = "隠すっぽ！"
 	}
 
@@ -353,13 +363,16 @@ func (bot *MisskeyBot) parseLocation(place, apiKey string) (*Location, error) {
 }
 
 // createAndSaveImage amesh画像を作成して一時ファイルに保存する
-func (bot *MisskeyBot) createAndSaveImage(lat, lng float64, placeName string) (string, error) {
-	img, err := amesh.CreateAmeshImage(lat, lng, 10, 2)
+func (bot *MisskeyBot) createAndSaveImage(location *Location) (string, error) {
+	if location == nil {
+		return "", errors.New("location cannot be nil")
+	}
+	img, err := amesh.CreateAmeshImage(location.Lat, location.Lng, 10, 2)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to amesh.CreateAmeshImage")
 	}
 
-	filename := fmt.Sprintf("amesh_%s_%d.png", strings.ReplaceAll(placeName, " ", "_"), time.Now().Unix())
+	filename := fmt.Sprintf("amesh_%s_%d.png", strings.ReplaceAll(location.PlaceName, " ", "_"), time.Now().Unix())
 	filePath := "/tmp/" + filename
 
 	file, err := os.Create(filePath)
@@ -406,7 +419,7 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 	}
 
 	// 画像を作成して保存
-	filePath, err := bot.createAndSaveImage(location.Lat, location.Lng, location.PlaceName)
+	filePath, err := bot.createAndSaveImage(location)
 	if err != nil {
 		return err
 	}
@@ -419,7 +432,11 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 
 	// 結果をノートとして投稿
 	text := fmt.Sprintf("📡 %s (%.4f, %.4f) の雨雲レーダー画像だっぽ", location.PlaceName, location.Lat, location.Lng)
-	if _, err := bot.CreateNote(text, []string{uploadedFile.ID}, note); err != nil {
+	if _, err := bot.CreateNote(&CreateNoteRequest{
+		Text:         text,
+		FileIDs:      []string{uploadedFile.ID},
+		OriginalNote: note,
+	}); err != nil {
 		return errors.Wrap(err, "Failed to CreateNote")
 	}
 
@@ -510,7 +527,11 @@ func main() {
 
 			// エラーメッセージを投稿
 			errorMsg := fmt.Sprintf("申し訳ないっぽ。ameshコマンドの処理中にエラーが発生したっぽ: %v", err)
-			if _, replyErr := bot.CreateNote(errorMsg, nil, note); replyErr != nil {
+			if _, replyErr := bot.CreateNote(&CreateNoteRequest{
+				Text:         errorMsg,
+				FileIDs:      nil,
+				OriginalNote: note,
+			}); replyErr != nil {
 				log.Printf("Failed to send error message: %v", replyErr)
 			}
 		}
