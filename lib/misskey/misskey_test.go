@@ -1,7 +1,7 @@
 package misskey_test
 
 import (
-	"github.com/massongit/hato-bot-go/lib/misskey"
+	"hato-bot-go/lib/misskey"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"

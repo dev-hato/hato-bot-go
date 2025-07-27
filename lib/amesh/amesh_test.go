@@ -2,7 +2,7 @@ package amesh_test
 
 import (
 	"bytes"
-	"github.com/massongit/hato-bot-go/lib/amesh"
+	"hato-bot-go/lib/amesh"
 	"image"
 	"image/color"
 	"image/png"

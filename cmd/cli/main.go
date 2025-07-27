@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/massongit/hato-bot-go/lib/amesh"
+	"hato-bot-go/lib/amesh"
 	"image/png"
 	"os"
 	"strconv"
