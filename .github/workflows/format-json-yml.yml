@@ -1,0 +1,39 @@
+---
+name: format-json-yml
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+    branches:
+      - main
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  format-json-yml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.PROJECT_AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }}
+      - uses: dev-hato/actions-format-json-yml@27c5137f7138a4817ae532f10e5506c925e88f96 # v0.0.84
+        with:
+          github-token: ${{steps.generate_token.outputs.token}}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
