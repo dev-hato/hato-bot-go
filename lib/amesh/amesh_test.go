@@ -162,7 +162,7 @@ func TestGeocodeWithClient(t *testing.T) {
 }
 
 // createDummyPNGBytes ダミーのPNG画像バイトを作成する
-func createDummyPNGBytes(width, height int, c color.Color) []byte {
+func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
@@ -172,9 +172,9 @@ func createDummyPNGBytes(width, height int, c color.Color) []byte {
 
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
-		panic(err)
+		return nil, errors.Wrap(err, "failed to encode png")
 	}
-	return buf.Bytes()
+	return buf.Bytes(), nil
 }
 
 // testCase CreateAmeshImageWithClientのテストケース構造体
@@ -402,7 +402,10 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dummyTileBytes := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+			dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+			if err != nil {
+				t.Error(err)
+			}
 			mockClient := createMockClient(tt, dummyTileBytes)
 
 			result, err := amesh.CreateAmeshImageWithClient(mockClient, tt.lat, tt.lng, tt.zoom, tt.aroundTiles)

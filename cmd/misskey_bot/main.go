@@ -21,6 +21,20 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// handleHTTPResponse HTTPレスポンスの共通処理を行う（JSONデコード用）
+func handleHTTPResponseWithJSON(resp *http.Response, target interface{}) error {
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(errors.Wrap(closeErr, "failed to close response body"))
+		}
+	}(resp.Body)
+
+	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+		return errors.Wrap(err, "failed to decode response")
+	}
+	return nil
+}
+
 // MisskeyBot Misskeyボットクライアント
 type MisskeyBot struct {
 	Domain    string
@@ -195,13 +209,11 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create note")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			panic(closeErr)
-		}
-	}(resp.Body)
 
 	if resp.StatusCode != 200 {
+		if err := resp.Body.Close(); err != nil {
+			return nil, errors.Wrap(err, "failed to close response body")
+		}
 		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
@@ -209,7 +221,7 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 		CreatedNote misskey.Note `json:"createdNote"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := handleHTTPResponseWithJSON(resp, &result); err != nil {
 		return nil, errors.Wrap(err, "failed to decode response")
 	}
 
@@ -224,7 +236,7 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 	}
 	defer func(file *os.File) {
 		if closeErr := file.Close(); closeErr != nil {
-			panic(closeErr)
+			panic(errors.Wrap(closeErr, "Failed to close file"))
 		}
 	}(file)
 
@@ -263,18 +275,16 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to send request")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			panic(closeErr)
-		}
-	}(resp.Body)
 
 	if resp.StatusCode != 200 {
+		if err := resp.Body.Close(); err != nil {
+			return nil, errors.Wrap(err, "failed to close response body")
+		}
 		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
 	var uploadedFile MisskeyFile
-	if err := json.NewDecoder(resp.Body).Decode(&uploadedFile); err != nil {
+	if err := handleHTTPResponseWithJSON(resp, &uploadedFile); err != nil {
 		return nil, errors.Wrap(err, "failed to decode response")
 	}
 
@@ -294,7 +304,7 @@ func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			panic(closeErr)
+			panic(errors.Wrap(closeErr, "Failed to close response body"))
 		}
 	}(resp.Body)
 
@@ -341,10 +351,10 @@ func (bot *MisskeyBot) createAndSaveImage(lat, lng float64, placeName string) (s
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
-			panic(closeErr)
+			panic(errors.Wrap(closeErr, "Failed to close temporary file"))
 		}
 		if removeErr := os.Remove(filePath); removeErr != nil {
-			panic(removeErr)
+			panic(errors.Wrap(removeErr, "Failed to remove temporary file"))
 		}
 	}()
 

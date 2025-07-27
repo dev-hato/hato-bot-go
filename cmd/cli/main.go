@@ -71,7 +71,7 @@ func main() {
 	}
 	defer func(file *os.File) {
 		if closeErr := file.Close(); closeErr != nil {
-			panic(closeErr)
+			panic(errors.Wrap(closeErr, "Failed to close file"))
 		}
 	}(file)
 

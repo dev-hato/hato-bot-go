@@ -35,6 +35,21 @@ type GeocodeResult struct {
 
 const Version = "1.0"
 
+// handleHTTPResponse HTTPレスポンスの共通処理を行う
+func handleHTTPResponse(resp *http.Response) ([]byte, error) {
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(errors.Wrap(closeErr, "failed to close response body"))
+		}
+	}(resp.Body)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "レスポンスの読み取りに失敗")
+	}
+	return body, nil
+}
+
 // エラー定数
 var (
 	ErrGeocodingAPIError        = errors.New("geocoding API returned error status")
@@ -165,17 +180,15 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 	if err != nil {
 		return GeocodeResult{}, errors.Wrap(err, "HTTPリクエストに失敗")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			panic(closeErr)
-		}
-	}(resp.Body)
 
 	if resp.StatusCode != 200 {
+		if err := resp.Body.Close(); err != nil {
+			return GeocodeResult{}, errors.Wrap(err, "failed to close response body")
+		}
 		return GeocodeResult{}, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := handleHTTPResponse(resp)
 	if err != nil {
 		return GeocodeResult{}, errors.Wrap(err, "レスポンスの読み取りに失敗")
 	}
@@ -231,17 +244,15 @@ func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSO
 	if err != nil {
 		return nil, errors.Wrap(err, "HTTPリクエストに失敗")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			panic(closeErr)
-		}
-	}(resp.Body)
 
 	if resp.StatusCode != 200 {
+		if err := resp.Body.Close(); err != nil {
+			return nil, errors.Wrap(err, "failed to close response body")
+		}
 		return nil, fmt.Errorf("ステータスコード: %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := handleHTTPResponse(resp)
 	if err != nil {
 		return nil, errors.Wrap(err, "レスポンスの読み取りに失敗")
 	}
@@ -308,17 +319,15 @@ func getLightningDataWithClient(client HTTPClient, timestamp string) ([]Lightnin
 	if err != nil {
 		return nil, errors.Wrap(err, "HTTPリクエストに失敗")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			panic(closeErr)
-		}
-	}(resp.Body)
 
 	if resp.StatusCode != 200 {
+		if err := resp.Body.Close(); err != nil {
+			return nil, errors.Wrap(err, "failed to close response body")
+		}
 		return []LightningPoint{}, nil
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := handleHTTPResponse(resp)
 	if err != nil {
 		return nil, errors.Wrap(err, "レスポンスの読み取りに失敗")
 	}
@@ -378,7 +387,7 @@ func downloadTileWithClient(client HTTPClient, tileURL string) (image.Image, err
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			panic(closeErr)
+			panic(errors.Wrap(err, "failed to close response body"))
 		}
 	}(resp.Body)
 
