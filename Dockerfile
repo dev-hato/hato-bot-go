@@ -56,4 +56,4 @@ EXPOSE 8080
 
 # 実行
 CMD ["./hato-bot-go"]
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start_period=40s CMD ./health-check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD ./health-check
