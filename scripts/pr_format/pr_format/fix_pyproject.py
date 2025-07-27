@@ -170,7 +170,8 @@ def get_pyproject_packages(pyproject: PyProject) -> set[str] | NoReturn:
 
         for pyproject_dependency in pyproject_dependencies:
             package_data = version_operator_pattern.split(pyproject_dependency)
-            pyproject_packages.add(package_data[0].strip().lower().replace("_", "-"))
+            pyproject_packages.add(
+                package_data[0].strip().lower().replace("_", "-"))
 
     return pyproject_packages
 
