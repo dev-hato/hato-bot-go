@@ -28,6 +28,7 @@ go mod tidy
 ```
 
 **主な依存関係**:
+
 - `github.com/gorilla/websocket`: WebSocket通信（Misskeyボット用）
 - `github.com/cockroachdb/errors`: エラーハンドリング
 
@@ -39,12 +40,14 @@ go mod tidy
 ### 3. 環境変数の設定
 
 #### 基本設定（必須）
+
 ```bash
 # Yahoo Geocoding API（必須）
 export YAHOO_API_TOKEN=your_yahoo_api_token_here
 ```
 
 #### Misskeyボット設定（ボットとして動作させる場合）
+
 ```bash
 # Misskeyインスタンスの設定
 export MISSKEY_DOMAIN=your-misskey-instance.com
@@ -126,21 +129,21 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 
 ## 使用するAPIエンドポイント
 
-1. **気象庁タイムスタンプ**: 
+1. **気象庁タイムスタンプ**:
    - `https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json`
    - `https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N2.json`
    - `https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N3.json`
 
-2. **レーダータイル**: 
+2. **レーダータイル**:
    - `https://www.jma.go.jp/bosai/jmatile/data/nowc/{timestamp}/none/{timestamp}/surf/hrpns/{z}/{x}/{y}.png`
 
-3. **落雷データ**: 
+3. **落雷データ**:
    - `https://www.jma.go.jp/bosai/jmatile/data/nowc/{timestamp}/none/{timestamp}/surf/liden/data.geojson`
 
-4. **ベースマップタイル**: 
+4. **ベースマップタイル**:
    - `https://tile.openstreetmap.org/{z}/{x}/{y}.png`
 
-5. **Yahooジオコーディング**: 
+5. **Yahooジオコーディング**:
    - `https://map.yahooapis.jp/geocode/V1/geoCoder`
 
 ## コマンド（ボットモード）
@@ -163,6 +166,7 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 ## 出力
 
 プログラムは`amesh_{地名}.png`という名前のPNG画像を生成します。画像には以下が含まれます：
+
 - **ベースマップ**: OpenStreetMapタイル
 - **気象レーダー**: 気象庁の雨雲データ（透明度付き）
 - **落雷情報**: 落雷発生地点（シアンの円）
