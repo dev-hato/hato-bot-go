@@ -89,14 +89,6 @@ jobs:
           push: true
           files: docker-compose.yml
           source: .
-      - name: Build and push (dev)
-        uses: docker/bake-action@37816e747588cb137173af99ab33873600c46ea8 # v6.8.0
-        env:
-          DOCKER_CONTENT_TRUST: 1
-        with:
-          push: true
-          files: docker-compose.yml,dev.base.docker-compose.yml
-          source: .
       - run: echo 'TAG_NAME=latest' >> "$GITHUB_ENV"
         if: ${{ github.event_name == 'release' }}
       - name: Build and push (build) (latest)
@@ -116,15 +108,6 @@ jobs:
         with:
           push: true
           files: docker-compose.yml
-          source: .
-      - name: Build and push (dev) (latest)
-        uses: docker/bake-action@37816e747588cb137173af99ab33873600c46ea8 # v6.8.0
-        if: ${{ github.event_name == 'release' }}
-        env:
-          DOCKER_CONTENT_TRUST: 1
-        with:
-          push: true
-          files: docker-compose.yml,dev.base.docker-compose.yml
           source: .
       - name: Start docker
         env:
