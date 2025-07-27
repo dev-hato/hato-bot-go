@@ -182,8 +182,8 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 	}
 
 	if resp.StatusCode != 200 {
-		if err := resp.Body.Close(); err != nil {
-			return GeocodeResult{}, errors.Wrap(err, "Failed to Close")
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return GeocodeResult{}, errors.Wrap(closeErr, "Failed to Close")
 		}
 		return GeocodeResult{}, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
 	}
@@ -246,8 +246,8 @@ func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSO
 	}
 
 	if resp.StatusCode != 200 {
-		if err := resp.Body.Close(); err != nil {
-			return nil, errors.Wrap(err, "Failed to Close")
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return nil, errors.Wrap(closeErr, "Failed to Close")
 		}
 		return nil, fmt.Errorf("ステータスコード: %d", resp.StatusCode)
 	}
@@ -321,8 +321,8 @@ func getLightningDataWithClient(client HTTPClient, timestamp string) ([]Lightnin
 	}
 
 	if resp.StatusCode != 200 {
-		if err := resp.Body.Close(); err != nil {
-			return nil, errors.Wrap(err, "Failed to Close")
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return nil, errors.Wrap(closeErr, "Failed to Close")
 		}
 		return []LightningPoint{}, nil
 	}
