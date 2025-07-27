@@ -20,8 +20,6 @@ jobs:
         uses: astral-sh/setup-uv@05273c154d09957eb9a2377d9c988fbda431d1c5 # v6.4.0
         with:
           enable-cache: true
-      - name: Install uv
-        run: bash "${GITHUB_WORKSPACE}/scripts/uv_install.sh"
       - name: Set venv path
         env:
           DEST_PATH: "/home/runner/work/_temp/_github_workflow/.venv"

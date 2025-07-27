@@ -35,9 +35,6 @@ jobs:
         if: github.event_name != 'pull_request' || github.event.action != 'closed'
         with:
           enable-cache: true
-      - name: Install dependencies
-        if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        run: bash "${GITHUB_WORKSPACE}/scripts/uv_install.sh"
       - name: Generate a token
         id: generate_token
         uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
