@@ -9,11 +9,11 @@ on:
       - closed
     branches:
       - develop
-      - master
+      - main
   push:
     branches:
       - develop
-      - master
+      - main
 permissions:
   contents: write
   pull-requests: write

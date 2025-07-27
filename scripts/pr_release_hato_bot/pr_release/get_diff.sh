@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-result=$(git diff origin/develop origin/master)
+result=$(git diff origin/develop origin/main)
 echo "${result}"
 result="${result//$'\n'/'%0A'}"
 result="${result//$'\r'/'%0D'}"

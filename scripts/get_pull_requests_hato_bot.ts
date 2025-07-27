@@ -11,7 +11,7 @@ export async function script(
       owner: context.repo.owner,
       repo: context.repo.repo,
       head: context.repo.owner + ":develop",
-      base: "master",
+      base: "main",
       state: "open",
     };
   console.log("call pulls.list:", pullsListParams);

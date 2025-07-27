@@ -12,10 +12,10 @@ on:
       - closed
     branches:
       - develop
-      - master
+      - main
   push:
     branches:
-      - master
+      - main
       - develop
 jobs:
   update-uv-version:

@@ -12,7 +12,7 @@ export async function script(
       owner: context.repo.owner,
       repo: context.repo.repo,
       head: context.repo.owner + ":develop",
-      base: "master",
+      base: "main",
       title: "リリース",
       body: "鳩は唐揚げになるため、片栗粉へ飛び込む",
       draft: true,

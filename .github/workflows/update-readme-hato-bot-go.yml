@@ -9,10 +9,10 @@ on:
       - closed
     branches:
       - develop
-      - master
+      - main
   push:
     branches:
-      - master
+      - main
 jobs:
   update-readme:
     runs-on: ubuntu-latest
