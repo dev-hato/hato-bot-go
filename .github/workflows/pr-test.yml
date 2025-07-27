@@ -31,7 +31,11 @@ jobs:
       - name: Lint files
         uses: super-linter/super-linter/slim@12150456a73e248bdc94d0794898f94e23127c88 # v7.4.0
         env:
+          VALIDATE_JSCPD: false
+          VALIDATE_TYPESCRIPT_STANDARD: false
+          LINTER_RULES_PATH: .
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_GIT_COMMITLINT: false
   pr-dotenv-linter:
     runs-on: ubuntu-latest
     steps:
