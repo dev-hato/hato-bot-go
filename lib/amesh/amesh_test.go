@@ -150,7 +150,10 @@ func TestGeocodeWithClient(t *testing.T) {
 				},
 			}
 
-			result, err := amesh.GeocodeWithClient(mockClient, tt.place, tt.apiKey)
+			result, err := amesh.GeocodeWithClient(mockClient, &amesh.GeocodeRequest{
+				Place:  tt.place,
+				APIKey: tt.apiKey,
+			})
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
 				t.Errorf("GeocodeWithClient(%q, %q) diff: %s", tt.place, tt.apiKey, diff)
 			}
@@ -408,7 +411,12 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 			}
 			mockClient := createMockClient(tt, dummyTileBytes)
 
-			result, err := amesh.CreateAmeshImageWithClient(mockClient, tt.lat, tt.lng, tt.zoom, tt.aroundTiles)
+			result, err := amesh.CreateAmeshImageWithClient(mockClient, &amesh.CreateImageRequest{
+				Lat:         tt.lat,
+				Lng:         tt.lng,
+				Zoom:        tt.zoom,
+				AroundTiles: tt.aroundTiles,
+			})
 			if !errors.Is(err, tt.expectError) {
 				t.Errorf("CreateAmeshImageWithClient() unexpected error: %v, expected: %v", err, tt.expectError)
 				return

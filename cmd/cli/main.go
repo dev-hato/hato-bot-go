@@ -58,7 +58,12 @@ func main() {
 	fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", placeName, lat, lng)
 
 	// amesh画像を作成
-	img, err := amesh.CreateAmeshImage(lat, lng, 10, 2)
+	img, err := amesh.CreateAmeshImage(&amesh.CreateImageRequest{
+		Lat:         lat,
+		Lng:         lng,
+		Zoom:        10,
+		AroundTiles: 2,
+	})
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to amesh.CreateAmeshImage"))
 	}

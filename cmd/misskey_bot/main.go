@@ -367,7 +367,12 @@ func (bot *MisskeyBot) createAndSaveImage(location *Location) (string, error) {
 	if location == nil {
 		return "", errors.New("location cannot be nil")
 	}
-	img, err := amesh.CreateAmeshImage(location.Lat, location.Lng, 10, 2)
+	img, err := amesh.CreateAmeshImage(&amesh.CreateImageRequest{
+		Lat:         location.Lat,
+		Lng:         location.Lng,
+		Zoom:        10,
+		AroundTiles: 2,
+	})
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to amesh.CreateAmeshImage")
 	}

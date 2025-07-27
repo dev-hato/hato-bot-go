@@ -33,6 +33,20 @@ type GeocodeResult struct {
 	Name string
 }
 
+// CreateImageRequest レーダー画像作成のリクエスト構造体
+type CreateImageRequest struct {
+	Lat         float64 // 緯度
+	Lng         float64 // 経度
+	Zoom        int     // ズームレベル
+	AroundTiles int     // 周囲のタイル数
+}
+
+// GeocodeRequest ジオコーディングのリクエスト構造体
+type GeocodeRequest struct {
+	Place  string // 地名
+	APIKey string // APIキー
+}
+
 const Version = "1.0"
 
 // handleHTTPResponse HTTPレスポンスの共通処理を行う
@@ -135,7 +149,10 @@ type LightningGeoJSON struct {
 }
 
 // CreateAmeshImageWithClient HTTPクライアントを指定してameshレーダー画像を作成する
-func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroundTiles int) (*image.RGBA, error) {
+func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*image.RGBA, error) {
+	if req == nil {
+		return nil, errors.New("req cannot be nil")
+	}
 	// 最新のタイムスタンプを取得
 	timestamps, err := getLatestTimestampsWithClient(client)
 	if err != nil {
@@ -153,24 +170,24 @@ func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroun
 	}
 
 	// ピクセル座標を計算
-	centerX, centerY := getWebMercatorPixel(lat, lng, zoom)
+	centerX, centerY := getWebMercatorPixel(req.Lat, req.Lng, req.Zoom)
 	centerTileX, centerTileY := getTileFromPixel(centerX, centerY)
 
 	// ベース画像を作成
-	imageSize := (2*aroundTiles + 1) * 256
+	imageSize := (2*req.AroundTiles + 1) * 256
 	img := image.NewRGBA(image.Rect(0, 0, imageSize, imageSize))
 
 	// 白い背景で塗りつぶし
 	draw.Draw(img, img.Bounds(), &image.Uniform{C: color.RGBA{R: 255, G: 255, B: 255, A: 255}}, image.Point{}, draw.Src)
 
 	// タイルをダウンロードして合成
-	for dy := -aroundTiles; dy <= aroundTiles; dy++ {
-		for dx := -aroundTiles; dx <= aroundTiles; dx++ {
+	for dy := -req.AroundTiles; dy <= req.AroundTiles; dy++ {
+		for dx := -req.AroundTiles; dx <= req.AroundTiles; dx++ {
 			tileX := centerTileX + dx
 			tileY := centerTileY + dy
 
 			// ベースマップタイル（OpenStreetMap）をダウンロード
-			baseURL := fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png", zoom, tileX, tileY)
+			baseURL := fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png", req.Zoom, tileX, tileY)
 
 			baseTile, err := downloadTileWithClient(client, baseURL)
 			if err != nil {
@@ -180,15 +197,15 @@ func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroun
 
 			// ベースタイルを描画
 			destRect := image.Rect(
-				(dx+aroundTiles)*256,
-				(dy+aroundTiles)*256,
-				(dx+aroundTiles+1)*256,
-				(dy+aroundTiles+1)*256,
+				(dx+req.AroundTiles)*256,
+				(dy+req.AroundTiles)*256,
+				(dx+req.AroundTiles+1)*256,
+				(dy+req.AroundTiles+1)*256,
 			)
 			draw.Draw(img, destRect, baseTile, image.Point{}, draw.Over)
 
 			// レーダータイルをダウンロードしてオーバーレイ
-			radarURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png", hrpnsTimestamp, hrpnsTimestamp, zoom, tileX, tileY)
+			radarURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png", hrpnsTimestamp, hrpnsTimestamp, req.Zoom, tileX, tileY)
 			radarTile, err := downloadTileWithClient(client, radarURL)
 			if err != nil {
 				log.Printf("レーダータイルのダウンロードに失敗: %v", err)
@@ -202,29 +219,34 @@ func CreateAmeshImageWithClient(client HTTPClient, lat, lng float64, zoom, aroun
 
 	// 距離円を描画
 	for d := 10; d <= 50; d += 10 {
-		drawDistanceCircle(img, lat, lng, float64(d), zoom, aroundTiles, color.RGBA{R: 100, G: 100, B: 100, A: 255})
+		drawDistanceCircle(img, req.Lat, req.Lng, float64(d), req.Zoom, req.AroundTiles, color.RGBA{R: 100, G: 100, B: 100, A: 255})
 	}
 
 	// 落雷マーカーを描画
 	for _, lightning := range lightningData {
-		drawLightningMarker(img, lightning.Lat, lightning.Lng, lat, lng, zoom, aroundTiles)
+		drawLightningMarker(img, lightning.Lat, lightning.Lng, req.Lat, req.Lng, req.Zoom, req.AroundTiles)
 	}
 
 	return img, nil
 }
 
 // CreateAmeshImage ameshレーダー画像を作成する
-func CreateAmeshImage(lat, lng float64, zoom, aroundTiles int) (*image.RGBA, error) {
-	return CreateAmeshImageWithClient(DefaultHTTPClient, lat, lng, zoom, aroundTiles)
+func CreateAmeshImage(req *CreateImageRequest) (*image.RGBA, error) {
+	return CreateAmeshImageWithClient(DefaultHTTPClient, req)
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
-func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, error) {
+func GeocodeWithClient(client HTTPClient, req *GeocodeRequest) (GeocodeResult, error) {
+	if req == nil {
+		return GeocodeResult{}, errors.New("req cannot be nil")
+	}
+
+	place := req.Place
 	if place == "" {
 		place = "東京"
 	}
 
-	requestURL := fmt.Sprintf("https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json", apiKey, url.QueryEscape(place))
+	requestURL := fmt.Sprintf("https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json", req.APIKey, url.QueryEscape(place))
 
 	resp, err := client.Get(requestURL)
 	if err != nil {
@@ -285,7 +307,10 @@ func GeocodeWithClient(client HTTPClient, place, apiKey string) (GeocodeResult, 
 
 // GeocodePlace Yahoo APIを使用して地名を座標に変換する
 func GeocodePlace(place, apiKey string) (GeocodeResult, error) {
-	return GeocodeWithClient(DefaultHTTPClient, place, apiKey)
+	return GeocodeWithClient(DefaultHTTPClient, &GeocodeRequest{
+		Place:  place,
+		APIKey: apiKey,
+	})
 }
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
