@@ -1,0 +1,14 @@
+---
+services:
+  hato-bot-go:
+    build:
+      target: dev
+      cache_from:
+        - ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go-dev:${TAG_NAME}
+        - ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go-dev
+    image: ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go-dev:${TAG_NAME}
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - /app/tmp
