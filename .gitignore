@@ -29,4 +29,8 @@ go.work.sum
 
 # Editor/IDE
 # .idea/
-# .vscode/
+ .vscode/
+
+.DS_Store
+node_modules/
+fly.toml
