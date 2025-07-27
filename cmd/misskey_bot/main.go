@@ -35,6 +35,22 @@ func handleHTTPResponseWithJSON(resp *http.Response, target interface{}) error {
 	return nil
 }
 
+// checkStatusAndDecodeJSON ステータスコードをチェックしJSONをデコードする共通処理
+func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) error {
+	if resp.StatusCode != 200 {
+		if err := resp.Body.Close(); err != nil {
+			return errors.Wrap(err, "Failed to Close")
+		}
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	if err := handleHTTPResponseWithJSON(resp, target); err != nil {
+		return errors.Wrap(err, "Failed to handleHTTPResponseWithJSON")
+	}
+
+	return nil
+}
+
 // MisskeyBot Misskeyボットクライアント
 type MisskeyBot struct {
 	Domain    string
@@ -210,19 +226,12 @@ func (bot *MisskeyBot) CreateNote(text string, fileIDs []string, originalNote *m
 		return nil, errors.Wrap(err, "Failed to apiRequest")
 	}
 
-	if resp.StatusCode != 200 {
-		if err := resp.Body.Close(); err != nil {
-			return nil, errors.Wrap(err, "Failed to Close")
-		}
-		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
-	}
-
 	var result struct {
 		CreatedNote misskey.Note `json:"createdNote"`
 	}
 
-	if err := handleHTTPResponseWithJSON(resp, &result); err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponseWithJSON")
+	if err := checkStatusAndDecodeJSON(resp, &result); err != nil {
+		return nil, errors.Wrap(err, "Failed to checkStatusAndDecodeJSON")
 	}
 
 	return &result.CreatedNote, nil
@@ -276,16 +285,9 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 		return nil, errors.Wrap(err, "Failed to Do")
 	}
 
-	if resp.StatusCode != 200 {
-		if err := resp.Body.Close(); err != nil {
-			return nil, errors.Wrap(err, "Failed to Close")
-		}
-		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
-	}
-
 	var uploadedFile MisskeyFile
-	if err := handleHTTPResponseWithJSON(resp, &uploadedFile); err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponseWithJSON")
+	if err := checkStatusAndDecodeJSON(resp, &uploadedFile); err != nil {
+		return nil, errors.Wrap(err, "Faild to checkStatusAndDecodeJSON")
 	}
 
 	return &uploadedFile, nil

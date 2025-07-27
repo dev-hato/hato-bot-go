@@ -50,6 +50,50 @@ func handleHTTPResponse(resp *http.Response) ([]byte, error) {
 	return body, nil
 }
 
+// makeHTTPRequest HTTPリクエストを送信し、レスポンスボディを取得する共通処理
+func makeHTTPRequest(client HTTPClient, url string) ([]byte, error) {
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to Get")
+	}
+
+	if resp.StatusCode != 200 {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return nil, errors.Wrap(closeErr, "Failed to Close")
+		}
+		return nil, fmt.Errorf("ステータスコード: %d", resp.StatusCode)
+	}
+
+	body, err := handleHTTPResponse(resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
+	}
+
+	return body, nil
+}
+
+// makeHTTPRequestAllowEmpty HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
+func makeHTTPRequestAllowEmpty(client HTTPClient, url string) ([]byte, bool, error) {
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "Failed to Get")
+	}
+
+	if resp.StatusCode != 200 {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return nil, false, errors.Wrap(closeErr, "Failed to Close")
+		}
+		return nil, true, nil // 空のデータを返すことを示すためtrue
+	}
+
+	body, err := handleHTTPResponse(resp)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "Failed to handleHTTPResponse")
+	}
+
+	return body, false, nil
+}
+
 // エラー定数
 var (
 	ErrGeocodingAPIError        = errors.New("geocoding API returned error status")
@@ -240,21 +284,9 @@ func GeocodePlace(place, apiKey string) (GeocodeResult, error) {
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
 func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSONElement, error) {
-	resp, err := client.Get(apiURL)
+	body, err := makeHTTPRequest(client, apiURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Get")
-	}
-
-	if resp.StatusCode != 200 {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			return nil, errors.Wrap(closeErr, "Failed to Close")
-		}
-		return nil, fmt.Errorf("ステータスコード: %d", resp.StatusCode)
-	}
-
-	body, err := handleHTTPResponse(resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
+		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
 	}
 
 	var timeData []TimeJSONElement
@@ -315,21 +347,12 @@ func getLatestTimestampsWithClient(client HTTPClient) (map[string]string, error)
 func getLightningDataWithClient(client HTTPClient, timestamp string) ([]LightningPoint, error) {
 	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
 
-	resp, err := client.Get(apiURL)
+	body, isEmpty, err := makeHTTPRequestAllowEmpty(client, apiURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Get")
+		return nil, errors.Wrap(err, "Failed to makeHTTPRequestAllowEmpty")
 	}
-
-	if resp.StatusCode != 200 {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			return nil, errors.Wrap(closeErr, "Failed to Close")
-		}
+	if isEmpty {
 		return []LightningPoint{}, nil
-	}
-
-	body, err := handleHTTPResponse(resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
 	}
 
 	var geoJSON LightningGeoJSON
