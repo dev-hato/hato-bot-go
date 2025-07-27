@@ -1,0 +1,62 @@
+---
+name: pr-format
+# pull_requestで何かあった時に起動する
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+    branches:
+      - develop
+      - master
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  # PRが来たらformatをかけてみて、差分があればPRを作って、エラーで落ちるjob
+  pr-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        with:
+          # ここでsubmodule持ってくるとdetached headにcommitして死ぬ
+          # submodule: 'recursive'
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@05273c154d09957eb9a2377d9c988fbda431d1c5 # v6.4.0
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: bash "${GITHUB_WORKSPACE}/scripts/uv_install.sh"
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.PROJECT_AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }}
+      # formatする
+      # --exit-codeをつけることで、autopep8内でエラーが起きれば1、差分があれば2のエラーステータスコードが返ってくる。正常時は0が返る
+      - name: Format files
+        id: format
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: bash "${GITHUB_WORKSPACE}/scripts/pr_format/pr_format/format.sh"
+      - uses: dev-hato/actions-diff-pr-management@b3530e809a1948d0187f47a67d4164a47e03d7ec # v2.1.1
+        if: success() || failure()
+        with:
+          github-token: ${{steps.generate_token.outputs.token}}
+          branch-name-prefix: fix-format
+          pr-title-prefix: formatが間違ってたので直してあげたよ！
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true

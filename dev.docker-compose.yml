@@ -1,0 +1,18 @@
+---
+services:
+  hato-bot-go:
+    build:
+      dockerfile: ./Dockerfile
+      context: .
+      target: dev
+      cache_from:
+        - ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go-dev:${TAG_NAME}
+        - ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go-dev
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go-dev:${TAG_NAME}
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - /app/tmp
