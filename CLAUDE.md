@@ -82,7 +82,7 @@ go build -o hato-bot-go cmd/misskey_bot/main.go
 
 このGo実装は以下に焦点を当てています：
 
-- **Misskey**: 自動再接続機能付きWebSocketストリーミング接続
+- **Misskey**: 自動的に再接続する機能付きWebSocketストリーミング接続
 - **スタンドアロンCLI**: テストと開発用の直接コマンドライン実行
 
 ### 外部API

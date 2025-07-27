@@ -7,16 +7,16 @@
 
 - 気象庁APIから最新のレーダーデータを取得
 - Yahoo Maps APIを使用したジオコーディング対応
-- 以下の要素を含む合成画像を生成:
+- 次の要素を含む合成画像を生成：
   - ベースマップタイル (OpenStreetMap)
   - 気象レーダーオーバーレイ
-  - 距離円 (10km, 20km, 30km, 40km, 50km)
+  - 距離円 (10km 〜 50km)
   - 落雷マーカー
 - 地名と座標の両方を入力として受け入れ
 - **Misskeyボット機能**:
   - メンションに自動応答
   - WebSocketストリーミング接続
-  - 自動再接続機能
+  - 自動的に再接続する機能
   - エラーハンドリングと詳細ログ
 
 ## セットアップ
@@ -55,7 +55,7 @@ export MISSKEY_API_TOKEN=your_api_token_here
 
 1. Misskeyインスタンスにログイン
 2. 設定 → API → アクセストークンを生成
-3. 以下の権限を付与：
+3. 次の権限を付与：
    - アカウントの情報を見る
    - ノートを作成・削除する
    - ドライブを操作する
@@ -147,7 +147,7 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 
 ### ameshコマンド
 
-ボットにメンションして以下のコマンドを送信してください：
+ボットにメンションして次のコマンドを送信してください：
 
 ```
 @bot amesh 東京
@@ -166,7 +166,7 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 - **ベースマップ**: OpenStreetMapタイル
 - **気象レーダー**: 気象庁の雨雲データ（透明度付き）
 - **落雷情報**: 落雷発生地点（シアンの円）
-- **距離円**: 中心点から10km, 20km, 30km, 40km, 50kmの円
+- **距離円**: 中心点から10km 〜 50kmの円
 
 ## 実装の詳細
 
@@ -183,11 +183,11 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 - 地理座標とピクセル座標間の座標変換を処理
 - API失敗時のエラーハンドリングを含む
 - WebSocketストリーミング接続（Misskeyボット）
-- 自動再接続機能とエラーハンドリング
+- 自動的に再接続する機能とエラーハンドリング
 
 ## ログ（ボットモード）
 
-ボットは以下のログを出力します：
+ボットは次のログを出力します：
 
 - WebSocket接続状況
 - メンション受信状況
@@ -202,9 +202,9 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 Failed to connect to WebSocket: ...
 ```
 
-- `MISSKEY_DOMAIN`と`MISSKEY_API_TOKEN`が正しく設定されているか確認
+- `MISSKEY_DOMAIN`と`MISSKEY_API_TOKEN`がただしく設定されているか確認
 - Misskeyインスタンスが正常に動作しているか確認
-- APIトークンの権限が正しく設定されているか確認
+- APIトークンの権限がただしく設定されているか確認
 
 ### 画像生成エラー
 
@@ -212,7 +212,7 @@ Failed to connect to WebSocket: ...
 Error creating amesh image: ...
 ```
 
-- `YAHOO_API_TOKEN`が正しく設定されているか確認
+- `YAHOO_API_TOKEN`がただしく設定されているか確認
 - Yahoo APIの利用制限に達していないか確認
 - 気象庁APIが正常に動作しているか確認
 
@@ -236,8 +236,8 @@ Failed to upload file to Misskey: ...
 
 ### 他のプラットフォーム対応
 
-- Slack対応: Slack APIクライアントを追加
-- Discord対応: Discord APIクライアントを追加
+- Slack対応： Slack APIクライアントを追加
+- Discord対応： Discord APIクライアントを追加
 - 統一インターフェースの作成
 
 ## Python版との違い
