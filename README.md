@@ -154,7 +154,7 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 
 ボットにメンションして次のコマンドを送信してください。
 
-```
+```text
 @bot amesh 東京
 @bot amesh 大阪
 @bot amesh 35.6762 139.6503
@@ -204,7 +204,7 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 
 ### WebSocket接続エラー
 
-```
+```text
 Failed to connect to WebSocket: ...
 ```
 
@@ -214,7 +214,7 @@ Failed to connect to WebSocket: ...
 
 ### 画像生成エラー
 
-```
+```text
 Error creating amesh image: ...
 ```
 
@@ -224,7 +224,7 @@ Error creating amesh image: ...
 
 ### ファイルアップロードエラー
 
-```
+```text
 Failed to upload file to Misskey: ...
 ```
 
