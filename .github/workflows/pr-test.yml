@@ -26,6 +26,8 @@ jobs:
         run: bash "${GITHUB_WORKSPACE}/scripts/pr_test/pr_super_lint/npm_ci.sh"
       - name: Lint files
         uses: super-linter/super-linter/slim@12150456a73e248bdc94d0794898f94e23127c88 # v7.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   pr-dotenv-linter:
     runs-on: ubuntu-latest
     steps:
