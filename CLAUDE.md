@@ -190,7 +190,8 @@ go test ./...
 - 英語のコメントは避け、日本語で分かりやすく記述する
 - パッケージレベルのドキュメントコメントも日本語で記述
 
-例：
+#### 例
+
 ```go
 // CreateAmeshImage 気象レーダー画像を作成する
 func CreateAmeshImage(lat, lng float64, zoom, aroundTiles int) (*image.RGBA, error) {
