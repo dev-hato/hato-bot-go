@@ -246,8 +246,8 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 		return nil, errors.Wrap(copyErr, "failed to copy file")
 	}
 
-	if err := writer.Close(); err != nil {
-		return nil, errors.Wrap(err, "failed to close writer")
+	if closeErr := writer.Close(); closeErr != nil {
+		return nil, errors.Wrap(closeErr, "failed to close writer")
 	}
 
 	url := fmt.Sprintf("https://%s/api/drive/files/create", bot.Domain)
