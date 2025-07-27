@@ -67,6 +67,13 @@ type MisskeyFile struct {
 	URL  string `json:"url"`
 }
 
+// Location 位置情報の構造体
+type Location struct {
+	Lat       float64 // 緯度
+	Lng       float64 // 経度
+	PlaceName string  // 地名
+}
+
 // WebSocketMessage WebSocketメッセージの構造体
 type WebSocketMessage struct {
 	Type string      `json:"type"`
@@ -317,14 +324,18 @@ func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
 	return nil
 }
 
-// parseLocation 地名文字列から位置を解析し、座標と地名を返す
-func (bot *MisskeyBot) parseLocation(place, apiKey string) (lat, lng float64, placeName string, err error) {
+// parseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
+func (bot *MisskeyBot) parseLocation(place, apiKey string) (*Location, error) {
 	// 座標が直接提供されているかチェック
 	parts := strings.Fields(place)
 	if len(parts) == 2 {
 		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
 			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
-				return parsedLat, parsedLng, fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng), nil
+				return &Location{
+					Lat:       parsedLat,
+					Lng:       parsedLng,
+					PlaceName: fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng),
+				}, nil
 			}
 		}
 	}
@@ -332,9 +343,13 @@ func (bot *MisskeyBot) parseLocation(place, apiKey string) (lat, lng float64, pl
 	// 地名をジオコーディング
 	result, geocodeErr := amesh.GeocodePlace(place, apiKey)
 	if geocodeErr != nil {
-		return 0, 0, "", errors.Wrap(geocodeErr, "Failed to amesh.GeocodePlace")
+		return nil, errors.Wrap(geocodeErr, "Failed to amesh.GeocodePlace")
 	}
-	return result.Lat, result.Lng, result.Name, nil
+	return &Location{
+		Lat:       result.Lat,
+		Lng:       result.Lng,
+		PlaceName: result.Name,
+	}, nil
 }
 
 // createAndSaveImage amesh画像を作成して一時ファイルに保存する
@@ -385,13 +400,13 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 	}
 
 	// 位置を解析
-	lat, lng, placeName, err := bot.parseLocation(place, apiKey)
+	location, err := bot.parseLocation(place, apiKey)
 	if err != nil {
 		return err
 	}
 
 	// 画像を作成して保存
-	filePath, err := bot.createAndSaveImage(lat, lng, placeName)
+	filePath, err := bot.createAndSaveImage(location.Lat, location.Lng, location.PlaceName)
 	if err != nil {
 		return err
 	}
@@ -403,12 +418,12 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 	}
 
 	// 結果をノートとして投稿
-	text := fmt.Sprintf("📡 %s (%.4f, %.4f) の雨雲レーダー画像だっぽ", placeName, lat, lng)
+	text := fmt.Sprintf("📡 %s (%.4f, %.4f) の雨雲レーダー画像だっぽ", location.PlaceName, location.Lat, location.Lng)
 	if _, err := bot.CreateNote(text, []string{uploadedFile.ID}, note); err != nil {
 		return errors.Wrap(err, "Failed to CreateNote")
 	}
 
-	log.Printf("Successfully processed amesh command for %s", placeName)
+	log.Printf("Successfully processed amesh command for %s", location.PlaceName)
 	return nil
 }
 

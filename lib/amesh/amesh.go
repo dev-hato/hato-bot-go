@@ -72,26 +72,32 @@ func makeHTTPRequest(client HTTPClient, url string) ([]byte, error) {
 	return body, nil
 }
 
+// HTTPRequestResult HTTPリクエストの結果を表す構造体
+type HTTPRequestResult struct {
+	Body    []byte
+	IsEmpty bool
+}
+
 // makeHTTPRequestAllowEmpty HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
-func makeHTTPRequestAllowEmpty(client HTTPClient, url string) ([]byte, bool, error) {
+func makeHTTPRequestAllowEmpty(client HTTPClient, url string) (*HTTPRequestResult, error) {
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Failed to Get")
+		return nil, errors.Wrap(err, "Failed to Get")
 	}
 
 	if resp.StatusCode != 200 {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			return nil, false, errors.Wrap(closeErr, "Failed to Close")
+			return nil, errors.Wrap(closeErr, "Failed to Close")
 		}
-		return nil, true, nil // 空のデータを返すことを示すためtrue
+		return &HTTPRequestResult{Body: nil, IsEmpty: true}, nil
 	}
 
 	body, err := handleHTTPResponse(resp)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Failed to handleHTTPResponse")
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
 	}
 
-	return body, false, nil
+	return &HTTPRequestResult{Body: body, IsEmpty: false}, nil
 }
 
 // エラー定数
@@ -347,16 +353,16 @@ func getLatestTimestampsWithClient(client HTTPClient) (map[string]string, error)
 func getLightningDataWithClient(client HTTPClient, timestamp string) ([]LightningPoint, error) {
 	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
 
-	body, isEmpty, err := makeHTTPRequestAllowEmpty(client, apiURL)
+	result, err := makeHTTPRequestAllowEmpty(client, apiURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequestAllowEmpty")
 	}
-	if isEmpty {
+	if result.IsEmpty {
 		return []LightningPoint{}, nil
 	}
 
 	var geoJSON LightningGeoJSON
-	if err := json.Unmarshal(body, &geoJSON); err != nil {
+	if err := json.Unmarshal(result.Body, &geoJSON); err != nil {
 		return nil, errors.Wrap(err, "Failed to json.Unmarshal")
 	}
 
