@@ -148,12 +148,6 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - name: Get Python version
-        id: get_python_version
-        if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        run: bash "${GITHUB_WORKSPACE}/scripts/deploy_hato_bot/update_version_python_version/get_python_version.sh"
-        env:
-          HEAD_REF: ${{github.head_ref || github.event.release.tag_name}}
       - uses: dev-hato/actions-diff-pr-management@b3530e809a1948d0187f47a67d4164a47e03d7ec # v2.1.1
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
