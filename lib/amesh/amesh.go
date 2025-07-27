@@ -353,7 +353,7 @@ func getWebMercatorPixel(lat, lng float64, zoom int) (float64, float64) {
 	if zoom < 0 || zoom > 30 {
 		return 0, 0
 	}
-	zoomFactor := float64(1 << zoom)
+	zoomFactor := float64(1 << uint(zoom))
 	x := 256.0 * zoomFactor * (lng + 180) / 360.0
 	y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(lat)/2))/(2.0*math.Pi))
 	return x, y
