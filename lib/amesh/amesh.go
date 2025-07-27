@@ -47,6 +47,13 @@ type GeocodeRequest struct {
 	APIKey string // APIキー
 }
 
+type drawDistanceCircleParams struct {
+	Img                *image.RGBA
+	CreateImageRequest *CreateImageRequest
+	RadiusKm           float64
+	Col                color.RGBA
+}
+
 type drawLineParams struct {
 	Img *image.RGBA
 	X1  int
@@ -234,7 +241,13 @@ func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*im
 
 	// 距離円を描画
 	for d := 10; d <= 50; d += 10 {
-		drawDistanceCircle(img, req.Lat, req.Lng, float64(d), req.Zoom, req.AroundTiles, color.RGBA{R: 100, G: 100, B: 100, A: 255})
+		drawDistanceCircle(
+			&drawDistanceCircleParams{
+				Img:                img,
+				CreateImageRequest: req,
+				RadiusKm:           float64(d),
+				Col:                color.RGBA{R: 100, G: 100, B: 100, A: 255},
+			})
 	}
 
 	// 落雷マーカーを描画
@@ -476,7 +489,7 @@ func downloadTileWithClient(client HTTPClient, tileURL string) (image.Image, err
 }
 
 // drawDistanceCircle 画像上に距離円を描画する
-func drawDistanceCircle(img *image.RGBA, centerLat, centerLng, radiusKm float64, zoom, aroundTiles int, col color.RGBA) {
+func drawDistanceCircle(params *drawDistanceCircleParams) {
 	// 線分で円を近似
 	numSegments := 64
 	earthRadius := 6371.0 // 地球半径（キロメートル）
@@ -486,31 +499,31 @@ func drawDistanceCircle(img *image.RGBA, centerLat, centerLng, radiusKm float64,
 		angle2 := float64(i+1) * 2 * math.Pi / float64(numSegments)
 
 		// 円上の点を計算
-		lat1 := centerLat + (radiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
-		lng1 := centerLng + (radiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(centerLat))
+		lat1 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
+		lng1 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
 
-		lat2 := centerLat + (radiusKm/earthRadius)*math.Cos(angle2)*180/math.Pi
-		lng2 := centerLng + (radiusKm/earthRadius)*math.Sin(angle2)*180/math.Pi/math.Cos(deg2rad(centerLat))
+		lat2 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle2)*180/math.Pi
+		lng2 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle2)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
 
 		// ピクセル座標に変換
 		x1, y1 := getWebMercatorPixel(&CreateImageRequest{
 			Lat:  lat1,
 			Lng:  lng1,
-			Zoom: zoom,
+			Zoom: params.CreateImageRequest.Zoom,
 		})
 		x2, y2 := getWebMercatorPixel(&CreateImageRequest{
 			Lat:  lat2,
 			Lng:  lng2,
-			Zoom: zoom,
+			Zoom: params.CreateImageRequest.Zoom,
 		})
 
 		// 画像座標に変換
 		centerX, centerY := getWebMercatorPixel(&CreateImageRequest{
-			Lat:  centerLat,
-			Lng:  centerLng,
-			Zoom: zoom,
+			Lat:  params.CreateImageRequest.Lat,
+			Lng:  params.CreateImageRequest.Lng,
+			Zoom: params.CreateImageRequest.Zoom,
 		})
-		imageSize := (2*aroundTiles + 1) * 256
+		imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
 
 		imgX1 := int(x1 - centerX + float64(imageSize/2))
 		imgY1 := int(y1 - centerY + float64(imageSize/2))
@@ -519,12 +532,12 @@ func drawDistanceCircle(img *image.RGBA, centerLat, centerLng, radiusKm float64,
 
 		// 線分を描画
 		drawLine(&drawLineParams{
-			Img: img,
+			Img: params.Img,
 			X1:  imgX1,
 			Y1:  imgY1,
 			X2:  imgX2,
 			Y2:  imgY2,
-			Col: col,
+			Col: params.Col,
 		})
 	}
 }
