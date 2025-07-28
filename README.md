@@ -214,12 +214,6 @@ Failed to upload file to Misskey: ...
 2. 対応する処理関数を`MisskeyBot`に追加
 3. `messageHandler`で新しいコマンドを処理
 
-### 他のプラットフォーム対応
-
-- Slack対応： Slack APIクライアントを追加
-- Discord対応： Discord APIクライアントを追加
-- 統一インターフェースの作成
-
 ## Python版との違い
 
 - 簡素化された画像処理（複雑なマップスタイリングなし）
