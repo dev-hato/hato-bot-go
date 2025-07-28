@@ -74,6 +74,76 @@ func mockResponse(statusCode int, body string) *http.Response {
 	}
 }
 
+// createPNGResponse PNGファイル用のHTTPレスポンスを作成
+func createPNGResponse(dummyTileBytes []byte) *http.Response {
+	return &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
+		Header:     make(http.Header),
+	}
+}
+
+// HTTPMockConfig モックHTTPクライアントの設定
+type HTTPMockConfig struct {
+	TimestampsResponse string
+	LightningResponse  string
+	DummyTileBytes     []byte
+}
+
+// createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
+func createConfigurableMockHTTPClient(config HTTPMockConfig) *MockHTTPClient {
+	return &MockHTTPClient{
+		GetFunc: func(url string) (*http.Response, error) {
+			switch {
+			case strings.Contains(url, "targetTimes"):
+				if config.TimestampsResponse == "" {
+					return mockResponse(500, "Internal Server Error"), nil
+				}
+				return mockResponse(200, config.TimestampsResponse), nil
+			case strings.Contains(url, "liden/data.geojson"):
+				if config.LightningResponse == "" {
+					return mockResponse(404, "Not Found"), nil
+				}
+				return mockResponse(200, config.LightningResponse), nil
+			case strings.Contains(url, ".png"):
+				return createPNGResponse(config.DummyTileBytes), nil
+			default:
+				return mockResponse(404, "Not Found"), nil
+			}
+		},
+		DoFunc: func(req *http.Request) (*http.Response, error) {
+			if strings.Contains(req.URL.String(), ".png") {
+				return createPNGResponse(config.DummyTileBytes), nil
+			}
+			return mockResponse(404, "Not Found"), nil
+		},
+	}
+}
+
+// createStandardMockHTTPClient 標準的なモックHTTPクライアントを作成
+func createStandardMockHTTPClient(dummyTileBytes []byte) *MockHTTPClient {
+	return createConfigurableMockHTTPClient(HTTPMockConfig{
+		TimestampsResponse: `[
+			{
+				"basetime": "20240101120000",
+				"validtime": "20240101120000", 
+				"elements": ["hrpns_nd", "liden"]
+			}
+		]`,
+		LightningResponse: `{"features": []}`,
+		DummyTileBytes:    dummyTileBytes,
+	})
+}
+
+// createSimpleMockHTTPClient シンプルなモックHTTPクライアントを作成
+func createSimpleMockHTTPClient(responseCode int, responseBody string) *MockHTTPClient {
+	return &MockHTTPClient{
+		GetFunc: func(_ string) (*http.Response, error) {
+			return mockResponse(responseCode, responseBody), nil
+		},
+	}
+}
+
 // TestGeocodeWithClient GeocodeWithClient関数をモックHTTPレスポンスでテストする
 func TestGeocodeWithClient(t *testing.T) {
 	tests := []struct {
@@ -174,11 +244,7 @@ func TestGeocodeWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := &MockHTTPClient{
-				GetFunc: func(_ string) (*http.Response, error) {
-					return mockResponse(tt.responseCode, tt.responseBody), nil
-				},
-			}
+			mockClient := createSimpleMockHTTPClient(tt.responseCode, tt.responseBody)
 
 			result, err := amesh.GeocodeWithClient(mockClient, &amesh.GeocodeRequest{
 				Place:  tt.place,
@@ -226,40 +292,11 @@ type testCase struct {
 
 // createMockClient テスト用のモックHTTPクライアントを作成する
 func createMockClient(tc testCase, dummyTileBytes []byte) *MockHTTPClient {
-	return &MockHTTPClient{
-		GetFunc: func(url string) (*http.Response, error) {
-			switch {
-			case strings.Contains(url, "targetTimes"):
-				if tc.timestampsResponse == "" {
-					return mockResponse(500, "Internal Server Error"), nil
-				}
-				return mockResponse(200, tc.timestampsResponse), nil
-			case strings.Contains(url, "liden/data.geojson"):
-				if tc.lightningResponse == "" {
-					return mockResponse(404, "Not Found"), nil
-				}
-				return mockResponse(200, tc.lightningResponse), nil
-			case strings.Contains(url, ".png"):
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
-					Header:     make(http.Header),
-				}, nil
-			default:
-				return mockResponse(404, "Not Found"), nil
-			}
-		},
-		DoFunc: func(req *http.Request) (*http.Response, error) {
-			if strings.Contains(req.URL.String(), ".png") {
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
-					Header:     make(http.Header),
-				}, nil
-			}
-			return mockResponse(404, "Not Found"), nil
-		},
-	}
+	return createConfigurableMockHTTPClient(HTTPMockConfig{
+		TimestampsResponse: tc.timestampsResponse,
+		LightningResponse:  tc.lightningResponse,
+		DummyTileBytes:     dummyTileBytes,
+	})
 }
 
 // validateImageResult CreateAmeshImageWithClientの結果を検証する
@@ -508,40 +545,7 @@ func TestCreateAndSaveImageWithClient(t *testing.T) {
 			}
 
 			// モックHTTPクライアントを作成
-			mockHTTPClient := &MockHTTPClient{
-				GetFunc: func(url string) (*http.Response, error) {
-					switch {
-					case strings.Contains(url, "targetTimes"):
-						return mockResponse(200, `[
-							{
-								"basetime": "20240101120000",
-								"validtime": "20240101120000", 
-								"elements": ["hrpns_nd", "liden"]
-							}
-						]`), nil
-					case strings.Contains(url, "liden/data.geojson"):
-						return mockResponse(200, `{"features": []}`), nil
-					case strings.Contains(url, ".png"):
-						return &http.Response{
-							StatusCode: 200,
-							Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
-							Header:     make(http.Header),
-						}, nil
-					default:
-						return mockResponse(404, "Not Found"), nil
-					}
-				},
-				DoFunc: func(req *http.Request) (*http.Response, error) {
-					if strings.Contains(req.URL.String(), ".png") {
-						return &http.Response{
-							StatusCode: 200,
-							Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
-							Header:     make(http.Header),
-						}, nil
-					}
-					return mockResponse(404, "Not Found"), nil
-				},
-			}
+			mockHTTPClient := createStandardMockHTTPClient(dummyTileBytes)
 
 			// モックファイルライターを作成
 			mockFileWriter := &MockFileWriter{
@@ -662,11 +666,7 @@ func TestParseLocationWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := &MockHTTPClient{
-				GetFunc: func(_ string) (*http.Response, error) {
-					return mockResponse(tt.responseCode, tt.responseBody), nil
-				},
-			}
+			mockClient := createSimpleMockHTTPClient(tt.responseCode, tt.responseBody)
 
 			result, err := amesh.ParseLocationWithClient(mockClient, tt.place, tt.apiKey)
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
