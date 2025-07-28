@@ -74,6 +74,14 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
       - run: echo 'TAG_NAME=${{ github.event.release.tag_name }}' >> "$GITHUB_ENV"
         if: ${{ github.event_name == 'release' }}
+      - name: Build and push (dev)
+        uses: docker/bake-action@37816e747588cb137173af99ab33873600c46ea8 # v6.8.0
+        env:
+          DOCKER_CONTENT_TRUST: 1
+        with:
+          push: true
+          files: docker-compose.yml,dev.docker-compose.yml
+          source: .
       - name: Build and push (main)
         uses: docker/bake-action@37816e747588cb137173af99ab33873600c46ea8 # v6.8.0
         env:
@@ -84,6 +92,15 @@ jobs:
           source: .
       - run: echo 'TAG_NAME=latest' >> "$GITHUB_ENV"
         if: ${{ github.event_name == 'release' }}
+      - name: Build and push (dev) (latest)
+        uses: docker/bake-action@37816e747588cb137173af99ab33873600c46ea8 # v6.8.0
+        if: ${{ github.event_name == 'release' }}
+        env:
+          DOCKER_CONTENT_TRUST: 1
+        with:
+          push: true
+          files: docker-compose.yml,dev.docker-compose.yml
+          source: .
       - name: Build and push (main) (latest)
         uses: docker/bake-action@37816e747588cb137173af99ab33873600c46ea8 # v6.8.0
         if: ${{ github.event_name == 'release' }}
