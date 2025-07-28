@@ -40,7 +40,7 @@ export TAG_NAME=$(git symbolic-ref --short HEAD | sed -e "s:/:-:g")
 docker compose up -d --wait
 
 # 自動リロード付き開発モード
-docker compose -f docker-compose.yml -f build.docker-compose.yml -f dev.docker-compose.yml up --build
+docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 ```
 
 ### テストとリンティング
