@@ -34,3 +34,6 @@ go.work.sum
 .DS_Store
 node_modules/
 fly.toml
+hato-bot-go
+hato-bot-go-misskey-bot
+amesh_*.png
