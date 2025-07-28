@@ -204,6 +204,36 @@ func CreateAmeshImage(lat, lng float64, zoom, aroundTiles int) (*image.RGBA, err
 }
 ```
 
+### 関数設計の原則
+
+- **context.Context型の引数を除いたメソッドの引数が3つ以上ある場合はそれらを構造体としてまとめる**
+  - 引数の数を減らし、可読性を向上させる
+  - 引数の順序に依存しない設計にする
+  - 構造体のフィールドには適切な日本語コメントを付ける
+
+- **errorを除いたメソッドの返り値が2つ以上ある場合はそれらを構造体としてまとめる**
+  - 返り値の意味を明確にする
+  - 将来の拡張に対して柔軟性を保つ
+  - 構造体のフィールドには適切な日本語コメントを付ける
+
+#### 例
+
+```go
+// DrawCircleRequest 円の描画リクエスト構造体
+type DrawCircleRequest struct {
+    Img      *image.RGBA // 描画対象の画像
+    CenterX  int         // 中心のX座標
+    CenterY  int         // 中心のY座標
+    Radius   int         // 半径
+    Color    color.RGBA  // 描画色
+}
+
+// DrawCircle 円を描画する
+func DrawCircle(ctx context.Context, req *DrawCircleRequest) error {
+    // 実装...
+}
+```
+
 ## 開発ノート
 
 - **Goモジュール**: Go 1.24とモジュール依存関係管理を使用
