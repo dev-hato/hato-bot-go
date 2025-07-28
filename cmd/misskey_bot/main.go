@@ -377,7 +377,11 @@ func (bot *MisskeyBot) createAndSaveImage(location *Location) (string, error) {
 		return "", errors.Wrap(err, "Failed to amesh.CreateAmeshImage")
 	}
 
-	filename := fmt.Sprintf("amesh_%s_%d.png", strings.ReplaceAll(location.PlaceName, " ", "_"), time.Now().Unix())
+	filename := fmt.Sprintf(
+		"amesh_%s_%d.png",
+		strings.ReplaceAll(location.PlaceName, " ", "_"),
+		time.Now().Unix(),
+	)
 	filePath := "/tmp/" + filename
 
 	file, err := os.Create(filePath)
@@ -433,7 +437,12 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 	}
 
 	// 結果をノートとして投稿
-	text := fmt.Sprintf("📡 %s (%.4f, %.4f) の雨雲レーダー画像だっぽ", location.PlaceName, location.Lat, location.Lng)
+	text := fmt.Sprintf(
+		"📡 %s (%.4f, %.4f) の雨雲レーダー画像だっぽ",
+		location.PlaceName,
+		location.Lat,
+		location.Lng,
+	)
 	if _, err := bot.CreateNote(&CreateNoteRequest{
 		Text:         text,
 		FileIDs:      []string{uploadedFile.ID},
