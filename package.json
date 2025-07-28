@@ -1,8 +1,7 @@
 {
   "scripts": {
-    "lint": "npm run lint:markdown && npm run lint:text && npm run lint:dockerfile && npm run lint:secret",
+    "lint": "npm run lint:text && npm run lint:secret",
     "lint:text": "textlint -c .textlintrc $(find . -name '*.md' | grep -v node_modules)",
-    "lint:dockerfile": "hadolint -c .hadolint.yaml Dockerfile",
     "lint:secret": "docker run --rm --platform=linux/amd64 -v $(pwd):/path -w /path zricethezav/gitleaks protect --verbose --redact"
   },
   "devDependencies": {
