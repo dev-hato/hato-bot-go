@@ -181,6 +181,45 @@ go test ./...
 - **Execute**: テスト値の作成・実行
 - **Verify**: assertEqualなどでの検証
 
+### テストでのモック使用原則
+
+外部依存関係を持つ機能をテストする際は、実際の外部リソースにアクセスしないよう**依存関係注入とモック**を使用する：
+
+- **HTTPリクエストを伴うテスト**: `HTTPClient`インターフェースを通してモックHTTPクライアントを注入し、実際のAPIコールを回避する
+- **ファイル書き込みを伴うテスト**: `FileWriter`インターフェースを通してモックファイルライターを注入し、実際のファイル操作を回避する
+- **データベースアクセスを伴うテスト**: データベースインターフェースを通してモック実装を注入する
+- **外部サービス呼び出しを伴うテスト**: サービスインターフェースを通してモック実装を注入する
+
+#### モックテストの例
+
+```go
+// MockHTTPClient テスト用のHTTPクライアントモック
+type MockHTTPClient struct {
+    GetFunc func(url string) (*http.Response, error)
+}
+
+func (m *MockHTTPClient) Get(url string) (*http.Response, error) {
+    if m.GetFunc != nil {
+        return m.GetFunc(url)
+    }
+    return nil, nil
+}
+
+// MockFileWriter テスト用のファイルライターモック
+type MockFileWriter struct {
+    CreateFunc func(name string) (io.WriteCloser, error)
+}
+
+func (m *MockFileWriter) Create(name string) (io.WriteCloser, error) {
+    if m.CreateFunc != nil {
+        return m.CreateFunc(name)
+    }
+    return &MockWriteCloser{}, nil
+}
+```
+
+この原則により、テストは高速で予測可能になり、外部依存関係の影響を受けずに実行できる。
+
 ## コーディング規約
 
 ### コメント記述
