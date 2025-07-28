@@ -190,7 +190,7 @@ go test ./...
 - 英語のコメントは避け、日本語で分かりやすく記述する
 - パッケージレベルのドキュメントコメントも日本語で記述
 
-#### 例
+#### コメント記述の例
 
 ```go
 // CreateAmeshImage 気象レーダー画像を作成する
@@ -208,7 +208,7 @@ func CreateAmeshImage(lat, lng float64, zoom, aroundTiles int) (*image.RGBA, err
 
 - **context.Context型の引数を除いたメソッドの引数が3つ以上ある場合はそれらを構造体としてまとめる**
   - 引数の数を減らし、可読性を向上させる
-  - 引数の順序に依存しない設計にする
+  - 引数の順序に依存しないよう設計する
   - 構造体のフィールドには適切な日本語コメントを付ける
 
 - **errorを除いたメソッドの返り値が2つ以上ある場合はそれらを構造体としてまとめる**
@@ -216,7 +216,7 @@ func CreateAmeshImage(lat, lng float64, zoom, aroundTiles int) (*image.RGBA, err
   - 将来の拡張に対して柔軟性を保つ
   - 構造体のフィールドには適切な日本語コメントを付ける
 
-#### 例
+#### 関数設計の原則の例
 
 ```go
 // DrawCircleRequest 円の描画リクエスト構造体
