@@ -86,36 +86,14 @@ func handleHTTPResponse(resp *http.Response) ([]byte, error) {
 	return body, nil
 }
 
-// makeHTTPRequest HTTPリクエストを送信し、レスポンスボディを取得する共通処理
-func makeHTTPRequest(client HTTPClient, url string) ([]byte, error) {
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Get")
-	}
-
-	if resp.StatusCode != 200 {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			return nil, errors.Wrap(closeErr, "Failed to Close")
-		}
-		return nil, fmt.Errorf("ステータスコード: %d", resp.StatusCode)
-	}
-
-	body, err := handleHTTPResponse(resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
-	}
-
-	return body, nil
-}
-
 // HTTPRequestResult HTTPリクエストの結果を表す構造体
 type HTTPRequestResult struct {
 	Body    []byte
 	IsEmpty bool
 }
 
-// makeHTTPRequestAllowEmpty HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
-func makeHTTPRequestAllowEmpty(client HTTPClient, url string) (*HTTPRequestResult, error) {
+// makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
+func makeHTTPRequest(client HTTPClient, url string) (*HTTPRequestResult, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Get")
@@ -351,9 +329,12 @@ func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSO
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
 	}
+	if body.Body == nil {
+		return nil, errors.New("Body is nil")
+	}
 
 	var timeData []TimeJSONElement
-	if err := json.Unmarshal(body, &timeData); err != nil {
+	if err := json.Unmarshal(body.Body, &timeData); err != nil {
 		return nil, errors.Wrap(err, "Failed to json.Unmarshal")
 	}
 
@@ -410,9 +391,9 @@ func getLatestTimestampsWithClient(client HTTPClient) (map[string]string, error)
 func getLightningDataWithClient(client HTTPClient, timestamp string) ([]LightningPoint, error) {
 	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
 
-	result, err := makeHTTPRequestAllowEmpty(client, apiURL)
+	result, err := makeHTTPRequest(client, apiURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to makeHTTPRequestAllowEmpty")
+		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
 	}
 	if result.IsEmpty {
 		return []LightningPoint{}, nil
