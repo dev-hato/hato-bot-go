@@ -1,11 +1,7 @@
 {
   "extends": ["github>dev-hato/renovate-config"],
-  "ignoreDeps": ["pyink", "node-fetch"],
+  "ignoreDeps": ["node-fetch"],
   "packageRules": [
-    {
-      "matchPackageNames": ["ghcr.io/astral-sh/uv"],
-      "prPriority": 10
-    },
     {
       "groupName": "slack",
       "matchPackageNames": ["slack-bolt", "slack-sdk"]
