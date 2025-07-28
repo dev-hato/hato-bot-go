@@ -12,8 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -195,12 +193,12 @@ func (bot *MisskeyBot) Listen(messageHandler func(note *misskey.Note)) error {
 }
 
 // CreateNote ノートを作成
-func (bot *MisskeyBot) CreateNote(req *CreateNoteRequest) (*misskey.Note, error) {
+func (bot *MisskeyBot) CreateNote(req *CreateNoteRequest) error {
 	if req == nil {
-		return nil, errors.New("req cannot be nil")
+		return errors.New("req cannot be nil")
 	}
 	if req.OriginalNote == nil {
-		return nil, errors.New("originalNote cannot be nil")
+		return errors.New("originalNote cannot be nil")
 	}
 
 	// noteから必要な情報を取得
@@ -232,7 +230,7 @@ func (bot *MisskeyBot) CreateNote(req *CreateNoteRequest) (*misskey.Note, error)
 
 	resp, err := bot.apiRequest("notes/create", data)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to apiRequest")
+		return errors.Wrap(err, "Failed to apiRequest")
 	}
 
 	var result struct {
@@ -240,10 +238,10 @@ func (bot *MisskeyBot) CreateNote(req *CreateNoteRequest) (*misskey.Note, error)
 	}
 
 	if err := checkStatusAndDecodeJSON(resp, &result); err != nil {
-		return nil, errors.Wrap(err, "Failed to checkStatusAndDecodeJSON")
+		return errors.Wrap(err, "Failed to checkStatusAndDecodeJSON")
 	}
 
-	return &result.CreatedNote, nil
+	return nil
 }
 
 // UploadFile ファイルをアップロード
@@ -326,34 +324,6 @@ func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
 	return nil
 }
 
-// parseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
-func (bot *MisskeyBot) parseLocation(place, apiKey string) (*amesh.Location, error) {
-	// 座標が直接提供されているかチェック
-	parts := strings.Fields(place)
-	if len(parts) == 2 {
-		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
-			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
-				return &amesh.Location{
-					Lat:       parsedLat,
-					Lng:       parsedLng,
-					PlaceName: fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng),
-				}, nil
-			}
-		}
-	}
-
-	// 地名をジオコーディング
-	result, geocodeErr := amesh.GeocodePlace(place, apiKey)
-	if geocodeErr != nil {
-		return nil, errors.Wrap(geocodeErr, "Failed to amesh.GeocodePlace")
-	}
-	return &amesh.Location{
-		Lat:       result.Lat,
-		Lng:       result.Lng,
-		PlaceName: result.Name,
-	}, nil
-}
-
 // ProcessAmeshCommand ameshコマンドを処理
 func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) error {
 	if note == nil {
@@ -372,10 +342,12 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 	}
 
 	// 位置を解析
-	location, err := bot.parseLocation(place, apiKey)
+	location, err := amesh.ParseLocation(place, apiKey)
 	if err != nil {
-		return errors.Wrap(err, "Failed to parseLocation")
+		return errors.Wrap(err, "Failed to amesh.ParseLocation")
 	}
+
+	fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 	// 画像を作成して保存
 	filePath, err := amesh.CreateAndSaveImage(location, "/tmp")
@@ -396,7 +368,7 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 		location.Lat,
 		location.Lng,
 	)
-	if _, err := bot.CreateNote(&CreateNoteRequest{
+	if err := bot.CreateNote(&CreateNoteRequest{
 		Text:         text,
 		FileIDs:      []string{uploadedFile.ID},
 		OriginalNote: note,
@@ -406,11 +378,6 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 
 	log.Printf("Successfully processed amesh command for %s", location.PlaceName)
 	return nil
-}
-
-// parseFloat64 文字列をfloat64に変換
-func parseFloat64(s string) (float64, error) {
-	return strconv.ParseFloat(s, 64)
 }
 
 // statusHandler /statusエンドポイントのハンドラー
@@ -490,7 +457,7 @@ func main() {
 			log.Printf("Error processing amesh command: %v", err)
 
 			// エラーメッセージを投稿
-			if _, replyErr := bot.CreateNote(&CreateNoteRequest{
+			if replyErr := bot.CreateNote(&CreateNoteRequest{
 				Text:         "申し訳ないっぽ。ameshコマンドの処理中にエラーが発生したっぽ",
 				FileIDs:      nil,
 				OriginalNote: note,

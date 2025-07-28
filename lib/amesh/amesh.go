@@ -373,6 +373,34 @@ func GeocodePlace(place, apiKey string) (GeocodeResult, error) {
 	})
 }
 
+// ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
+func ParseLocation(place, apiKey string) (*Location, error) {
+	// 座標が直接提供されているかチェック
+	parts := strings.Fields(place)
+	if len(parts) == 2 {
+		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
+			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
+				return &Location{
+					Lat:       parsedLat,
+					Lng:       parsedLng,
+					PlaceName: fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng),
+				}, nil
+			}
+		}
+	}
+
+	// 地名をジオコーディング
+	result, geocodeErr := GeocodePlace(place, apiKey)
+	if geocodeErr != nil {
+		return nil, errors.Wrap(geocodeErr, "Failed to GeocodePlace")
+	}
+	return &Location{
+		Lat:       result.Lat,
+		Lng:       result.Lng,
+		PlaceName: result.Name,
+	}, nil
+}
+
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
 func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSONElement, error) {
 	body, err := makeHTTPRequest(client, apiURL)
@@ -651,4 +679,9 @@ func drawLightningMarker(params *drawLightningMarkerParams) {
 			}
 		}
 	}
+}
+
+// parseFloat64 文字列をfloat64に変換
+func parseFloat64(s string) (float64, error) {
+	return strconv.ParseFloat(s, 64)
 }
