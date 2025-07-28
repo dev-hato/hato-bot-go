@@ -365,16 +365,8 @@ func GeocodeWithClient(client HTTPClient, req *GeocodeRequest) (GeocodeResult, e
 	}, nil
 }
 
-// GeocodePlace Yahoo APIを使用して地名を座標に変換する
-func GeocodePlace(place, apiKey string) (GeocodeResult, error) {
-	return GeocodeWithClient(DefaultHTTPClient, &GeocodeRequest{
-		Place:  place,
-		APIKey: apiKey,
-	})
-}
-
-// ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocation(place, apiKey string) (*Location, error) {
+// ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
+func ParseLocationWithClient(client HTTPClient, place, apiKey string) (*Location, error) {
 	// 座標が直接提供されているかチェック
 	parts := strings.Fields(place)
 	if len(parts) == 2 {
@@ -390,15 +382,23 @@ func ParseLocation(place, apiKey string) (*Location, error) {
 	}
 
 	// 地名をジオコーディング
-	result, geocodeErr := GeocodePlace(place, apiKey)
+	result, geocodeErr := GeocodeWithClient(client, &GeocodeRequest{
+		Place:  place,
+		APIKey: apiKey,
+	})
 	if geocodeErr != nil {
-		return nil, errors.Wrap(geocodeErr, "Failed to GeocodePlace")
+		return nil, errors.Wrap(geocodeErr, "Failed to GeocodeWithClient")
 	}
 	return &Location{
 		Lat:       result.Lat,
 		Lng:       result.Lng,
 		PlaceName: result.Name,
 	}, nil
+}
+
+// ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
+func ParseLocation(place, apiKey string) (*Location, error) {
+	return ParseLocationWithClient(DefaultHTTPClient, place, apiKey)
 }
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する

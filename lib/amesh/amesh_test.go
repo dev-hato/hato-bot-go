@@ -426,3 +426,139 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 		})
 	}
 }
+
+// TestCreateAndSaveImage CreateAndSaveImage関数をテストする
+func TestCreateAndSaveImage(t *testing.T) {
+	tests := []struct {
+		name        string
+		location    *amesh.Location
+		basePath    string
+		expectError bool
+	}{
+		{
+			name: "正しいパス",
+			location: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "東京",
+			},
+			basePath:    "/tmp",
+			expectError: false,
+		},
+		{
+			name:        "nilロケーション",
+			location:    nil,
+			basePath:    "/tmp",
+			expectError: true,
+		},
+		{
+			name: "無効なパス",
+			location: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "東京",
+			},
+			basePath:    "/invalid/path/that/does/not/exist",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := amesh.CreateAndSaveImage(tt.location, tt.basePath)
+			if (err != nil) != tt.expectError {
+				t.Errorf("CreateAndSaveImage() error = %v, expectError %v", err, tt.expectError)
+			}
+		})
+	}
+}
+
+// TestParseLocationWithClient ParseLocationWithClient関数をモックHTTPクライアントでテストする
+func TestParseLocationWithClient(t *testing.T) {
+	tests := []struct {
+		name         string
+		place        string
+		apiKey       string
+		responseCode int
+		responseBody string
+		expectError  error
+		expected     *amesh.Location
+	}{
+		{
+			name:        "座標文字列の解析",
+			place:       "35.6895 139.6917",
+			apiKey:      "dummy_key",
+			expectError: nil,
+			expected: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "35.69,139.69",
+			},
+		},
+		{
+			name:         "無効な座標文字列",
+			place:        "invalid coordinates",
+			apiKey:       "test_key",
+			responseCode: 400,
+			responseBody: `{"Error": "Invalid place"}`,
+			expectError:  errors.New("geocoding API returned error status"),
+		},
+		{
+			name:         "成功したジオコーディング",
+			place:        "東京",
+			apiKey:       "test_key",
+			responseCode: 200,
+			responseBody: `{
+				"Feature": [
+					{
+						"Name": "東京都",
+						"Geometry": {
+							"Coordinates": "139.6917,35.6895"
+						}
+					}
+				]
+			}`,
+			expectError: nil,
+			expected: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "東京都",
+			},
+		},
+		{
+			name:         "APIエラー",
+			place:        "東京",
+			apiKey:       "invalid_key",
+			responseCode: 400,
+			responseBody: `{"Error": "Invalid API key"}`,
+			expectError:  errors.New("geocoding API returned error status"),
+		},
+		{
+			name:         "結果が見つからない",
+			place:        "nonexistent place",
+			apiKey:       "test_key",
+			responseCode: 200,
+			responseBody: `{"Feature": []}`,
+			expectError:  errors.New("no results found for place"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &MockHTTPClient{
+				GetFunc: func(_ string) (*http.Response, error) {
+					return mockResponse(tt.responseCode, tt.responseBody), nil
+				},
+			}
+
+			result, err := amesh.ParseLocationWithClient(mockClient, tt.place, tt.apiKey)
+			if diff := cmp.Diff(result, tt.expected); diff != "" {
+				t.Errorf("ParseLocationWithClient() diff: %s", diff)
+			}
+			if !errors.Is(err, tt.expectError) {
+				t.Errorf("ParseLocationWithClient() error = %v, expectError %v", err, tt.expectError)
+				return
+			}
+		})
+	}
+}
