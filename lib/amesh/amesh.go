@@ -27,8 +27,24 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// FileWriter はファイル書き込み操作を行うインターフェース
+type FileWriter interface {
+	Create(name string) (io.WriteCloser, error)
+}
+
+// OSFileWriter は実際のファイルシステムを使用するFileWriterの実装
+type OSFileWriter struct{}
+
+// Create 実際のファイルを作成する
+func (w *OSFileWriter) Create(name string) (io.WriteCloser, error) {
+	return os.Create(name)
+}
+
 // DefaultHTTPClient はデフォルトのHTTPクライアント
 var DefaultHTTPClient HTTPClient = &http.Client{}
+
+// DefaultFileWriter はデフォルトのファイルライター
+var DefaultFileWriter FileWriter = &OSFileWriter{}
 
 // GeocodeResult ジオコーディングの結果を表す構造体
 type GeocodeResult struct {
@@ -251,24 +267,19 @@ func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*im
 	return img, nil
 }
 
-// CreateAmeshImage ameshレーダー画像を作成する
-func CreateAmeshImage(req *CreateImageRequest) (*image.RGBA, error) {
-	return CreateAmeshImageWithClient(DefaultHTTPClient, req)
-}
-
-// CreateAndSaveImage amesh画像を作成してファイルに保存する
-func CreateAndSaveImage(location *Location, basePath string) (string, error) {
+// CreateAndSaveImageWithClient HTTPクライアントとファイルライターを指定してamesh画像を作成してファイルに保存する
+func CreateAndSaveImageWithClient(client HTTPClient, writer FileWriter, location *Location, basePath string) (string, error) {
 	if location == nil {
 		return "", errors.New("location cannot be nil")
 	}
-	img, err := CreateAmeshImage(&CreateImageRequest{
+	img, err := CreateAmeshImageWithClient(client, &CreateImageRequest{
 		Lat:         location.Lat,
 		Lng:         location.Lng,
 		Zoom:        10,
 		AroundTiles: 2,
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to amesh.CreateAmeshImage")
+		return "", errors.Wrap(err, "Failed to CreateAmeshImageWithClient")
 	}
 
 	fileName := fmt.Sprintf(
@@ -278,9 +289,9 @@ func CreateAndSaveImage(location *Location, basePath string) (string, error) {
 	)
 	filePath := filepath.Join(basePath, fileName)
 
-	file, err := os.Create(filePath)
+	file, err := writer.Create(filePath)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to os.Create")
+		return "", errors.Wrap(err, "Failed to writer.Create")
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
@@ -293,6 +304,11 @@ func CreateAndSaveImage(location *Location, basePath string) (string, error) {
 	}
 
 	return filePath, nil
+}
+
+// CreateAndSaveImage amesh画像を作成してファイルに保存する
+func CreateAndSaveImage(location *Location, basePath string) (string, error) {
+	return CreateAndSaveImageWithClient(DefaultHTTPClient, DefaultFileWriter, location, basePath)
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
