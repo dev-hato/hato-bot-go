@@ -9,8 +9,7 @@ docker compose pull
 docker compose up -d
 
 for image_name in $(docker compose images | awk 'OFS=":" {print $2,$3}' | tail -n +2); do
-	cmd="dockle --exit-code 1 "
-	cmd+="${image_name}"
+	cmd="dockle --exit-code 1 ${image_name}"
 	echo "> ${cmd}"
 	eval "${cmd}"
 done
