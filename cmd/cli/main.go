@@ -14,19 +14,17 @@ import (
 // main スタンドアロンモードで実行
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run main.go <place_name> [yahoo_api_key]")
-		fmt.Println("Example: go run main.go 東京 your_api_key")
+		fmt.Println("Usage: go run main.go <place_name>")
+		fmt.Println("Example: go run main.go 東京")
+		fmt.Println("Note: YAHOO_API_TOKEN environment variable must be set")
 		os.Exit(1)
 	}
 
 	place := os.Args[1]
 	apiKey := os.Getenv("YAHOO_API_TOKEN")
-	if len(os.Args) > 2 {
-		apiKey = os.Args[2]
-	}
 
 	if apiKey == "" {
-		panic(errors.Errorf("Please set YAHOO_API_TOKEN environment variable or provide it as argument"))
+		panic(errors.Errorf("Please set YAHOO_API_TOKEN environment variable"))
 	}
 
 	// 座標が直接提供された場合の解析

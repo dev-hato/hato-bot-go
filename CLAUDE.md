@@ -28,12 +28,12 @@ cp .env.example .env
 # .envファイルを編集してAPIトークンを設定
 
 # CLI版のビルドと実行
-go build -o amesh cmd/cli/main.go
-./amesh 東京
+go build -o hato-bot cmd/cli/main.go
+./hato-bot 東京
 
 # Misskeyボットのビルドと実行
-go build -o hato-bot-go cmd/misskey_bot/main.go
-./hato-bot-go
+go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
+./hato-bot-go-misskey-bot
 
 # Docker Composeで実行（推奨）
 export TAG_NAME=$(git symbolic-ref --short HEAD | sed -e "s:/:-:g")
@@ -63,8 +63,8 @@ go mod tidy
 gosimports -w .
 
 # 各プラットフォーム向けビルド
-go build -o amesh cmd/cli/main.go
-go build -o hato-bot-go cmd/misskey_bot/main.go
+go build -o hato-bot cmd/cli/main.go
+go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 ```
 
 ## アーキテクチャ

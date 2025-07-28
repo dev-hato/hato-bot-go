@@ -37,24 +37,7 @@ go mod tidy
 1. [Yahoo Developer Network](https://developer.yahoo.co.jp/)からYahoo Maps APIキーを取得
 2. 必要な環境変数を設定
 
-### 3. 環境変数の設定
-
-#### 基本設定（必須）
-
-```bash
-# Yahoo Geocoding API（必須）
-export YAHOO_API_TOKEN=your_yahoo_api_token_here
-```
-
-#### Misskeyボット設定（ボットとして動作させる場合）
-
-```bash
-# Misskeyインスタンスの設定
-export MISSKEY_DOMAIN=your-misskey-instance.com
-export MISSKEY_API_TOKEN=your_api_token_here
-```
-
-### 4. MisskeyAPIトークンの取得（ボット使用時）
+### 3. MisskeyAPIトークンの取得（ボット使用時）
 
 1. Misskeyインスタンスにログイン
 2. 設定 → API → アクセストークンを生成
@@ -75,10 +58,7 @@ export MISSKEY_API_TOKEN=your_token
 export YAHOO_API_TOKEN=your_yahoo_token
 
 # ソースから実行
-go run misskey_bot.go amesh.go
-
-# またはビルド済み実行ファイルを使用
-./hato-bot-go
+go run cmd/misskey_bot/main.go
 ```
 
 ### スタンドアロンモードで実行
@@ -88,28 +68,22 @@ go run misskey_bot.go amesh.go
 export YAHOO_API_TOKEN=your_api_key_here
 
 # ソースから実行
-go run cli.go amesh.go 東京
+go run cmd/cli/main.go 東京
 
 # 座標で実行
-go run cli.go amesh.go "35.6762 139.6503"
-
-# APIキーを引数として実行
-go run cli.go amesh.go 東京 your_api_key_here
-
-# またはビルド済み実行ファイルを使用
-./amesh 東京
+go run cmd/cli/main.go "35.6762 139.6503"
 ```
 
 ### ビルド
 
 ```bash
 # CLI版のビルド
-go build -o amesh cmd/cli/main.go
-./amesh 東京
+go build -o hato-bot-go cmd/cli/main.go
+./hato-bot-go 東京
 
 # ボット版のビルド
-go build -o hato-bot-go cmd/misskey_bot/main.go
-./hato-bot-go
+go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
+./hato-bot-go-misskey-bot
 ```
 
 ### Docker Composeで実行
@@ -178,9 +152,9 @@ docker compose -f docker-compose.yml-f dev.docker-compose.yml up --build
 
 ### アーキテクチャ
 
-- **`amesh.go`**: 気象レーダー画像生成のコア機能
-- **`cli.go`**: コマンドライン実行のためのCLI実装
-- **`misskey_bot.go`**: MisskeyボットのWebSocket実装
+- **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能
+- **`cmd/cli/main.go`**: コマンドライン実行のためのCLI実装
+- **`cmd/misskey_bot/main.go`**: MisskeyボットのWebSocket実装
 
 ### 技術仕様
 
