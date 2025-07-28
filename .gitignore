@@ -32,6 +32,7 @@ go.work.sum
 .vscode/
 
 .DS_Store
+.cache
 node_modules/
 fly.toml
 hato-bot-go
