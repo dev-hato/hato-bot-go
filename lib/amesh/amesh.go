@@ -6,13 +6,17 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"image/png"
 	"io"
 	"log"
 	"math"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 )
@@ -148,6 +152,13 @@ type LightningGeoJSON struct {
 	} `json:"features"`
 }
 
+// Location 位置情報の構造体
+type Location struct {
+	Lat       float64 // 緯度
+	Lng       float64 // 経度
+	PlaceName string  // 地名
+}
+
 // CreateAmeshImageWithClient HTTPクライアントを指定してameshレーダー画像を作成する
 func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*image.RGBA, error) {
 	if req == nil {
@@ -243,6 +254,45 @@ func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*im
 // CreateAmeshImage ameshレーダー画像を作成する
 func CreateAmeshImage(req *CreateImageRequest) (*image.RGBA, error) {
 	return CreateAmeshImageWithClient(DefaultHTTPClient, req)
+}
+
+// CreateAndSaveImage amesh画像を作成してファイルに保存する
+func CreateAndSaveImage(location *Location, basePath string) (string, error) {
+	if location == nil {
+		return "", errors.New("location cannot be nil")
+	}
+	img, err := CreateAmeshImage(&CreateImageRequest{
+		Lat:         location.Lat,
+		Lng:         location.Lng,
+		Zoom:        10,
+		AroundTiles: 2,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to amesh.CreateAmeshImage")
+	}
+
+	fileName := fmt.Sprintf(
+		"amesh_%s_%d.png",
+		strings.ReplaceAll(location.PlaceName, " ", "_"),
+		time.Now().Unix(),
+	)
+	filePath := filepath.Join(basePath, fileName)
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to os.Create")
+	}
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			panic(errors.Wrap(closeErr, "Failed to Close"))
+		}
+	}()
+
+	if err := png.Encode(file, img); err != nil {
+		return "", errors.Wrap(err, "Failed to png.Encode")
+	}
+
+	return filePath, nil
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する

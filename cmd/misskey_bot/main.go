@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hato-bot-go/lib/amesh"
 	"hato-bot-go/lib/misskey"
-	"image/png"
 	"io"
 	"log"
 	"mime/multipart"
@@ -65,13 +64,6 @@ type MisskeyFile struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	URL  string `json:"url"`
-}
-
-// Location 位置情報の構造体
-type Location struct {
-	Lat       float64 // 緯度
-	Lng       float64 // 経度
-	PlaceName string  // 地名
 }
 
 // CreateNoteRequest ノート作成のリクエスト構造体
@@ -335,13 +327,13 @@ func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
 }
 
 // parseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
-func (bot *MisskeyBot) parseLocation(place, apiKey string) (*Location, error) {
+func (bot *MisskeyBot) parseLocation(place, apiKey string) (*amesh.Location, error) {
 	// 座標が直接提供されているかチェック
 	parts := strings.Fields(place)
 	if len(parts) == 2 {
 		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
 			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
-				return &Location{
+				return &amesh.Location{
 					Lat:       parsedLat,
 					Lng:       parsedLng,
 					PlaceName: fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng),
@@ -355,50 +347,11 @@ func (bot *MisskeyBot) parseLocation(place, apiKey string) (*Location, error) {
 	if geocodeErr != nil {
 		return nil, errors.Wrap(geocodeErr, "Failed to amesh.GeocodePlace")
 	}
-	return &Location{
+	return &amesh.Location{
 		Lat:       result.Lat,
 		Lng:       result.Lng,
 		PlaceName: result.Name,
 	}, nil
-}
-
-// createAndSaveImage amesh画像を作成して一時ファイルに保存する
-func (bot *MisskeyBot) createAndSaveImage(location *Location) (string, error) {
-	if location == nil {
-		return "", errors.New("location cannot be nil")
-	}
-	img, err := amesh.CreateAmeshImage(&amesh.CreateImageRequest{
-		Lat:         location.Lat,
-		Lng:         location.Lng,
-		Zoom:        10,
-		AroundTiles: 2,
-	})
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to amesh.CreateAmeshImage")
-	}
-
-	filename := fmt.Sprintf(
-		"amesh_%s_%d.png",
-		strings.ReplaceAll(location.PlaceName, " ", "_"),
-		time.Now().Unix(),
-	)
-	filePath := "/tmp/" + filename
-
-	file, err := os.Create(filePath)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to os.Create")
-	}
-	defer func() {
-		if closeErr := file.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
-	}()
-
-	if err := png.Encode(file, img); err != nil {
-		return "", errors.Wrap(err, "Failed to png.Encode")
-	}
-
-	return filePath, nil
 }
 
 // ProcessAmeshCommand ameshコマンドを処理
@@ -425,9 +378,9 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 	}
 
 	// 画像を作成して保存
-	filePath, err := bot.createAndSaveImage(location)
+	filePath, err := amesh.CreateAndSaveImage(location, "/tmp")
 	if err != nil {
-		return errors.Wrap(err, "Failed to createAndSaveImage")
+		return errors.Wrap(err, "Failed to amesh.CreateAndSaveImage")
 	}
 
 	// Misskeyにファイルをアップロード

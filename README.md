@@ -98,7 +98,7 @@ export TAG_NAME=$(git symbolic-ref --short HEAD | sed -e "s:/:-:g")
 docker compose up -d
 
 # 自動リロード付き開発モード（airを使用）
-docker compose -f docker-compose.yml-f dev.docker-compose.yml up --build
+docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 ```
 
 ## 使用するAPIエンドポイント

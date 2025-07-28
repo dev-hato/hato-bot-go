@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"hato-bot-go/lib/amesh"
-	"image/png"
 	"os"
 	"strconv"
 	"strings"
@@ -55,31 +54,14 @@ func main() {
 
 	fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", placeName, lat, lng)
 
-	// amesh画像を作成
-	img, err := amesh.CreateAmeshImage(&amesh.CreateImageRequest{
-		Lat:         lat,
-		Lng:         lng,
-		Zoom:        10,
-		AroundTiles: 2,
-	})
+	// amesh画像を作成・保存
+	filename, err := amesh.CreateAndSaveImage(&amesh.Location{
+		Lat:       lat,
+		Lng:       lng,
+		PlaceName: placeName,
+	}, ".")
 	if err != nil {
-		panic(errors.Wrap(err, "Failed to amesh.CreateAmeshImage"))
-	}
-
-	// 画像を保存
-	filename := "amesh_" + strings.ReplaceAll(placeName, " ", "_") + ".png"
-	file, err := os.Create(filename)
-	if err != nil {
-		panic(errors.Wrap(err, "Failed to os.Create"))
-	}
-	defer func(file *os.File) {
-		if closeErr := file.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
-	}(file)
-
-	if err = png.Encode(file, img); err != nil {
-		panic(errors.Wrap(err, "Failed to png.Encode"))
+		panic(errors.Wrap(err, "Failed to amesh.CreateAndSaveImage"))
 	}
 
 	fmt.Printf("Amesh image saved to %s\n", filename)
