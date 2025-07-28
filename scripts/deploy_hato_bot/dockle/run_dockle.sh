@@ -10,13 +10,6 @@ docker compose up -d
 
 for image_name in $(docker compose images | awk 'OFS=":" {print $2,$3}' | tail -n +2); do
 	cmd="dockle --exit-code 1 "
-
-	if [[ "${image_name}" =~ "postgres" ]]; then
-		cmd+="-ak key "
-	elif [[ "${image_name}" =~ "hato-bot-go" ]]; then
-		cmd+="-i CIS-DI-0006 "
-	fi
-
 	cmd+="${image_name}"
 	echo "> ${cmd}"
 	eval "${cmd}"

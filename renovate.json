@@ -1,15 +1,4 @@
 {
   "extends": ["github>dev-hato/renovate-config"],
-  "ignoreDeps": ["node-fetch"],
-  "packageRules": [
-    {
-      "groupName": "slack",
-      "matchPackageNames": ["slack-bolt", "slack-sdk"]
-    },
-    {
-      "matchPackageNames": ["postgres"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false
-    }
-  ]
+  "ignoreDeps": ["node-fetch"]
 }
