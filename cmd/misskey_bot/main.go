@@ -388,9 +388,6 @@ func (bot *MisskeyBot) createAndSaveImage(location *Location) (string, error) {
 		if closeErr := file.Close(); closeErr != nil {
 			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
-		if removeErr := os.Remove(filePath); removeErr != nil {
-			panic(errors.Wrap(removeErr, "Failed to os.Remove"))
-		}
 	}()
 
 	if err := png.Encode(file, img); err != nil {
@@ -408,7 +405,7 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 
 	// 処理中リアクションを追加
 	if err := bot.AddReaction(note.ID, "👀"); err != nil {
-		log.Printf("Failed to add reaction: %v", err)
+		return errors.Wrap(err, "Failed to AddReaction")
 	}
 
 	// Yahoo APIキーを取得
@@ -420,13 +417,13 @@ func (bot *MisskeyBot) ProcessAmeshCommand(note *misskey.Note, place string) err
 	// 位置を解析
 	location, err := bot.parseLocation(place, apiKey)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to parseLocation")
 	}
 
 	// 画像を作成して保存
 	filePath, err := bot.createAndSaveImage(location)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to createAndSaveImage")
 	}
 
 	// Misskeyにファイルをアップロード
@@ -531,9 +528,8 @@ func main() {
 			log.Printf("Error processing amesh command: %v", err)
 
 			// エラーメッセージを投稿
-			errorMsg := fmt.Sprintf("申し訳ないっぽ。ameshコマンドの処理中にエラーが発生したっぽ: %v", err)
 			if _, replyErr := bot.CreateNote(&CreateNoteRequest{
-				Text:         errorMsg,
+				Text:         "申し訳ないっぽ。ameshコマンドの処理中にエラーが発生したっぽ",
 				FileIDs:      nil,
 				OriginalNote: note,
 			}); replyErr != nil {
