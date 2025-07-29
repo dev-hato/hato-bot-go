@@ -27,14 +27,11 @@ type Note struct {
 	FileIDs    []string `json:"fileIds,omitempty"`
 	ReplyID    string   `json:"replyId,omitempty"`
 	CW         *string  `json:"cw,omitempty"`
-	User       User     `json:"user"`
-}
-
-// User Misskeyのユーザー構造体
-type User struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Host     string `json:"host,omitempty"`
+	User       struct {
+		ID       string `json:"id"`
+		Username string `json:"username"`
+		Host     string `json:"host,omitempty"`
+	} `json:"user"`
 }
 
 // ParseResult ameshコマンドの解析結果を表す構造体
@@ -48,22 +45,6 @@ type File struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	URL  string `json:"url"`
-}
-
-// WebSocketMessage WebSocketメッセージの構造体
-type WebSocketMessage struct {
-	Type string      `json:"type"`
-	Body interface{} `json:"body,omitempty"`
-}
-
-// StreamingMessage ストリーミングメッセージの構造体
-type StreamingMessage struct {
-	Type string `json:"type"`
-	Body struct {
-		ID   string `json:"id"`
-		Type string `json:"type"`
-		Body Note   `json:"body"`
-	} `json:"body"`
 }
 
 // CreateNoteRequest ノート作成のリクエスト構造体
@@ -102,43 +83,6 @@ func NewBotWithClient(domain, token string, client lib_http.Client) *Bot {
 	}
 }
 
-// apiRequest MisskeyAPIリクエストを送信
-func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, error) {
-	// データにトークンを追加
-	payload := map[string]interface{}{
-		"i": bot.Token,
-	}
-
-	if data != nil {
-		if dataMap, ok := data.(map[string]interface{}); ok {
-			for k, v := range dataMap {
-				payload[k] = v
-			}
-		}
-	}
-
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to json.Marshal")
-	}
-
-	url := fmt.Sprintf("https://%s/api/%s", bot.Domain, endpoint)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to lib_http.NewRequest")
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", bot.UserAgent)
-
-	resp, err := bot.client.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Do")
-	}
-
-	return resp, nil
-}
-
 // Connect WebSocket接続を確立
 func (bot *Bot) Connect() error {
 	wsURL := fmt.Sprintf("wss://%s/streaming?i=%s", bot.Domain, bot.Token)
@@ -156,7 +100,10 @@ func (bot *Bot) Connect() error {
 	bot.wsConn = conn
 
 	// メインチャンネルに接続
-	connectMsg := WebSocketMessage{
+	connectMsg := struct {
+		Type string      `json:"type"`
+		Body interface{} `json:"body,omitempty"`
+	}{
 		Type: "connect",
 		Body: map[string]interface{}{
 			"channel": "main",
@@ -179,7 +126,14 @@ func (bot *Bot) Listen(messageHandler func(note *Note)) error {
 	}
 
 	for {
-		var msg StreamingMessage
+		var msg struct {
+			Type string `json:"type"`
+			Body struct {
+				ID   string `json:"id"`
+				Type string `json:"type"`
+				Body Note   `json:"body"`
+			} `json:"body"`
+		}
 		if err := bot.wsConn.ReadJSON(&msg); err != nil {
 			return errors.Wrap(err, "Failed to ReadJSON")
 		}
@@ -383,6 +337,43 @@ func (bot *Bot) ProcessAmeshCommand(note *Note, place string) error {
 
 	log.Printf("Successfully processed amesh command for %s", location.PlaceName)
 	return nil
+}
+
+// apiRequest MisskeyAPIリクエストを送信
+func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, error) {
+	// データにトークンを追加
+	payload := map[string]interface{}{
+		"i": bot.Token,
+	}
+
+	if data != nil {
+		if dataMap, ok := data.(map[string]interface{}); ok {
+			for k, v := range dataMap {
+				payload[k] = v
+			}
+		}
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to json.Marshal")
+	}
+
+	url := fmt.Sprintf("https://%s/api/%s", bot.Domain, endpoint)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to lib_http.NewRequest")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", bot.UserAgent)
+
+	resp, err := bot.client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to Do")
+	}
+
+	return resp, nil
 }
 
 // ParseAmeshCommand ameshコマンドを解析

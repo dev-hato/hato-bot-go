@@ -10,39 +10,6 @@ import (
 	"time"
 )
 
-// statusHandler /statusエンドポイントのハンドラー
-func statusHandler(w http.ResponseWriter, _ *http.Request) {
-	response := map[string]interface{}{
-		"message": "hato-bot-go is running",
-		"version": amesh.Version,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	err := json.NewEncoder(w).Encode(response)
-	if err != nil {
-		log.Printf("Failed to Encode: %v", err)
-	}
-}
-
-// startHTTPServer HTTPサーバーを開始
-func startHTTPServer() {
-	http.HandleFunc("/status", statusHandler)
-
-	port := "8080"
-	log.Printf("Starting HTTP server on port %s", port)
-
-	server := &http.Server{
-		Addr:         ":" + port,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
-	}
-	if err := server.ListenAndServe(); err != nil {
-		log.Printf("HTTP server error: %v", err)
-	}
-}
-
 // main Misskeyボットとして実行
 func main() {
 	// 環境変数から設定を取得
@@ -110,5 +77,38 @@ func main() {
 				time.Sleep(10 * time.Second)
 			}
 		}
+	}
+}
+
+// statusHandler /statusエンドポイントのハンドラー
+func statusHandler(w http.ResponseWriter, _ *http.Request) {
+	response := map[string]interface{}{
+		"message": "hato-bot-go is running",
+		"version": amesh.Version,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	err := json.NewEncoder(w).Encode(response)
+	if err != nil {
+		log.Printf("Failed to Encode: %v", err)
+	}
+}
+
+// startHTTPServer HTTPサーバーを開始
+func startHTTPServer() {
+	http.HandleFunc("/status", statusHandler)
+
+	port := "8080"
+	log.Printf("Starting HTTP server on port %s", port)
+
+	server := &http.Server{
+		Addr:         ":" + port,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
+		log.Printf("HTTP server error: %v", err)
 	}
 }

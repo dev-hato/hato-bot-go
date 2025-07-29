@@ -16,89 +16,41 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// MockFileWriter はテスト用のファイルライターのモック
-type MockFileWriter struct {
+// mockFileWriter はテスト用のファイルライターのモック
+type mockFileWriter struct {
 	CreateFunc  func(name string) (io.WriteCloser, error)
 	ShouldError bool
 }
 
-func (m *MockFileWriter) Create(name string) (io.WriteCloser, error) {
+func (m *mockFileWriter) Create(name string) (io.WriteCloser, error) {
 	if m.CreateFunc != nil {
 		return m.CreateFunc(name)
 	}
 	if m.ShouldError {
 		return nil, errors.New("mock file creation error")
 	}
-	return &MockWriteCloser{}, nil
+	return &mockWriteCloser{}, nil
 }
 
-// MockWriteCloser はテスト用のWriteCloserのモック
-type MockWriteCloser struct {
+// mockWriteCloser はテスト用のWriteCloserのモック
+type mockWriteCloser struct {
 	WriteData []byte
 }
 
-func (m *MockWriteCloser) Write(p []byte) (n int, err error) {
+func (m *mockWriteCloser) Write(p []byte) (n int, err error) {
 	m.WriteData = append(m.WriteData, p...)
 	return len(p), nil
 }
 
-func (m *MockWriteCloser) Close() error {
+func (m *mockWriteCloser) Close() error {
 	return nil
 }
 
-// mockResponse ヘルパー関数でHTTPレスポンスを作成
-func mockResponse(statusCode int, body string) *http.Response {
-	return &http.Response{
-		StatusCode: statusCode,
-		Body:       io.NopCloser(strings.NewReader(body)),
-		Header:     make(http.Header),
-	}
-}
-
-// createPNGResponse PNGファイル用のHTTPレスポンスを作成
-func createPNGResponse(dummyTileBytes []byte) *http.Response {
-	return &http.Response{
-		StatusCode: 200,
-		Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
-		Header:     make(http.Header),
-	}
-}
-
-// HTTPMockConfig モックHTTPクライアントの設定
-type HTTPMockConfig struct {
+// httpMockConfig モックHTTPクライアントの設定
+type httpMockConfig struct {
 	TimestampsResponse string
 	LightningResponse  string
 	DummyTileBytes     []byte
-}
-
-// createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
-func createConfigurableMockHTTPClient(config HTTPMockConfig) *lib_http.MockHTTPClient {
-	return &lib_http.MockHTTPClient{
-		GetFunc: func(url string) (*http.Response, error) {
-			switch {
-			case strings.Contains(url, "targetTimes"):
-				if config.TimestampsResponse == "" {
-					return mockResponse(500, "Internal Server Error"), nil
-				}
-				return mockResponse(200, config.TimestampsResponse), nil
-			case strings.Contains(url, "liden/data.geojson"):
-				if config.LightningResponse == "" {
-					return mockResponse(404, "Not Found"), nil
-				}
-				return mockResponse(200, config.LightningResponse), nil
-			case strings.Contains(url, ".png"):
-				return createPNGResponse(config.DummyTileBytes), nil
-			default:
-				return mockResponse(404, "Not Found"), nil
-			}
-		},
-		DoFunc: func(req *http.Request) (*http.Response, error) {
-			if strings.Contains(req.URL.String(), ".png") {
-				return createPNGResponse(config.DummyTileBytes), nil
-			}
-			return mockResponse(404, "Not Found"), nil
-		},
-	}
 }
 
 // TestGeocodeWithClient GeocodeWithClient関数をモックHTTPレスポンスでテストする
@@ -215,22 +167,6 @@ func TestGeocodeWithClient(t *testing.T) {
 			}
 		})
 	}
-}
-
-// createDummyPNGBytes ダミーのPNG画像バイトを作成する
-func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			img.Set(x, y, c)
-		}
-	}
-
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		return nil, errors.Wrap(err, "Failed to png.Encode")
-	}
-	return buf.Bytes(), nil
 }
 
 // TestCreateAmeshImageWithClient CreateAmeshImageWithClient関数をテストする
@@ -393,7 +329,7 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			mockClient := createConfigurableMockHTTPClient(HTTPMockConfig{
+			mockClient := createConfigurableMockHTTPClient(httpMockConfig{
 				TimestampsResponse: tt.timestampsResponse,
 				LightningResponse:  tt.lightningResponse,
 				DummyTileBytes:     dummyTileBytes,
@@ -484,7 +420,7 @@ func TestCreateAndSaveImageWithClient(t *testing.T) {
 			}
 
 			// モックHTTPクライアントを作成
-			mockHTTPClient := createConfigurableMockHTTPClient(HTTPMockConfig{
+			mockHTTPClient := createConfigurableMockHTTPClient(httpMockConfig{
 				TimestampsResponse: `[
 			{
 				"basetime": "20240101120000",
@@ -497,7 +433,7 @@ func TestCreateAndSaveImageWithClient(t *testing.T) {
 			})
 
 			// モックファイルライターを作成
-			mockFileWriter := &MockFileWriter{
+			mockFileWriter := &mockFileWriter{
 				ShouldError: tt.fileError,
 			}
 
@@ -627,4 +563,68 @@ func TestParseLocationWithClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+// mockResponse ヘルパー関数でHTTPレスポンスを作成
+func mockResponse(statusCode int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: statusCode,
+		Body:       io.NopCloser(strings.NewReader(body)),
+		Header:     make(http.Header),
+	}
+}
+
+// createPNGResponse PNGファイル用のHTTPレスポンスを作成
+func createPNGResponse(dummyTileBytes []byte) *http.Response {
+	return &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
+		Header:     make(http.Header),
+	}
+}
+
+// createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
+func createConfigurableMockHTTPClient(config httpMockConfig) *lib_http.MockHTTPClient {
+	return &lib_http.MockHTTPClient{
+		GetFunc: func(url string) (*http.Response, error) {
+			switch {
+			case strings.Contains(url, "targetTimes"):
+				if config.TimestampsResponse == "" {
+					return mockResponse(500, "Internal Server Error"), nil
+				}
+				return mockResponse(200, config.TimestampsResponse), nil
+			case strings.Contains(url, "liden/data.geojson"):
+				if config.LightningResponse == "" {
+					return mockResponse(404, "Not Found"), nil
+				}
+				return mockResponse(200, config.LightningResponse), nil
+			case strings.Contains(url, ".png"):
+				return createPNGResponse(config.DummyTileBytes), nil
+			default:
+				return mockResponse(404, "Not Found"), nil
+			}
+		},
+		DoFunc: func(req *http.Request) (*http.Response, error) {
+			if strings.Contains(req.URL.String(), ".png") {
+				return createPNGResponse(config.DummyTileBytes), nil
+			}
+			return mockResponse(404, "Not Found"), nil
+		},
+	}
+}
+
+// createDummyPNGBytes ダミーのPNG画像バイトを作成する
+func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, c)
+		}
+	}
+
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return nil, errors.Wrap(err, "Failed to png.Encode")
+	}
+	return buf.Bytes(), nil
 }

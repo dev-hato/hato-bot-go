@@ -81,23 +81,6 @@ func TestParseAmeshCommand(t *testing.T) {
 	}
 }
 
-// runBotTest HTTPクライアントのモック付きでボットテストを実行する共通ヘルパー
-func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
-	t.Helper()
-	mockClient := http.NewMockHTTPClient(statusCode, responseBody)
-	bot := misskey.NewBotWithClient("example.com", "token", mockClient)
-
-	err := testFunc(bot)
-	if (err != nil) != expectError {
-		t.Errorf("%s error = %v, expectError %v", testName, err, expectError)
-	}
-}
-
-// runSimpleBotTest 空のレスポンスボディでボットテストを実行する共通ヘルパー
-func runSimpleBotTest(t *testing.T, statusCode int, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
-	runBotTest(t, statusCode, "", testFunc, expectError, testName)
-}
-
 func TestAddReaction(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -261,4 +244,21 @@ func TestProcessAmeshCommand(t *testing.T) {
 			}, tt.expectError, "ProcessAmeshCommand()")
 		})
 	}
+}
+
+// runBotTest HTTPクライアントのモック付きでボットテストを実行する共通ヘルパー
+func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
+	t.Helper()
+	mockClient := http.NewMockHTTPClient(statusCode, responseBody)
+	bot := misskey.NewBotWithClient("example.com", "token", mockClient)
+
+	err := testFunc(bot)
+	if (err != nil) != expectError {
+		t.Errorf("%s error = %v, expectError %v", testName, err, expectError)
+	}
+}
+
+// runSimpleBotTest 空のレスポンスボディでボットテストを実行する共通ヘルパー
+func runSimpleBotTest(t *testing.T, statusCode int, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
+	runBotTest(t, statusCode, "", testFunc, expectError, testName)
 }

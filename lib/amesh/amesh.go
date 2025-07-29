@@ -35,12 +35,6 @@ func (w *OSFileWriter) Create(name string) (io.WriteCloser, error) {
 	return os.Create(name)
 }
 
-// DefaultHTTPClient はデフォルトのHTTPクライアント
-var DefaultHTTPClient = lib_http.DefaultHTTPClient
-
-// DefaultFileWriter はデフォルトのファイルライター
-var DefaultFileWriter FileWriter = &OSFileWriter{}
-
 // GeocodeResult ジオコーディングの結果を表す構造体
 type GeocodeResult struct {
 	Lat  float64
@@ -62,6 +56,13 @@ type GeocodeRequest struct {
 	APIKey string // APIキー
 }
 
+// Location 位置情報の構造体
+type Location struct {
+	Lat       float64 // 緯度
+	Lng       float64 // 経度
+	PlaceName string  // 地名
+}
+
 type drawDistanceCircleParams struct {
 	Img                *image.RGBA
 	CreateImageRequest *CreateImageRequest
@@ -80,54 +81,31 @@ type drawLineParams struct {
 
 type drawLightningMarkerParams struct {
 	Img                *image.RGBA
-	Lightning          LightningPoint
+	Lightning          lightningPoint
 	CreateImageRequest *CreateImageRequest
 }
 
-const Version = "1.0"
-
-// handleHTTPResponse HTTPレスポンスの共通処理を行う
-func handleHTTPResponse(resp *http.Response) ([]byte, error) {
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
-	}(resp.Body)
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to io.ReadAll")
-	}
-	return body, nil
-}
-
-// HTTPRequestResult HTTPリクエストの結果を表す構造体
-type HTTPRequestResult struct {
+// httpRequestResult HTTPリクエストの結果を表す構造体
+type httpRequestResult struct {
 	Body    []byte
 	IsEmpty bool
 }
 
-// makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
-func makeHTTPRequest(client lib_http.Client, url string) (*HTTPRequestResult, error) {
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Get")
-	}
-
-	if resp.StatusCode != 200 {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			return nil, errors.Wrap(closeErr, "Failed to Close")
-		}
-		return &HTTPRequestResult{Body: nil, IsEmpty: true}, nil
-	}
-
-	body, err := handleHTTPResponse(resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
-	}
-
-	return &HTTPRequestResult{Body: body, IsEmpty: false}, nil
+// timeJSONElement targetTimes JSON要素の構造体
+type timeJSONElement struct {
+	BaseTime  string   `json:"basetime"`
+	ValidTime string   `json:"validtime"`
+	Elements  []string `json:"elements"`
 }
+
+// lightningPoint 落雷データを表す構造体
+type lightningPoint struct {
+	Lat  float64 `json:"lat"`
+	Lng  float64 `json:"lng"`
+	Type int     `json:"type"`
+}
+
+const Version = "1.0"
 
 // エラー定数
 var (
@@ -137,38 +115,8 @@ var (
 	ErrJSONUnmarshal            = errors.New("failed to json.Unmarshal")
 )
 
-// TimeJSONElement targetTimes JSON要素の構造体
-type TimeJSONElement struct {
-	BaseTime  string   `json:"basetime"`
-	ValidTime string   `json:"validtime"`
-	Elements  []string `json:"elements"`
-}
-
-// LightningPoint 落雷データを表す構造体
-type LightningPoint struct {
-	Lat  float64 `json:"lat"`
-	Lng  float64 `json:"lng"`
-	Type int     `json:"type"`
-}
-
-// LightningGeoJSON 落雷データのGeoJSON構造体
-type LightningGeoJSON struct {
-	Features []struct {
-		Geometry struct {
-			Coordinates []float64 `json:"coordinates"`
-		} `json:"geometry"`
-		Properties struct {
-			Type int `json:"type"`
-		} `json:"properties"`
-	} `json:"features"`
-}
-
-// Location 位置情報の構造体
-type Location struct {
-	Lat       float64 // 緯度
-	Lng       float64 // 経度
-	PlaceName string  // 地名
-}
+// defaultHTTPClient はデフォルトのHTTPクライアント
+var defaultHTTPClient = lib_http.DefaultHTTPClient
 
 // CreateAmeshImageWithClient HTTPクライアントを指定してameshレーダー画像を作成する
 func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest) (*image.RGBA, error) {
@@ -188,7 +136,7 @@ func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest)
 	lightningData, err := getLightningDataWithClient(client, lidenTimestamp)
 	if err != nil {
 		log.Printf("落雷データの取得に失敗: %v", err)
-		lightningData = []LightningPoint{}
+		lightningData = []lightningPoint{}
 	}
 
 	// ピクセル座標を計算
@@ -303,7 +251,7 @@ func CreateAndSaveImageWithClient(client lib_http.Client, writer FileWriter, loc
 
 // CreateAndSaveImage amesh画像を作成してファイルに保存する
 func CreateAndSaveImage(location *Location, basePath string) (string, error) {
-	return CreateAndSaveImageWithClient(DefaultHTTPClient, DefaultFileWriter, location, basePath)
+	return CreateAndSaveImageWithClient(defaultHTTPClient, &OSFileWriter{}, location, basePath)
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
@@ -409,11 +357,48 @@ func ParseLocationWithClient(client lib_http.Client, place, apiKey string) (*Loc
 
 // ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
 func ParseLocation(place, apiKey string) (*Location, error) {
-	return ParseLocationWithClient(DefaultHTTPClient, place, apiKey)
+	return ParseLocationWithClient(defaultHTTPClient, place, apiKey)
+}
+
+// handleHTTPResponse HTTPレスポンスの共通処理を行う
+func handleHTTPResponse(resp *http.Response) ([]byte, error) {
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(errors.Wrap(closeErr, "Failed to Close"))
+		}
+	}(resp.Body)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to io.ReadAll")
+	}
+	return body, nil
+}
+
+// makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
+func makeHTTPRequest(client lib_http.Client, url string) (*httpRequestResult, error) {
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to Get")
+	}
+
+	if resp.StatusCode != 200 {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return nil, errors.Wrap(closeErr, "Failed to Close")
+		}
+		return &httpRequestResult{Body: nil, IsEmpty: true}, nil
+	}
+
+	body, err := handleHTTPResponse(resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
+	}
+
+	return &httpRequestResult{Body: body, IsEmpty: false}, nil
 }
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
-func fetchTimeDataFromURLWithClient(client lib_http.Client, apiURL string) ([]TimeJSONElement, error) {
+func fetchTimeDataFromURLWithClient(client lib_http.Client, apiURL string) ([]timeJSONElement, error) {
 	body, err := makeHTTPRequest(client, apiURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
@@ -422,7 +407,7 @@ func fetchTimeDataFromURLWithClient(client lib_http.Client, apiURL string) ([]Ti
 		return nil, errors.New("Body is nil")
 	}
 
-	var timeData []TimeJSONElement
+	var timeData []timeJSONElement
 	if err := json.Unmarshal(body.Body, &timeData); err != nil {
 		return nil, errors.Wrap(err, "Failed to json.Unmarshal")
 	}
@@ -438,7 +423,7 @@ func getLatestTimestampsWithClient(client lib_http.Client) (map[string]string, e
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N3.json",
 	}
 
-	var allTimeData []TimeJSONElement
+	var allTimeData []timeJSONElement
 
 	for _, apiURL := range urls {
 		timeData, err := fetchTimeDataFromURLWithClient(client, apiURL)
@@ -477,7 +462,7 @@ func getLatestTimestampsWithClient(client lib_http.Client) (map[string]string, e
 }
 
 // getLightningDataWithClient HTTPクライアントを指定して落雷データを取得する
-func getLightningDataWithClient(client lib_http.Client, timestamp string) ([]LightningPoint, error) {
+func getLightningDataWithClient(client lib_http.Client, timestamp string) ([]lightningPoint, error) {
 	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
 
 	result, err := makeHTTPRequest(client, apiURL)
@@ -485,20 +470,29 @@ func getLightningDataWithClient(client lib_http.Client, timestamp string) ([]Lig
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
 	}
 	if result.IsEmpty {
-		return []LightningPoint{}, nil
+		return []lightningPoint{}, nil
 	}
 
-	var geoJSON LightningGeoJSON
+	var geoJSON struct {
+		Features []struct {
+			Geometry struct {
+				Coordinates []float64 `json:"coordinates"`
+			} `json:"geometry"`
+			Properties struct {
+				Type int `json:"type"`
+			} `json:"properties"`
+		} `json:"features"`
+	}
 	if err := json.Unmarshal(result.Body, &geoJSON); err != nil {
 		return nil, errors.Wrap(err, "Failed to json.Unmarshal")
 	}
 
-	var lightningPoints []LightningPoint
+	var lightningPoints []lightningPoint
 	for _, feature := range geoJSON.Features {
 		if len(feature.Geometry.Coordinates) < 2 {
 			continue
 		}
-		lightningPoints = append(lightningPoints, LightningPoint{
+		lightningPoints = append(lightningPoints, lightningPoint{
 			Lat:  feature.Geometry.Coordinates[1],
 			Lng:  feature.Geometry.Coordinates[0],
 			Type: feature.Properties.Type,
