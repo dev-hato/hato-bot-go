@@ -116,9 +116,33 @@ func createMockHTTPClient(statusCode int, responseBody string) *MockHTTPClient {
 	}
 }
 
-// createSimpleMockHTTPClient 指定されたステータスコードで空のレスポンスボディのモックHTTPクライアントを作成する
-func createSimpleMockHTTPClient(statusCode int) *MockHTTPClient {
-	return createMockHTTPClient(statusCode, "")
+// runBotTest HTTPクライアントのモック付きでボットテストを実行する共通ヘルパー
+func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
+	t.Helper()
+	mockClient := createMockHTTPClient(statusCode, responseBody)
+	bot := misskey.NewBotWithClient("example.com", "token", mockClient)
+
+	err := testFunc(bot)
+	if (err != nil) != expectError {
+		t.Errorf("%s error = %v, expectError %v", testName, err, expectError)
+	}
+}
+
+// runSimpleBotTest 空のレスポンスボディでボットテストを実行する共通ヘルパー
+func runSimpleBotTest(t *testing.T, statusCode int, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
+	runBotTest(t, statusCode, "", testFunc, expectError, testName)
+}
+
+// runBotTestWithResult 戻り値を無視してエラーのみチェックするボットテスト実行ヘルパー
+func runBotTestWithResult(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) (interface{}, error), expectError bool, testName string) {
+	t.Helper()
+	mockClient := createMockHTTPClient(statusCode, responseBody)
+	bot := misskey.NewBotWithClient("example.com", "token", mockClient)
+
+	_, err := testFunc(bot)
+	if (err != nil) != expectError {
+		t.Errorf("%s error = %v, expectError %v", testName, err, expectError)
+	}
 }
 
 func TestAddReaction(t *testing.T) {
@@ -147,13 +171,9 @@ func TestAddReaction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := createSimpleMockHTTPClient(tt.statusCode)
-			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
-
-			if err := bot.AddReaction(tt.noteID, tt.reaction); (err != nil) != tt.expectError {
-				t.Errorf("AddReaction() error = %v, expectError %v", err, tt.expectError)
-				return
-			}
+			runSimpleBotTest(t, tt.statusCode, func(bot *misskey.Bot) error {
+				return bot.AddReaction(tt.noteID, tt.reaction)
+			}, tt.expectError, "AddReaction()")
 		})
 	}
 }
@@ -213,13 +233,9 @@ func TestCreateNote(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := createMockHTTPClient(tt.statusCode, tt.responseBody)
-			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
-
-			if err := bot.CreateNote(tt.req); (err != nil) != tt.expectError {
-				t.Errorf("CreateNote() error = %v, expectError %v", err, tt.expectError)
-				return
-			}
+			runBotTest(t, tt.statusCode, tt.responseBody, func(bot *misskey.Bot) error {
+				return bot.CreateNote(tt.req)
+			}, tt.expectError, "CreateNote()")
 		})
 	}
 }
@@ -250,13 +266,9 @@ func TestUploadFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := createMockHTTPClient(tt.statusCode, tt.responseBody)
-			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
-
-			if _, err := bot.UploadFile(tt.filePath); (err != nil) != tt.expectError {
-				t.Errorf("UploadFile() error = %v, expectError %v", err, tt.expectError)
-				return
-			}
+			runBotTestWithResult(t, tt.statusCode, tt.responseBody, func(bot *misskey.Bot) (interface{}, error) {
+				return bot.UploadFile(tt.filePath)
+			}, tt.expectError, "UploadFile()")
 		})
 	}
 }
@@ -287,14 +299,9 @@ func TestProcessAmeshCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// リアクション追加APIのモック（ステータス204）
-			mockClient := createSimpleMockHTTPClient(204)
-			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
-
-			if err := bot.ProcessAmeshCommand(tt.note, tt.place); (err != nil) != tt.expectError {
-				t.Errorf("ProcessAmeshCommand() error = %v, expectError %v", err, tt.expectError)
-				return
-			}
+			runSimpleBotTest(t, 204, func(bot *misskey.Bot) error {
+				return bot.ProcessAmeshCommand(tt.note, tt.place)
+			}, tt.expectError, "ProcessAmeshCommand()")
 		})
 	}
 }
