@@ -3,6 +3,7 @@ package amesh_test
 import (
 	"bytes"
 	"hato-bot-go/lib/amesh"
+	lib_http "hato-bot-go/lib/http"
 	"image"
 	"image/color"
 	"image/png"
@@ -14,26 +15,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/google/go-cmp/cmp"
 )
-
-// MockHTTPClient はテスト用のHTTPクライアントのモック
-type MockHTTPClient struct {
-	GetFunc func(url string) (*http.Response, error)
-	DoFunc  func(req *http.Request) (*http.Response, error)
-}
-
-func (m *MockHTTPClient) Get(url string) (*http.Response, error) {
-	if m.GetFunc != nil {
-		return m.GetFunc(url)
-	}
-	return nil, nil
-}
-
-func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	if m.DoFunc != nil {
-		return m.DoFunc(req)
-	}
-	return nil, nil
-}
 
 // MockFileWriter はテスト用のファイルライターのモック
 type MockFileWriter struct {
@@ -91,8 +72,8 @@ type HTTPMockConfig struct {
 }
 
 // createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
-func createConfigurableMockHTTPClient(config HTTPMockConfig) *MockHTTPClient {
-	return &MockHTTPClient{
+func createConfigurableMockHTTPClient(config HTTPMockConfig) *lib_http.MockHTTPClient {
+	return &lib_http.MockHTTPClient{
 		GetFunc: func(url string) (*http.Response, error) {
 			switch {
 			case strings.Contains(url, "targetTimes"):
@@ -120,28 +101,9 @@ func createConfigurableMockHTTPClient(config HTTPMockConfig) *MockHTTPClient {
 	}
 }
 
-// createStandardMockHTTPClient 標準的なモックHTTPクライアントを作成
-func createStandardMockHTTPClient(dummyTileBytes []byte) *MockHTTPClient {
-	return createConfigurableMockHTTPClient(HTTPMockConfig{
-		TimestampsResponse: `[
-			{
-				"basetime": "20240101120000",
-				"validtime": "20240101120000", 
-				"elements": ["hrpns_nd", "liden"]
-			}
-		]`,
-		LightningResponse: `{"features": []}`,
-		DummyTileBytes:    dummyTileBytes,
-	})
-}
-
 // createSimpleMockHTTPClient シンプルなモックHTTPクライアントを作成
-func createSimpleMockHTTPClient(responseCode int, responseBody string) *MockHTTPClient {
-	return &MockHTTPClient{
-		GetFunc: func(_ string) (*http.Response, error) {
-			return mockResponse(responseCode, responseBody), nil
-		},
-	}
+func createSimpleMockHTTPClient(responseCode int, responseBody string) *lib_http.MockHTTPClient {
+	return lib_http.NewMockHTTPClient(responseCode, responseBody)
 }
 
 // TestGeocodeWithClient GeocodeWithClient関数をモックHTTPレスポンスでテストする
@@ -276,55 +238,20 @@ func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// testCase CreateAmeshImageWithClientのテストケース構造体
-type testCase struct {
-	name               string
-	lat                float64
-	lng                float64
-	zoom               int
-	aroundTiles        int
-	timestampsResponse string
-	lightningResponse  string
-	checkCenterColor   bool
-	expectedImageSize  int
-	expectError        error
-}
-
-// createMockClient テスト用のモックHTTPクライアントを作成する
-func createMockClient(tc testCase, dummyTileBytes []byte) *MockHTTPClient {
-	return createConfigurableMockHTTPClient(HTTPMockConfig{
-		TimestampsResponse: tc.timestampsResponse,
-		LightningResponse:  tc.lightningResponse,
-		DummyTileBytes:     dummyTileBytes,
-	})
-}
-
-// validateImageResult CreateAmeshImageWithClientの結果を検証する
-func validateImageResult(t *testing.T, result *image.RGBA, tc testCase) {
-	if result == nil {
-		t.Errorf("CreateAmeshImageWithClient() returned nil image")
-		return
-	}
-
-	bounds := result.Bounds()
-	if bounds.Dx() != tc.expectedImageSize || bounds.Dy() != tc.expectedImageSize {
-		t.Errorf("CreateAmeshImageWithClient() image size = %dx%d, want %dx%d",
-			bounds.Dx(), bounds.Dy(), tc.expectedImageSize, tc.expectedImageSize)
-		return
-	}
-
-	if tc.checkCenterColor {
-		centerColor := result.RGBAAt(bounds.Dx()/2, bounds.Dy()/2)
-		if centerColor.R != 255 || centerColor.G != 255 || centerColor.B != 255 || centerColor.A != 255 {
-			t.Errorf("Expected white center pixel but got R=%d, G=%d, B=%d, A=%d",
-				centerColor.R, centerColor.G, centerColor.B, centerColor.A)
-		}
-	}
-}
-
-// getTestCases CreateAmeshImageWithClientのテストケースを返す
-func getTestCases() []testCase {
-	return []testCase{
+// TestCreateAmeshImageWithClient CreateAmeshImageWithClient関数をテストする
+func TestCreateAmeshImageWithClient(t *testing.T) {
+	tests := []struct {
+		name               string
+		lat                float64
+		lng                float64
+		zoom               int
+		aroundTiles        int
+		timestampsResponse string
+		lightningResponse  string
+		checkCenterColor   bool
+		expectedImageSize  int
+		expectError        error
+	}{
 		{
 			name:        "成功した画像作成",
 			lat:         35.6895,
@@ -464,11 +391,6 @@ func getTestCases() []testCase {
 			expectError:       nil,
 		},
 	}
-}
-
-// TestCreateAmeshImageWithClient CreateAmeshImageWithClient関数をテストする
-func TestCreateAmeshImageWithClient(t *testing.T) {
-	tests := getTestCases()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -476,7 +398,11 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			mockClient := createMockClient(tt, dummyTileBytes)
+			mockClient := createConfigurableMockHTTPClient(HTTPMockConfig{
+				TimestampsResponse: tt.timestampsResponse,
+				LightningResponse:  tt.lightningResponse,
+				DummyTileBytes:     dummyTileBytes,
+			})
 
 			result, err := amesh.CreateAmeshImageWithClient(mockClient, &amesh.CreateImageRequest{
 				Lat:         tt.lat,
@@ -489,7 +415,25 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 				return
 			}
 
-			validateImageResult(t, result, tt)
+			if result == nil {
+				t.Errorf("CreateAmeshImageWithClient() returned nil image")
+				return
+			}
+
+			bounds := result.Bounds()
+			if bounds.Dx() != tt.expectedImageSize || bounds.Dy() != tt.expectedImageSize {
+				t.Errorf("CreateAmeshImageWithClient() image size = %dx%d, want %dx%d",
+					bounds.Dx(), bounds.Dy(), tt.expectedImageSize, tt.expectedImageSize)
+				return
+			}
+
+			if tt.checkCenterColor {
+				centerColor := result.RGBAAt(bounds.Dx()/2, bounds.Dy()/2)
+				if centerColor.R != 255 || centerColor.G != 255 || centerColor.B != 255 || centerColor.A != 255 {
+					t.Errorf("Expected white center pixel but got R=%d, G=%d, B=%d, A=%d",
+						centerColor.R, centerColor.G, centerColor.B, centerColor.A)
+				}
+			}
 		})
 	}
 }
@@ -545,7 +489,17 @@ func TestCreateAndSaveImageWithClient(t *testing.T) {
 			}
 
 			// モックHTTPクライアントを作成
-			mockHTTPClient := createStandardMockHTTPClient(dummyTileBytes)
+			mockHTTPClient := createConfigurableMockHTTPClient(HTTPMockConfig{
+				TimestampsResponse: `[
+			{
+				"basetime": "20240101120000",
+				"validtime": "20240101120000", 
+				"elements": ["hrpns_nd", "liden"]
+			}
+		]`,
+				LightningResponse: `{"features": []}`,
+				DummyTileBytes:    dummyTileBytes,
+			})
 
 			// モックファイルライターを作成
 			mockFileWriter := &MockFileWriter{

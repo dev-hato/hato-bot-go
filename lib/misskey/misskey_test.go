@@ -1,10 +1,8 @@
 package misskey_test
 
 import (
+	"hato-bot-go/lib/http"
 	"hato-bot-go/lib/misskey"
-	"io"
-	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -83,43 +81,10 @@ func TestParseAmeshCommand(t *testing.T) {
 	}
 }
 
-// MockHTTPClient HTTPクライアントのモック
-type MockHTTPClient struct {
-	DoFunc  func(req *http.Request) (*http.Response, error)
-	GetFunc func(url string) (*http.Response, error)
-}
-
-func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	if m.DoFunc != nil {
-		return m.DoFunc(req)
-	}
-	return nil, nil
-}
-
-func (m *MockHTTPClient) Get(url string) (*http.Response, error) {
-	if m.GetFunc != nil {
-		return m.GetFunc(url)
-	}
-	return nil, nil
-}
-
-// createMockHTTPClient 指定されたステータスコードとレスポンスボディでモックHTTPクライアントを作成する
-func createMockHTTPClient(statusCode int, responseBody string) *MockHTTPClient {
-	return &MockHTTPClient{
-		DoFunc: func(_ *http.Request) (*http.Response, error) {
-			resp := &http.Response{
-				StatusCode: statusCode,
-				Body:       io.NopCloser(strings.NewReader(responseBody)),
-			}
-			return resp, nil
-		},
-	}
-}
-
 // runBotTest HTTPクライアントのモック付きでボットテストを実行する共通ヘルパー
 func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
 	t.Helper()
-	mockClient := createMockHTTPClient(statusCode, responseBody)
+	mockClient := http.NewMockHTTPClient(statusCode, responseBody)
 	bot := misskey.NewBotWithClient("example.com", "token", mockClient)
 
 	err := testFunc(bot)
@@ -131,18 +96,6 @@ func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func
 // runSimpleBotTest 空のレスポンスボディでボットテストを実行する共通ヘルパー
 func runSimpleBotTest(t *testing.T, statusCode int, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
 	runBotTest(t, statusCode, "", testFunc, expectError, testName)
-}
-
-// runBotTestWithResult 戻り値を無視してエラーのみチェックするボットテスト実行ヘルパー
-func runBotTestWithResult(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) (interface{}, error), expectError bool, testName string) {
-	t.Helper()
-	mockClient := createMockHTTPClient(statusCode, responseBody)
-	bot := misskey.NewBotWithClient("example.com", "token", mockClient)
-
-	_, err := testFunc(bot)
-	if (err != nil) != expectError {
-		t.Errorf("%s error = %v, expectError %v", testName, err, expectError)
-	}
 }
 
 func TestAddReaction(t *testing.T) {
@@ -266,9 +219,13 @@ func TestUploadFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runBotTestWithResult(t, tt.statusCode, tt.responseBody, func(bot *misskey.Bot) (interface{}, error) {
-				return bot.UploadFile(tt.filePath)
-			}, tt.expectError, "UploadFile()")
+			t.Helper()
+			mockClient := http.NewMockHTTPClient(tt.statusCode, tt.responseBody)
+			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
+
+			if _, err := bot.UploadFile(tt.filePath); (err != nil) != tt.expectError {
+				t.Errorf("UploadFile() error = %v, expectError %v", err, tt.expectError)
+			}
 		})
 	}
 }
