@@ -193,7 +193,7 @@ func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest)
 
 	// ピクセル座標を計算
 	centerX, centerY := getWebMercatorPixel(req)
-	centerTileX, centerTileY := getTileFromPixel(centerX, centerY)
+	centerTileX, centerTileY := int(centerX/256), int(centerY/256)
 
 	// ベース画像を作成
 	imageSize := (2*req.AroundTiles + 1) * 256
@@ -522,11 +522,6 @@ func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
 	x := 256.0 * zoomFactor * (params.Lng + 180) / 360.0
 	y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(params.Lat)/2))/(2.0*math.Pi))
 	return x, y
-}
-
-// getTileFromPixel ピクセル座標をタイル座標に変換する
-func getTileFromPixel(pixelX, pixelY float64) (int, int) {
-	return int(pixelX / 256), int(pixelY / 256)
 }
 
 // downloadTileWithClient HTTPクライアントを指定してマップタイルをダウンロードする

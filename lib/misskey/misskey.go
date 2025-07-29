@@ -422,20 +422,6 @@ func ParseAmeshCommand(text string) ParseResult {
 	}
 }
 
-// handleHTTPResponse HTTPレスポンスの共通処理を行う（JSONデコード用）
-func handleHTTPResponseWithJSON(resp *http.Response, target interface{}) error {
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
-	}(resp.Body)
-
-	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
-		return errors.Wrap(err, "Failed to json.NewDecoder")
-	}
-	return nil
-}
-
 // checkStatusAndDecodeJSON ステータスコードをチェックしJSONをデコードする共通処理
 func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) error {
 	if resp.StatusCode != 200 {
@@ -445,8 +431,14 @@ func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) error {
 		return fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
-	if err := handleHTTPResponseWithJSON(resp, target); err != nil {
-		return errors.Wrap(err, "Failed to handleHTTPResponseWithJSON")
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			panic(errors.Wrap(closeErr, "Failed to Close"))
+		}
+	}(resp.Body)
+
+	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+		return errors.Wrap(err, "Failed to json.NewDecoder")
 	}
 
 	return nil
