@@ -101,11 +101,6 @@ func createConfigurableMockHTTPClient(config HTTPMockConfig) *lib_http.MockHTTPC
 	}
 }
 
-// createSimpleMockHTTPClient シンプルなモックHTTPクライアントを作成
-func createSimpleMockHTTPClient(responseCode int, responseBody string) *lib_http.MockHTTPClient {
-	return lib_http.NewMockHTTPClient(responseCode, responseBody)
-}
-
 // TestGeocodeWithClient GeocodeWithClient関数をモックHTTPレスポンスでテストする
 func TestGeocodeWithClient(t *testing.T) {
 	tests := []struct {
@@ -206,7 +201,7 @@ func TestGeocodeWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := createSimpleMockHTTPClient(tt.responseCode, tt.responseBody)
+			mockClient := lib_http.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
 			result, err := amesh.GeocodeWithClient(mockClient, &amesh.GeocodeRequest{
 				Place:  tt.place,
@@ -620,7 +615,7 @@ func TestParseLocationWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := createSimpleMockHTTPClient(tt.responseCode, tt.responseBody)
+			mockClient := lib_http.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
 			result, err := amesh.ParseLocationWithClient(mockClient, tt.place, tt.apiKey)
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
