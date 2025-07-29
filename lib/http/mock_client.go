@@ -32,20 +32,19 @@ func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 func NewMockHTTPClient(statusCode int, responseBody string) *MockHTTPClient {
 	return &MockHTTPClient{
 		DoFunc: func(_ *http.Request) (*http.Response, error) {
-			resp := &http.Response{
-				StatusCode: statusCode,
-				Body:       io.NopCloser(strings.NewReader(responseBody)),
-				Header:     make(http.Header),
-			}
-			return resp, nil
+			return createMockResponse(statusCode, responseBody), nil
 		},
 		GetFunc: func(_ string) (*http.Response, error) {
-			resp := &http.Response{
-				StatusCode: statusCode,
-				Body:       io.NopCloser(strings.NewReader(responseBody)),
-				Header:     make(http.Header),
-			}
-			return resp, nil
+			return createMockResponse(statusCode, responseBody), nil
 		},
+	}
+}
+
+// createMockResponse 指定されたステータスコードとレスポンスボディでHTTPレスポンスを作成する
+func createMockResponse(statusCode int, responseBody string) *http.Response {
+	return &http.Response{
+		StatusCode: statusCode,
+		Body:       io.NopCloser(strings.NewReader(responseBody)),
+		Header:     make(http.Header),
 	}
 }
