@@ -105,6 +105,7 @@ jobs:
           files: docker-compose.yml
           source: .
   # package.jsonに差分があれば、package.jsonからpackage-lock.jsonを作り出す
+  # jscpd:ignore-start
   pr-check-npm:
     runs-on: ubuntu-latest
     steps:
@@ -121,6 +122,7 @@ jobs:
           node-version-file: package.json
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/build/npm_install.sh"
+      # jscpd:ignore-end
       - uses: dev-hato/actions-diff-pr-management@b3530e809a1948d0187f47a67d4164a47e03d7ec # v2.1.1
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}

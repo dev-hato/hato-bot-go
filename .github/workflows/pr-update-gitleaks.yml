@@ -16,6 +16,7 @@ permissions:
   contents: write
   pull-requests: write
 jobs:
+  # jscpd:ignore-start
   pr-update-gitleaks:
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +33,7 @@ jobs:
           node-version-file: package.json
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/npm_ci.sh"
+      # jscpd:ignore-end
       - uses: dev-hato/actions-update-gitleaks@03938dd5977a402407e294b9a056848f0e9d670e # v0.0.88
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
