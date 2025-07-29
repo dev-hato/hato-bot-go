@@ -103,6 +103,24 @@ func (m *MockHTTPClient) Get(url string) (*http.Response, error) {
 	return nil, nil
 }
 
+// createMockHTTPClient 指定されたステータスコードとレスポンスボディでモックHTTPクライアントを作成する
+func createMockHTTPClient(statusCode int, responseBody string) *MockHTTPClient {
+	return &MockHTTPClient{
+		DoFunc: func(_ *http.Request) (*http.Response, error) {
+			resp := &http.Response{
+				StatusCode: statusCode,
+				Body:       io.NopCloser(strings.NewReader(responseBody)),
+			}
+			return resp, nil
+		},
+	}
+}
+
+// createSimpleMockHTTPClient 指定されたステータスコードで空のレスポンスボディのモックHTTPクライアントを作成する
+func createSimpleMockHTTPClient(statusCode int) *MockHTTPClient {
+	return createMockHTTPClient(statusCode, "")
+}
+
 func TestAddReaction(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -129,16 +147,7 @@ func TestAddReaction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := &MockHTTPClient{
-				DoFunc: func(req *http.Request) (*http.Response, error) {
-					resp := &http.Response{
-						StatusCode: tt.statusCode,
-						Body:       io.NopCloser(strings.NewReader("")),
-					}
-					return resp, nil
-				},
-			}
-
+			mockClient := createSimpleMockHTTPClient(tt.statusCode)
 			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
 
 			if err := bot.AddReaction(tt.noteID, tt.reaction); (err != nil) != tt.expectError {
@@ -204,16 +213,7 @@ func TestCreateNote(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := &MockHTTPClient{
-				DoFunc: func(req *http.Request) (*http.Response, error) {
-					resp := &http.Response{
-						StatusCode: tt.statusCode,
-						Body:       io.NopCloser(strings.NewReader(tt.responseBody)),
-					}
-					return resp, nil
-				},
-			}
-
+			mockClient := createMockHTTPClient(tt.statusCode, tt.responseBody)
 			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
 
 			if err := bot.CreateNote(tt.req); (err != nil) != tt.expectError {
@@ -250,16 +250,7 @@ func TestUploadFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := &MockHTTPClient{
-				DoFunc: func(req *http.Request) (*http.Response, error) {
-					resp := &http.Response{
-						StatusCode: tt.statusCode,
-						Body:       io.NopCloser(strings.NewReader(tt.responseBody)),
-					}
-					return resp, nil
-				},
-			}
-
+			mockClient := createMockHTTPClient(tt.statusCode, tt.responseBody)
 			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
 
 			if _, err := bot.UploadFile(tt.filePath); (err != nil) != tt.expectError {
@@ -296,18 +287,8 @@ func TestProcessAmeshCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 複数のリクエストに対応するモック
-			mockClient := &MockHTTPClient{
-				DoFunc: func(req *http.Request) (*http.Response, error) {
-					// リアクション追加APIのレスポンス
-					resp := &http.Response{
-						StatusCode: 204,
-						Body:       io.NopCloser(strings.NewReader("")),
-					}
-					return resp, nil
-				},
-			}
-
+			// リアクション追加APIのモック（ステータス204）
+			mockClient := createSimpleMockHTTPClient(204)
 			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
 
 			if err := bot.ProcessAmeshCommand(tt.note, tt.place); (err != nil) != tt.expectError {
