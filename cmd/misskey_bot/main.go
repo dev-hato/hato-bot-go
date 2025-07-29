@@ -62,7 +62,7 @@ func main() {
 	go startHTTPServer()
 
 	// ボットを初期化
-	bot := misskey.NewMisskeyBot(domain, token)
+	bot := misskey.NewBot(domain, token)
 
 	// WebSocket接続を確立
 	if err := bot.Connect(); err != nil {

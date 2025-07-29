@@ -211,7 +211,7 @@ Failed to upload file to Misskey: ...
 ### 新しいコマンドの追加
 
 1. `ParseAmeshCommand`関数を拡張してコマンドを解析
-2. 対応する処理関数を`MisskeyBot`に追加
+2. 対応する処理関数を`Bot`に追加
 3. `messageHandler`で新しいコマンドを処理
 
 ## Python版との違い

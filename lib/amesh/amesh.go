@@ -3,6 +3,7 @@ package amesh
 import (
 	"encoding/json"
 	"fmt"
+	lib_http "hato-bot-go/lib/http"
 	"image"
 	"image/color"
 	"image/draw"
@@ -21,12 +22,6 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-// HTTPClient はHTTPリクエストを行うインターフェース
-type HTTPClient interface {
-	Get(url string) (*http.Response, error)
-	Do(req *http.Request) (*http.Response, error)
-}
-
 // FileWriter はファイル書き込み操作を行うインターフェース
 type FileWriter interface {
 	Create(name string) (io.WriteCloser, error)
@@ -41,7 +36,7 @@ func (w *OSFileWriter) Create(name string) (io.WriteCloser, error) {
 }
 
 // DefaultHTTPClient はデフォルトのHTTPクライアント
-var DefaultHTTPClient HTTPClient = &http.Client{}
+var DefaultHTTPClient = lib_http.DefaultHTTPClient
 
 // DefaultFileWriter はデフォルトのファイルライター
 var DefaultFileWriter FileWriter = &OSFileWriter{}
@@ -113,7 +108,7 @@ type HTTPRequestResult struct {
 }
 
 // makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
-func makeHTTPRequest(client HTTPClient, url string) (*HTTPRequestResult, error) {
+func makeHTTPRequest(client lib_http.Client, url string) (*HTTPRequestResult, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Get")
@@ -176,7 +171,7 @@ type Location struct {
 }
 
 // CreateAmeshImageWithClient HTTPクライアントを指定してameshレーダー画像を作成する
-func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*image.RGBA, error) {
+func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest) (*image.RGBA, error) {
 	if req == nil {
 		return nil, errors.New("req cannot be nil")
 	}
@@ -268,7 +263,7 @@ func CreateAmeshImageWithClient(client HTTPClient, req *CreateImageRequest) (*im
 }
 
 // CreateAndSaveImageWithClient HTTPクライアントとファイルライターを指定してamesh画像を作成してファイルに保存する
-func CreateAndSaveImageWithClient(client HTTPClient, writer FileWriter, location *Location, basePath string) (string, error) {
+func CreateAndSaveImageWithClient(client lib_http.Client, writer FileWriter, location *Location, basePath string) (string, error) {
 	if location == nil {
 		return "", errors.New("location cannot be nil")
 	}
@@ -312,7 +307,7 @@ func CreateAndSaveImage(location *Location, basePath string) (string, error) {
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
-func GeocodeWithClient(client HTTPClient, req *GeocodeRequest) (GeocodeResult, error) {
+func GeocodeWithClient(client lib_http.Client, req *GeocodeRequest) (GeocodeResult, error) {
 	if req == nil {
 		return GeocodeResult{}, errors.New("req cannot be nil")
 	}
@@ -382,7 +377,7 @@ func GeocodeWithClient(client HTTPClient, req *GeocodeRequest) (GeocodeResult, e
 }
 
 // ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocationWithClient(client HTTPClient, place, apiKey string) (*Location, error) {
+func ParseLocationWithClient(client lib_http.Client, place, apiKey string) (*Location, error) {
 	// 座標が直接提供されているかチェック
 	parts := strings.Fields(place)
 	if len(parts) == 2 {
@@ -418,7 +413,7 @@ func ParseLocation(place, apiKey string) (*Location, error) {
 }
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
-func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSONElement, error) {
+func fetchTimeDataFromURLWithClient(client lib_http.Client, apiURL string) ([]TimeJSONElement, error) {
 	body, err := makeHTTPRequest(client, apiURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
@@ -436,7 +431,7 @@ func fetchTimeDataFromURLWithClient(client HTTPClient, apiURL string) ([]TimeJSO
 }
 
 // getLatestTimestampsWithClient HTTPクライアントを指定して最新のタイムスタンプを取得する
-func getLatestTimestampsWithClient(client HTTPClient) (map[string]string, error) {
+func getLatestTimestampsWithClient(client lib_http.Client) (map[string]string, error) {
 	urls := []string{
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json",
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N2.json",
@@ -482,7 +477,7 @@ func getLatestTimestampsWithClient(client HTTPClient) (map[string]string, error)
 }
 
 // getLightningDataWithClient HTTPクライアントを指定して落雷データを取得する
-func getLightningDataWithClient(client HTTPClient, timestamp string) ([]LightningPoint, error) {
+func getLightningDataWithClient(client lib_http.Client, timestamp string) ([]LightningPoint, error) {
 	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
 
 	result, err := makeHTTPRequest(client, apiURL)
@@ -535,10 +530,10 @@ func getTileFromPixel(pixelX, pixelY float64) (int, int) {
 }
 
 // downloadTileWithClient HTTPクライアントを指定してマップタイルをダウンロードする
-func downloadTileWithClient(client HTTPClient, tileURL string) (image.Image, error) {
+func downloadTileWithClient(client lib_http.Client, tileURL string) (image.Image, error) {
 	req, err := http.NewRequest("GET", tileURL, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to http.NewRequest")
+		return nil, errors.Wrap(err, "Failed to lib_http.NewRequest")
 	}
 	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
 

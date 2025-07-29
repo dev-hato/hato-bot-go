@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hato-bot-go/lib/amesh"
+	lib_http "hato-bot-go/lib/http"
 	"io"
 	"log"
 	"mime/multipart"
@@ -72,18 +73,18 @@ type CreateNoteRequest struct {
 	OriginalNote *Note    // 返信元のノート
 }
 
-// MisskeyBot Misskeyボットクライアント
-type MisskeyBot struct {
+// Bot Misskeyボットクライアント
+type Bot struct {
 	Domain    string
 	Token     string
 	UserAgent string
-	client    *http.Client
+	client    lib_http.Client
 	wsConn    *websocket.Conn
 }
 
-// NewMisskeyBot 新しいMisskeyBotインスタンスを作成
-func NewMisskeyBot(domain, token string) *MisskeyBot {
-	return &MisskeyBot{
+// NewBot 新しいBotインスタンスを作成
+func NewBot(domain, token string) *Bot {
+	return &Bot{
 		Domain:    domain,
 		Token:     token,
 		UserAgent: "hato-bot-go/" + amesh.Version,
@@ -91,8 +92,18 @@ func NewMisskeyBot(domain, token string) *MisskeyBot {
 	}
 }
 
+// NewBotWithClient HTTPクライアント注入可能なBotインスタンスを作成
+func NewBotWithClient(domain, token string, client lib_http.Client) *Bot {
+	return &Bot{
+		Domain:    domain,
+		Token:     token,
+		UserAgent: "hato-bot-go/" + amesh.Version,
+		client:    client,
+	}
+}
+
 // apiRequest MisskeyAPIリクエストを送信
-func (bot *MisskeyBot) apiRequest(endpoint string, data interface{}) (*http.Response, error) {
+func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, error) {
 	// データにトークンを追加
 	payload := map[string]interface{}{
 		"i": bot.Token,
@@ -114,7 +125,7 @@ func (bot *MisskeyBot) apiRequest(endpoint string, data interface{}) (*http.Resp
 	url := fmt.Sprintf("https://%s/api/%s", bot.Domain, endpoint)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to http.NewRequest")
+		return nil, errors.Wrap(err, "Failed to lib_http.NewRequest")
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -129,7 +140,7 @@ func (bot *MisskeyBot) apiRequest(endpoint string, data interface{}) (*http.Resp
 }
 
 // Connect WebSocket接続を確立
-func (bot *MisskeyBot) Connect() error {
+func (bot *Bot) Connect() error {
 	wsURL := fmt.Sprintf("wss://%s/streaming?i=%s", bot.Domain, bot.Token)
 
 	dialer := websocket.DefaultDialer
@@ -162,7 +173,7 @@ func (bot *MisskeyBot) Connect() error {
 }
 
 // Listen WebSocketメッセージを監視
-func (bot *MisskeyBot) Listen(messageHandler func(note *Note)) error {
+func (bot *Bot) Listen(messageHandler func(note *Note)) error {
 	if messageHandler == nil {
 		return errors.New("messageHandler cannot be nil")
 	}
@@ -187,7 +198,7 @@ func (bot *MisskeyBot) Listen(messageHandler func(note *Note)) error {
 }
 
 // CreateNote ノートを作成
-func (bot *MisskeyBot) CreateNote(req *CreateNoteRequest) error {
+func (bot *Bot) CreateNote(req *CreateNoteRequest) error {
 	if req == nil {
 		return errors.New("req cannot be nil")
 	}
@@ -239,7 +250,7 @@ func (bot *MisskeyBot) CreateNote(req *CreateNoteRequest) error {
 }
 
 // UploadFile ファイルをアップロード
-func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
+func (bot *Bot) UploadFile(filePath string) (*MisskeyFile, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to os.Open")
@@ -275,7 +286,7 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 	url := fmt.Sprintf("https://%s/api/drive/files/create", bot.Domain)
 	req, err := http.NewRequest("POST", url, &buf)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to http.NewRequest")
+		return nil, errors.Wrap(err, "Failed to lib_http.NewRequest")
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -295,7 +306,7 @@ func (bot *MisskeyBot) UploadFile(filePath string) (*MisskeyFile, error) {
 }
 
 // AddReaction リアクションを追加
-func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
+func (bot *Bot) AddReaction(noteID, reaction string) error {
 	data := map[string]interface{}{
 		"noteId":   noteID,
 		"reaction": reaction,
@@ -319,7 +330,7 @@ func (bot *MisskeyBot) AddReaction(noteID, reaction string) error {
 }
 
 // ProcessAmeshCommand ameshコマンドを処理
-func (bot *MisskeyBot) ProcessAmeshCommand(note *Note, place string) error {
+func (bot *Bot) ProcessAmeshCommand(note *Note, place string) error {
 	if note == nil {
 		return errors.New("note cannot be nil")
 	}
