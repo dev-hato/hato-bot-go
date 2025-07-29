@@ -43,8 +43,8 @@ type ParseResult struct {
 	IsAmesh bool
 }
 
-// MisskeyFile アップロードされたファイルの構造体
-type MisskeyFile struct {
+// File アップロードされたファイルの構造体
+type File struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	URL  string `json:"url"`
@@ -250,7 +250,7 @@ func (bot *Bot) CreateNote(req *CreateNoteRequest) error {
 }
 
 // UploadFile ファイルをアップロード
-func (bot *Bot) UploadFile(filePath string) (*MisskeyFile, error) {
+func (bot *Bot) UploadFile(filePath string) (*File, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to os.Open")
@@ -297,7 +297,7 @@ func (bot *Bot) UploadFile(filePath string) (*MisskeyFile, error) {
 		return nil, errors.Wrap(err, "Failed to Do")
 	}
 
-	var uploadedFile MisskeyFile
+	var uploadedFile File
 	if err := checkStatusAndDecodeJSON(resp, &uploadedFile); err != nil {
 		return nil, errors.Wrap(err, "Faild to checkStatusAndDecodeJSON")
 	}
