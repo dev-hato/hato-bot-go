@@ -3,7 +3,7 @@ package amesh_test
 import (
 	"bytes"
 	"hato-bot-go/lib/amesh"
-	lib_http "hato-bot-go/lib/http"
+	libHttp "hato-bot-go/lib/http"
 	"image"
 	"image/color"
 	"image/png"
@@ -153,7 +153,7 @@ func TestGeocodeWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := lib_http.NewMockHTTPClient(tt.responseCode, tt.responseBody)
+			mockClient := libHttp.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
 			result, err := amesh.GeocodeWithClient(mockClient, &amesh.GeocodeRequest{
 				Place:  tt.place,
@@ -551,7 +551,7 @@ func TestParseLocationWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := lib_http.NewMockHTTPClient(tt.responseCode, tt.responseBody)
+			mockClient := libHttp.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
 			result, err := amesh.ParseLocationWithClient(mockClient, tt.place, tt.apiKey)
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
@@ -584,8 +584,8 @@ func createPNGResponse(dummyTileBytes []byte) *http.Response {
 }
 
 // createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
-func createConfigurableMockHTTPClient(config httpMockConfig) *lib_http.MockHTTPClient {
-	return &lib_http.MockHTTPClient{
+func createConfigurableMockHTTPClient(config httpMockConfig) *libHttp.MockHTTPClient {
+	return &libHttp.MockHTTPClient{
 		GetFunc: func(url string) (*http.Response, error) {
 			switch {
 			case strings.Contains(url, "targetTimes"):

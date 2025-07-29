@@ -3,7 +3,7 @@ package amesh
 import (
 	"encoding/json"
 	"fmt"
-	lib_http "hato-bot-go/lib/http"
+	libHttp "hato-bot-go/lib/http"
 	"image"
 	"image/color"
 	"image/draw"
@@ -116,10 +116,10 @@ var (
 )
 
 // defaultHTTPClient はデフォルトのHTTPクライアント
-var defaultHTTPClient = lib_http.DefaultHTTPClient
+var defaultHTTPClient = libHttp.DefaultHTTPClient
 
 // CreateAmeshImageWithClient HTTPクライアントを指定してameshレーダー画像を作成する
-func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest) (*image.RGBA, error) {
+func CreateAmeshImageWithClient(client libHttp.Client, req *CreateImageRequest) (*image.RGBA, error) {
 	if req == nil {
 		return nil, errors.New("req cannot be nil")
 	}
@@ -158,7 +158,7 @@ func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest)
 
 			baseTile, err := downloadTileWithClient(client, baseURL)
 			if err != nil {
-				log.Printf("ベースタイルのダウンロードに失敗: %v", err)
+				log.Printf("Failed to downloadTileWithClient: %v", err)
 				continue
 			}
 
@@ -175,7 +175,7 @@ func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest)
 			radarURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png", hrpnsTimestamp, hrpnsTimestamp, req.Zoom, tileX, tileY)
 			radarTile, err := downloadTileWithClient(client, radarURL)
 			if err != nil {
-				log.Printf("レーダータイルのダウンロードに失敗: %v", err)
+				log.Printf("Failed to downloadTileWithClient: %v", err)
 				continue
 			}
 
@@ -208,7 +208,7 @@ func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest)
 }
 
 // CreateAndSaveImageWithClient HTTPクライアントとファイルライターを指定してamesh画像を作成してファイルに保存する
-func CreateAndSaveImageWithClient(client lib_http.Client, writer FileWriter, location *Location, basePath string) (string, error) {
+func CreateAndSaveImageWithClient(client libHttp.Client, writer FileWriter, location *Location, basePath string) (string, error) {
 	if location == nil {
 		return "", errors.New("location cannot be nil")
 	}
@@ -252,7 +252,7 @@ func CreateAndSaveImage(location *Location, basePath string) (string, error) {
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
-func GeocodeWithClient(client lib_http.Client, req *GeocodeRequest) (GeocodeResult, error) {
+func GeocodeWithClient(client libHttp.Client, req *GeocodeRequest) (GeocodeResult, error) {
 	if req == nil {
 		return GeocodeResult{}, errors.New("req cannot be nil")
 	}
@@ -322,7 +322,7 @@ func GeocodeWithClient(client lib_http.Client, req *GeocodeRequest) (GeocodeResu
 }
 
 // ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocationWithClient(client lib_http.Client, place, apiKey string) (*Location, error) {
+func ParseLocationWithClient(client libHttp.Client, place, apiKey string) (*Location, error) {
 	// 座標が直接提供されているかチェック
 	parts := strings.Fields(place)
 	if len(parts) == 2 {
@@ -373,7 +373,7 @@ func handleHTTPResponse(resp *http.Response) ([]byte, error) {
 }
 
 // makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
-func makeHTTPRequest(client lib_http.Client, url string) (*httpRequestResult, error) {
+func makeHTTPRequest(client libHttp.Client, url string) (*httpRequestResult, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Get")
@@ -395,7 +395,7 @@ func makeHTTPRequest(client lib_http.Client, url string) (*httpRequestResult, er
 }
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
-func fetchTimeDataFromURLWithClient(client lib_http.Client, apiURL string) ([]timeJSONElement, error) {
+func fetchTimeDataFromURLWithClient(client libHttp.Client, apiURL string) ([]timeJSONElement, error) {
 	body, err := makeHTTPRequest(client, apiURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
@@ -413,7 +413,7 @@ func fetchTimeDataFromURLWithClient(client lib_http.Client, apiURL string) ([]ti
 }
 
 // getLatestTimestampsWithClient HTTPクライアントを指定して最新のタイムスタンプを取得する
-func getLatestTimestampsWithClient(client lib_http.Client) map[string]string {
+func getLatestTimestampsWithClient(client libHttp.Client) map[string]string {
 	urls := []string{
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json",
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N2.json",
@@ -425,6 +425,7 @@ func getLatestTimestampsWithClient(client lib_http.Client) map[string]string {
 	for _, apiURL := range urls {
 		timeData, err := fetchTimeDataFromURLWithClient(client, apiURL)
 		if err != nil {
+			log.Printf("Failed to fetchTimeDataFromURLWithClient: %v", err)
 			continue
 		}
 		allTimeData = append(allTimeData, timeData...)
@@ -459,7 +460,7 @@ func getLatestTimestampsWithClient(client lib_http.Client) map[string]string {
 }
 
 // getLightningDataWithClient HTTPクライアントを指定して落雷データを取得する
-func getLightningDataWithClient(client lib_http.Client, timestamp string) ([]lightningPoint, error) {
+func getLightningDataWithClient(client libHttp.Client, timestamp string) ([]lightningPoint, error) {
 	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
 
 	result, err := makeHTTPRequest(client, apiURL)
@@ -516,10 +517,10 @@ func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
 }
 
 // downloadTileWithClient HTTPクライアントを指定してマップタイルをダウンロードする
-func downloadTileWithClient(client lib_http.Client, tileURL string) (image.Image, error) {
+func downloadTileWithClient(client libHttp.Client, tileURL string) (image.Image, error) {
 	req, err := http.NewRequest("GET", tileURL, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to lib_http.NewRequest")
+		return nil, errors.Wrap(err, "Failed to libHttp.NewRequest")
 	}
 	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
 

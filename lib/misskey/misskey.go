@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hato-bot-go/lib/amesh"
-	lib_http "hato-bot-go/lib/http"
+	libHttp "hato-bot-go/lib/http"
 	"io"
 	"log"
 	"mime/multipart"
@@ -59,7 +59,7 @@ type Bot struct {
 	Domain    string
 	Token     string
 	UserAgent string
-	client    lib_http.Client
+	client    libHttp.Client
 	wsConn    *websocket.Conn
 }
 
@@ -74,7 +74,7 @@ func NewBot(domain, token string) *Bot {
 }
 
 // NewBotWithClient HTTPクライアント注入可能なBotインスタンスを作成
-func NewBotWithClient(domain, token string, client lib_http.Client) *Bot {
+func NewBotWithClient(domain, token string, client libHttp.Client) *Bot {
 	return &Bot{
 		Domain:    domain,
 		Token:     token,
@@ -240,7 +240,7 @@ func (bot *Bot) UploadFile(filePath string) (*File, error) {
 	url := fmt.Sprintf("https://%s/api/drive/files/create", bot.Domain)
 	req, err := http.NewRequest("POST", url, &buf)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to lib_http.NewRequest")
+		return nil, errors.Wrap(err, "Failed to libHttp.NewRequest")
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -362,7 +362,7 @@ func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, e
 	url := fmt.Sprintf("https://%s/api/%s", bot.Domain, endpoint)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to lib_http.NewRequest")
+		return nil, errors.Wrap(err, "Failed to libHttp.NewRequest")
 	}
 
 	req.Header.Set("Content-Type", "application/json")
