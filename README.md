@@ -52,10 +52,11 @@ go mod tidy
 ### Misskeyボットとして実行
 
 ```bash
-# 環境変数を設定してから実行
-export MISSKEY_DOMAIN=your-domain.com
-export MISSKEY_API_TOKEN=your_token
-export YAHOO_API_TOKEN=your_yahoo_token
+# Misskeyの環境変数設定
+export MISSKEY_API_TOKEN=your_misskey_api_token
+export MISSKEY_DOMAIN=your-misskey-instance.com
+# Yahoo APIの環境変数設定
+export YAHOO_API_TOKEN=your_yahoo_api_token
 
 # ソースから実行
 go run cmd/misskey_bot/main.go
@@ -64,8 +65,9 @@ go run cmd/misskey_bot/main.go
 ### スタンドアロンモードで実行
 
 ```bash
-# 環境変数を設定
-export YAHOO_API_TOKEN=your_api_key_here
+# Yahoo APIの環境変数設定
+export YAHOO_API_TOKEN=your_yahoo_api_token
+
 
 # ソースから実行
 go run cmd/cli/main.go 東京
