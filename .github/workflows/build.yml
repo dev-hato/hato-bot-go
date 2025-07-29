@@ -30,7 +30,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        run: bash "${GITHUB_WORKSPACE}/scripts/deploy_hato_bot/update_go_version/update_go_version.sh"
+        run: bash "${GITHUB_WORKSPACE}/scripts/build/update_go_version/update_go_version.sh"
         env:
           HEAD_REF: ${{github.head_ref || github.event.release.tag_name}}
       - uses: dev-hato/actions-diff-pr-management@b3530e809a1948d0187f47a67d4164a47e03d7ec # v2.1.1
@@ -120,7 +120,7 @@ jobs:
           cache: npm
           node-version-file: package.json
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        run: bash "${GITHUB_WORKSPACE}/scripts/deploy_hato_bot/npm_install.sh"
+        run: bash "${GITHUB_WORKSPACE}/scripts/build/npm_install.sh"
       - uses: dev-hato/actions-diff-pr-management@b3530e809a1948d0187f47a67d4164a47e03d7ec # v2.1.1
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
@@ -150,7 +150,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - run: bash "${GITHUB_WORKSPACE}/scripts/deploy_hato_bot/dockle/run_dockle.sh"
+      - run: bash "${GITHUB_WORKSPACE}/scripts/build/dockle/run_dockle.sh"
         env:
           HEAD_REF: ${{github.head_ref || github.event.release.tag_name}}
   deploy-complete:
