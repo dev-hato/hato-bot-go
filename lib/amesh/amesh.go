@@ -124,10 +124,7 @@ func CreateAmeshImageWithClient(client lib_http.Client, req *CreateImageRequest)
 		return nil, errors.New("req cannot be nil")
 	}
 	// 最新のタイムスタンプを取得
-	timestamps, err := getLatestTimestampsWithClient(client)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to getLatestTimestampsWithClient")
-	}
+	timestamps := getLatestTimestampsWithClient(client)
 
 	hrpnsTimestamp := timestamps["hrpns_nd"]
 	lidenTimestamp := timestamps["liden"]
@@ -416,7 +413,7 @@ func fetchTimeDataFromURLWithClient(client lib_http.Client, apiURL string) ([]ti
 }
 
 // getLatestTimestampsWithClient HTTPクライアントを指定して最新のタイムスタンプを取得する
-func getLatestTimestampsWithClient(client lib_http.Client) (map[string]string, error) {
+func getLatestTimestampsWithClient(client lib_http.Client) map[string]string {
 	urls := []string{
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json",
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N2.json",
@@ -458,7 +455,7 @@ func getLatestTimestampsWithClient(client lib_http.Client) (map[string]string, e
 		result[element] = latestTime
 	}
 
-	return result, nil
+	return result
 }
 
 // getLightningDataWithClient HTTPクライアントを指定して落雷データを取得する
