@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"hato-bot-go/lib/amesh"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 // main スタンドアロンモードで実行
