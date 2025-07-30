@@ -78,15 +78,15 @@ func NewBot(domain, token string) *Bot {
 }
 
 // NewBotWithClient HTTPクライアント注入可能なBotインスタンスを作成
-func NewBotWithClient(req *BotSetting) *Bot {
-	if req == nil {
+func NewBotWithClient(botSetting *BotSetting) *Bot {
+	if botSetting == nil {
 		return nil
 	}
-	if req.Client == nil {
+	if botSetting.Client == nil {
 		return nil
 	}
 	return &Bot{
-		BotSetting: req,
+		BotSetting: botSetting,
 		UserAgent:  "hato-bot-go/" + amesh.Version,
 	}
 }
