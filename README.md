@@ -208,7 +208,7 @@ draw.DrawMask(img, destRect, radarTile, image.Point{},
 **地理的距離円の線分近似 (`drawDistanceCircle`)**
 
 - **64個の線分**で円を近似
-- **地球の曲率**を考慮した地理的距離計算
+- **地球の曲率**を考慮した地理的な距離の計算
 - **球面座標系**での円上の点計算
 
 ```go
