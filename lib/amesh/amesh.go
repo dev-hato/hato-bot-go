@@ -63,6 +63,21 @@ type Location struct {
 	PlaceName string  // 地名
 }
 
+// CreateAndSaveImageRequest 画像作成・保存のリクエスト構造体
+type CreateAndSaveImageRequest struct {
+	Client   libHttp.Client // HTTPクライアント
+	Writer   FileWriter     // ファイルライター
+	Location *Location      // 位置情報
+	BasePath string         // 保存先ベースパス
+}
+
+// ParseLocationRequest 位置解析のリクエスト構造体
+type ParseLocationRequest struct {
+	Client libHttp.Client // HTTPクライアント
+	Place  string         // 地名または座標文字列
+	APIKey string         // Yahoo APIキー
+}
+
 type drawDistanceCircleParams struct {
 	Img                *image.RGBA
 	CreateImageRequest *CreateImageRequest
@@ -207,14 +222,6 @@ func CreateAmeshImageWithClient(client libHttp.Client, req *CreateImageRequest) 
 	return img, nil
 }
 
-// CreateAndSaveImageRequest 画像作成・保存のリクエスト構造体
-type CreateAndSaveImageRequest struct {
-	Client   libHttp.Client // HTTPクライアント
-	Writer   FileWriter     // ファイルライター
-	Location *Location      // 位置情報
-	BasePath string         // 保存先ベースパス
-}
-
 // CreateAndSaveImageWithClient HTTPクライアントとファイルライターを指定してamesh画像を作成してファイルに保存する
 func CreateAndSaveImageWithClient(req *CreateAndSaveImageRequest) (string, error) {
 	if req == nil {
@@ -341,13 +348,6 @@ func GeocodeWithClient(client libHttp.Client, req *GeocodeRequest) (GeocodeResul
 		Lng:  lng,
 		Name: feature.Name,
 	}, nil
-}
-
-// ParseLocationRequest 位置解析のリクエスト構造体
-type ParseLocationRequest struct {
-	Client libHttp.Client // HTTPクライアント
-	Place  string         // 地名または座標文字列
-	APIKey string         // Yahoo APIキー
 }
 
 // ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
