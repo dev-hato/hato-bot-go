@@ -204,7 +204,7 @@ func TestUploadFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 			mockClient := http.NewMockHTTPClient(tt.statusCode, tt.responseBody)
-			bot := misskey.NewBotWithClient(&misskey.BotRequest{
+			bot := misskey.NewBotWithClient(&misskey.BotSetting{
 				Domain: "example.com",
 				Token:  "token",
 				Client: mockClient,
@@ -254,7 +254,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
 	t.Helper()
 	mockClient := http.NewMockHTTPClient(statusCode, responseBody)
-	bot := misskey.NewBotWithClient(&misskey.BotRequest{
+	bot := misskey.NewBotWithClient(&misskey.BotSetting{
 		Domain: "example.com",
 		Token:  "token",
 		Client: mockClient,
