@@ -54,6 +54,13 @@ type CreateNoteRequest struct {
 	OriginalNote *Note    // 返信元のノート
 }
 
+// BotRequest ボット作成のリクエスト構造体
+type BotRequest struct {
+	Domain string         // Misskeyのドメイン
+	Token  string         // APIトークン
+	Client libHttp.Client // HTTPクライアント
+}
+
 // Bot Misskeyボットクライアント
 type Bot struct {
 	Domain    string
@@ -65,21 +72,26 @@ type Bot struct {
 
 // NewBot 新しいBotインスタンスを作成
 func NewBot(domain, token string) *Bot {
-	return &Bot{
-		Domain:    domain,
-		Token:     token,
-		UserAgent: "hato-bot-go/" + amesh.Version,
-		client:    &http.Client{Timeout: 30 * time.Second},
-	}
+	return NewBotWithClient(&BotRequest{
+		Domain: domain,
+		Token:  token,
+		Client: &http.Client{Timeout: 30 * time.Second},
+	})
 }
 
 // NewBotWithClient HTTPクライアント注入可能なBotインスタンスを作成
-func NewBotWithClient(domain, token string, client libHttp.Client) *Bot {
+func NewBotWithClient(req *BotRequest) *Bot {
+	if req == nil {
+		return nil
+	}
+	if req.Client == nil {
+		return nil
+	}
 	return &Bot{
-		Domain:    domain,
-		Token:     token,
+		Domain:    req.Domain,
+		Token:     req.Token,
 		UserAgent: "hato-bot-go/" + amesh.Version,
-		client:    client,
+		client:    req.Client,
 	}
 }
 

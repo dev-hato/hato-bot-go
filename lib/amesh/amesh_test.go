@@ -437,7 +437,12 @@ func TestCreateAndSaveImageWithClient(t *testing.T) {
 				ShouldError: tt.fileError,
 			}
 
-			filePath, err := amesh.CreateAndSaveImageWithClient(mockHTTPClient, mockFileWriter, tt.location, tt.basePath)
+			filePath, err := amesh.CreateAndSaveImageWithClient(&amesh.CreateAndSaveImageRequest{
+				Client:   mockHTTPClient,
+				Writer:   mockFileWriter,
+				Location: tt.location,
+				BasePath: tt.basePath,
+			})
 
 			if (err != nil) != tt.expectError {
 				t.Errorf("CreateAndSaveImageWithClient() error = %v, expectError %v", err, tt.expectError)
@@ -553,7 +558,11 @@ func TestParseLocationWithClient(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := libHttp.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
-			result, err := amesh.ParseLocationWithClient(mockClient, tt.place, tt.apiKey)
+			result, err := amesh.ParseLocationWithClient(&amesh.ParseLocationRequest{
+				Client: mockClient,
+				Place:  tt.place,
+				APIKey: tt.apiKey,
+			})
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
 				t.Errorf("ParseLocationWithClient() diff: %s", diff)
 			}

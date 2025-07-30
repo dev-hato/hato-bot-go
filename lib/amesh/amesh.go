@@ -207,14 +207,31 @@ func CreateAmeshImageWithClient(client libHttp.Client, req *CreateImageRequest) 
 	return img, nil
 }
 
+// CreateAndSaveImageRequest 画像作成・保存のリクエスト構造体
+type CreateAndSaveImageRequest struct {
+	Client   libHttp.Client // HTTPクライアント
+	Writer   FileWriter     // ファイルライター
+	Location *Location      // 位置情報
+	BasePath string         // 保存先ベースパス
+}
+
 // CreateAndSaveImageWithClient HTTPクライアントとファイルライターを指定してamesh画像を作成してファイルに保存する
-func CreateAndSaveImageWithClient(client libHttp.Client, writer FileWriter, location *Location, basePath string) (string, error) {
-	if location == nil {
+func CreateAndSaveImageWithClient(req *CreateAndSaveImageRequest) (string, error) {
+	if req == nil {
+		return "", errors.New("req cannot be nil")
+	}
+	if req.Client == nil {
+		return "", errors.New("client cannot be nil")
+	}
+	if req.Writer == nil {
+		return "", errors.New("writer cannot be nil")
+	}
+	if req.Location == nil {
 		return "", errors.New("location cannot be nil")
 	}
-	img, err := CreateAmeshImageWithClient(client, &CreateImageRequest{
-		Lat:         location.Lat,
-		Lng:         location.Lng,
+	img, err := CreateAmeshImageWithClient(req.Client, &CreateImageRequest{
+		Lat:         req.Location.Lat,
+		Lng:         req.Location.Lng,
 		Zoom:        10,
 		AroundTiles: 2,
 	})
@@ -224,12 +241,12 @@ func CreateAndSaveImageWithClient(client libHttp.Client, writer FileWriter, loca
 
 	fileName := fmt.Sprintf(
 		"amesh_%s_%d.png",
-		strings.ReplaceAll(location.PlaceName, " ", "_"),
+		strings.ReplaceAll(req.Location.PlaceName, " ", "_"),
 		time.Now().Unix(),
 	)
-	filePath := filepath.Join(basePath, fileName)
+	filePath := filepath.Join(req.BasePath, fileName)
 
-	file, err := writer.Create(filePath)
+	file, err := req.Writer.Create(filePath)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to writer.Create")
 	}
@@ -248,7 +265,12 @@ func CreateAndSaveImageWithClient(client libHttp.Client, writer FileWriter, loca
 
 // CreateAndSaveImage amesh画像を作成してファイルに保存する
 func CreateAndSaveImage(location *Location, basePath string) (string, error) {
-	return CreateAndSaveImageWithClient(defaultHTTPClient, &OSFileWriter{}, location, basePath)
+	return CreateAndSaveImageWithClient(&CreateAndSaveImageRequest{
+		Client:   defaultHTTPClient,
+		Writer:   &OSFileWriter{},
+		Location: location,
+		BasePath: basePath,
+	})
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
@@ -321,10 +343,23 @@ func GeocodeWithClient(client libHttp.Client, req *GeocodeRequest) (GeocodeResul
 	}, nil
 }
 
+// ParseLocationRequest 位置解析のリクエスト構造体
+type ParseLocationRequest struct {
+	Client libHttp.Client // HTTPクライアント
+	Place  string         // 地名または座標文字列
+	APIKey string         // Yahoo APIキー
+}
+
 // ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocationWithClient(client libHttp.Client, place, apiKey string) (*Location, error) {
+func ParseLocationWithClient(req *ParseLocationRequest) (*Location, error) {
+	if req == nil {
+		return nil, errors.New("req cannot be nil")
+	}
+	if req.Client == nil {
+		return nil, errors.New("client cannot be nil")
+	}
 	// 座標が直接提供されているかチェック
-	parts := strings.Fields(place)
+	parts := strings.Fields(req.Place)
 	if len(parts) == 2 {
 		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
 			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
@@ -338,9 +373,9 @@ func ParseLocationWithClient(client libHttp.Client, place, apiKey string) (*Loca
 	}
 
 	// 地名をジオコーディング
-	result, geocodeErr := GeocodeWithClient(client, &GeocodeRequest{
-		Place:  place,
-		APIKey: apiKey,
+	result, geocodeErr := GeocodeWithClient(req.Client, &GeocodeRequest{
+		Place:  req.Place,
+		APIKey: req.APIKey,
 	})
 	if geocodeErr != nil {
 		return nil, errors.Wrap(geocodeErr, "Failed to GeocodeWithClient")
@@ -354,7 +389,11 @@ func ParseLocationWithClient(client libHttp.Client, place, apiKey string) (*Loca
 
 // ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
 func ParseLocation(place, apiKey string) (*Location, error) {
-	return ParseLocationWithClient(defaultHTTPClient, place, apiKey)
+	return ParseLocationWithClient(&ParseLocationRequest{
+		Client: defaultHTTPClient,
+		Place:  place,
+		APIKey: apiKey,
+	})
 }
 
 // handleHTTPResponse HTTPレスポンスの共通処理を行う

@@ -204,7 +204,11 @@ func TestUploadFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 			mockClient := http.NewMockHTTPClient(tt.statusCode, tt.responseBody)
-			bot := misskey.NewBotWithClient("example.com", "token", mockClient)
+			bot := misskey.NewBotWithClient(&misskey.BotRequest{
+				Domain: "example.com",
+				Token:  "token",
+				Client: mockClient,
+			})
 
 			if _, err := bot.UploadFile(tt.filePath); (err != nil) != tt.expectError {
 				t.Errorf("UploadFile() error = %v, expectError %v", err, tt.expectError)
@@ -250,7 +254,11 @@ func TestProcessAmeshCommand(t *testing.T) {
 func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
 	t.Helper()
 	mockClient := http.NewMockHTTPClient(statusCode, responseBody)
-	bot := misskey.NewBotWithClient("example.com", "token", mockClient)
+	bot := misskey.NewBotWithClient(&misskey.BotRequest{
+		Domain: "example.com",
+		Token:  "token",
+		Client: mockClient,
+	})
 
 	err := testFunc(bot)
 	if (err != nil) != expectError {
