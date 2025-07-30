@@ -233,11 +233,11 @@ func CreateAndSaveImageWithClient(client libHttp.Client, writer FileWriter, loca
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to writer.Create")
 	}
-	defer func() {
+	defer func(file io.WriteCloser) {
 		if closeErr := file.Close(); closeErr != nil {
 			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
-	}()
+	}(file)
 
 	if err := png.Encode(file, img); err != nil {
 		return "", errors.Wrap(err, "Failed to png.Encode")
@@ -359,8 +359,8 @@ func ParseLocation(place, apiKey string) (*Location, error) {
 
 // handleHTTPResponse HTTPレスポンスの共通処理を行う
 func handleHTTPResponse(resp *http.Response) ([]byte, error) {
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
+	defer func(body io.ReadCloser) {
+		if closeErr := body.Close(); closeErr != nil {
 			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
@@ -528,8 +528,8 @@ func downloadTileWithClient(client libHttp.Client, tileURL string) (image.Image,
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Do")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
+	defer func(body io.ReadCloser) {
+		if closeErr := body.Close(); closeErr != nil {
 			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
