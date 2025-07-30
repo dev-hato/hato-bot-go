@@ -167,6 +167,119 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 - WebSocketストリーミング接続（Misskeyボット）
 - 自動的に再接続する機能とエラーハンドリング
 
+### 描画アルゴリズムの技術的詳細
+
+気象レーダー画像の生成には複数の描画アルゴリズムと座標変換技術を組み合わせています。
+
+#### 1. 座標変換システム
+
+**Webメルカトル投影 (`getWebMercatorPixel`)**
+
+```go
+zoomFactor := float64(int(1) << uint(params.Zoom))
+x := 256.0 * zoomFactor * (params.Lng + 180) / 360.0
+y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(params.Lat)/2))/(2.0*math.Pi))
+```
+
+- 地理座標（度数）をピクセル座標に変換
+- ズームレベルに応じたスケール調整
+- 地図タイルの標準的な座標系を使用
+
+#### 2. タイル合成システム
+
+**マルチレイヤー画像合成**
+
+1. **ベースマップ描画**: OpenStreetMapタイルを`draw.Over`モードで合成
+2. **レーダーオーバーレイ**: 気象庁データを半透明（Alpha=128）で重ね合わせ
+3. **装飾要素**: 距離円と落雷マーカーをピクセル単位で描画
+
+```go
+// ベースタイル描画
+draw.Draw(img, destRect, baseTile, image.Point{}, draw.Over)
+
+// レーダータイル透明度付き描画
+draw.DrawMask(img, destRect, radarTile, image.Point{}, 
+    &image.Uniform{C: color.RGBA{R: 255, G: 255, B: 255, A: 128}}, 
+    image.Point{}, draw.Over)
+```
+
+#### 3. 距離円描画アルゴリズム
+
+**地理的距離円の線分近似 (`drawDistanceCircle`)**
+
+- **64個の線分**で円を近似
+- **地球の曲率**を考慮した地理的距離計算
+- **球面座標系**での円上の点計算
+
+```go
+// 地理座標での円上の点計算（地球の曲率を考慮）
+lat1 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
+lng1 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
+```
+
+**技術的特徴:**
+- 地球半径（6371km）を使用した正確な距離計算
+- 緯度による経度補正を適用
+- ピクセル座標変換後にブレゼンハム直線描画
+
+#### 4. 直線描画アルゴリズム
+
+**ブレゼンハムライン描画 (`drawLine`)**
+
+```go
+// デルタエラー法による効率的な直線描画
+delta := dx - dy
+for {
+    params.Img.Set(x, y, params.Col)
+    
+    d2 := 2 * delta
+    if -dy < d2 {
+        delta -= dy
+        x += sx
+    }
+    if d2 < dx {
+        delta += dx
+        y += sy
+    }
+}
+```
+
+**アルゴリズムの利点:**
+- 整数演算のみで高速処理
+- アンチエイリアシングなしのクリアな線描画
+- メモリ効率的なピクセル単位操作
+
+#### 5. 落雷マーカー描画
+
+**円形塗りつぶしアルゴリズム (`drawLightningMarker`)**
+
+```go
+// ピタゴラスの定理による円内判定
+for dy := -radius; dy <= radius; dy++ {
+    for dx := -radius; dx <= radius; dx++ {
+        if radius*radius < dx*dx+dy*dy {
+            continue
+        }
+        params.Img.Set(x, y, lightningColor)
+    }
+}
+```
+
+**特徴:**
+- 半径7ピクセルの塗りつぶし円
+- 境界チェックによるオーバーフロー防止
+- シアン色（`color.RGBA{G: 255, B: 255, A: 255}`）での視認性向上
+
+#### 6. 描画パフォーマンス最適化
+
+**効率的な描画処理:**
+- タイル単位（256x256ピクセル）での並列処理
+- HTTPクライアントの再利用
+- エラー発生時のグレースフルデグラデーション
+- メモリ効率的なRGBA画像操作
+
+この実装は、地理情報システム（GIS）の基本的な描画技術を組み合わせ、効率的で正確な気象レーダー画像を生成します。
+
 ## ログ（ボットモード）
 
 ボットは次のログを出力します。

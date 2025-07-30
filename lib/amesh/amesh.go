@@ -531,7 +531,10 @@ func deg2rad(degrees float64) float64 {
 	return degrees * math.Pi / 180
 }
 
-// getWebMercatorPixel 地理座標をWebメルカトルピクセル座標に変換する
+// getWebMercatorPixel 地理座標をWebメルカトル投影でピクセル座標に変換
+// - 地理座標（度数）をピクセル座標に変換
+// - ズームレベルに応じたスケール調整
+// - 地図タイルの標準的な座標系を使用
 func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
 	if params.Zoom < 0 || 30 < params.Zoom {
 		return 0, 0
@@ -572,6 +575,7 @@ func downloadTileWithClient(client libHttp.Client, tileURL string) (image.Image,
 }
 
 // drawDistanceCircle 画像上に距離円を描画する
+// 64個の線分で円を近似し、地球の曲率を考慮した地理的距離円を描画
 func drawDistanceCircle(params *drawDistanceCircleParams) {
 	// 線分で円を近似
 	numSegments := 64
@@ -581,7 +585,7 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 		angle1 := float64(i) * 2 * math.Pi / float64(numSegments)
 		angle2 := float64(i+1) * 2 * math.Pi / float64(numSegments)
 
-		// 円上の点を計算
+		// 円上の点を計算（地球の曲率を考慮）
 		lat1 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
 		lng1 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
 
@@ -622,6 +626,7 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 }
 
 // drawLine 二点間に直線を描画する
+// ブレゼンハムアルゴリズム使用
 func drawLine(params *drawLineParams) {
 	// シンプルな直線描画アルゴリズム
 	dx := abs(params.X2 - params.X1)
@@ -669,6 +674,7 @@ func abs(x int) int {
 }
 
 // drawLightningMarker 画像上に落雷マーカーを描画する
+// 円形塗りつぶしアルゴリズム使用
 func drawLightningMarker(params *drawLightningMarkerParams) {
 	// ピクセル座標に変換
 	x, y := getWebMercatorPixel(&CreateImageRequest{
@@ -687,6 +693,7 @@ func drawLightningMarker(params *drawLightningMarkerParams) {
 	radius := 7
 	lightningColor := color.RGBA{G: 255, B: 255, A: 255}
 
+	// ピタゴラスの定理による円内判定
 	for dy := -radius; dy <= radius; dy++ {
 		for dx := -radius; dx <= radius; dx++ {
 			if radius*radius < dx*dx+dy*dy {
