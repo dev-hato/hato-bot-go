@@ -198,8 +198,8 @@ y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(params.Lat)
 draw.Draw(img, destRect, baseTile, image.Point{}, draw.Over)
 
 // レーダータイル透明度付き描画
-draw.DrawMask(img, destRect, radarTile, image.Point{}, 
-    &image.Uniform{C: color.RGBA{R: 255, G: 255, B: 255, A: 128}}, 
+draw.DrawMask(img, destRect, radarTile, image.Point{},
+    &image.Uniform{C: color.RGBA{R: 255, G: 255, B: 255, A: 128}},
     image.Point{}, draw.Over)
 ```
 
@@ -218,6 +218,7 @@ lng1 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(a
 ```
 
 **技術的特徴:**
+
 - 地球半径（6371km）を使用した正確な距離計算
 - 緯度による経度補正を適用
 - ピクセル座標変換後にブレゼンハム直線描画
@@ -231,7 +232,7 @@ lng1 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(a
 delta := dx - dy
 for {
     params.Img.Set(x, y, params.Col)
-    
+
     d2 := 2 * delta
     if -dy < d2 {
         delta -= dy
@@ -245,6 +246,7 @@ for {
 ```
 
 **アルゴリズムの利点:**
+
 - 整数演算のみで高速処理
 - アンチエイリアシングなしのクリアな線描画
 - メモリ効率的なピクセル単位操作
@@ -266,6 +268,7 @@ for dy := -radius; dy <= radius; dy++ {
 ```
 
 **特徴:**
+
 - 半径7ピクセルの塗りつぶし円
 - 境界チェックによるオーバーフロー防止
 - シアン色（`color.RGBA{G: 255, B: 255, A: 255}`）での視認性向上
@@ -273,6 +276,7 @@ for dy := -radius; dy <= radius; dy++ {
 #### 6. 描画パフォーマンス最適化
 
 **効率的な描画処理:**
+
 - タイル単位（256x256ピクセル）での並列処理
 - HTTPクライアントの再利用
 - エラー発生時のグレースフルデグラデーション
