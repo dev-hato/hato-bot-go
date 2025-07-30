@@ -62,7 +62,7 @@ func TestGeocodeWithClient(t *testing.T) {
 		responseCode int
 		responseBody string
 		expectError  error
-		expected     amesh.GeocodeResult
+		expected     amesh.Location
 	}{
 		{
 			name:         "成功したジオコーディング",
@@ -80,10 +80,10 @@ func TestGeocodeWithClient(t *testing.T) {
 				]
 			}`,
 			expectError: nil,
-			expected: amesh.GeocodeResult{
-				Lat:  35.6895,
-				Lng:  139.6917,
-				Name: "東京都",
+			expected: amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "東京都",
 			},
 		},
 		{
@@ -102,10 +102,10 @@ func TestGeocodeWithClient(t *testing.T) {
 				]
 			}`,
 			expectError: nil,
-			expected: amesh.GeocodeResult{
-				Lat:  35.6895,
-				Lng:  139.6917,
-				Name: "東京都",
+			expected: amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "東京都",
 			},
 		},
 		{
@@ -560,8 +560,10 @@ func TestParseLocationWithClient(t *testing.T) {
 
 			result, err := amesh.ParseLocationWithClient(&amesh.ParseLocationRequest{
 				Client: mockClient,
-				Place:  tt.place,
-				APIKey: tt.apiKey,
+				GeocodeRequest: amesh.GeocodeRequest{
+					Place:  tt.place,
+					APIKey: tt.apiKey,
+				},
 			})
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
 				t.Errorf("ParseLocationWithClient() diff: %s", diff)

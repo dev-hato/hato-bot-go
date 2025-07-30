@@ -63,11 +63,9 @@ type BotRequest struct {
 
 // Bot Misskeyボットクライアント
 type Bot struct {
-	Domain    string
-	Token     string
-	UserAgent string
-	client    libHttp.Client
-	wsConn    *websocket.Conn
+	BotRequest *BotRequest
+	UserAgent  string
+	wsConn     *websocket.Conn
 }
 
 // NewBot 新しいBotインスタンスを作成
@@ -88,16 +86,14 @@ func NewBotWithClient(req *BotRequest) *Bot {
 		return nil
 	}
 	return &Bot{
-		Domain:    req.Domain,
-		Token:     req.Token,
-		UserAgent: "hato-bot-go/" + amesh.Version,
-		client:    req.Client,
+		BotRequest: req,
+		UserAgent:  "hato-bot-go/" + amesh.Version,
 	}
 }
 
 // Connect WebSocket接続を確立
 func (bot *Bot) Connect() error {
-	wsURL := fmt.Sprintf("wss://%s/streaming?i=%s", bot.Domain, bot.Token)
+	wsURL := fmt.Sprintf("wss://%s/streaming?i=%s", bot.BotRequest.Domain, bot.BotRequest.Token)
 
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = 10 * time.Second
@@ -127,7 +123,7 @@ func (bot *Bot) Connect() error {
 		return errors.Wrap(err, "Failed to WriteJSON")
 	}
 
-	log.Printf("Connected to Misskey WebSocket: %s", bot.Domain)
+	log.Printf("Connected to Misskey WebSocket: %s", bot.BotRequest.Domain)
 	return nil
 }
 
@@ -231,7 +227,7 @@ func (bot *Bot) UploadFile(filePath string) (*File, error) {
 	writer := multipart.NewWriter(&buf)
 
 	// トークンフィールドを追加
-	if writeErr := writer.WriteField("i", bot.Token); writeErr != nil {
+	if writeErr := writer.WriteField("i", bot.BotRequest.Token); writeErr != nil {
 		return nil, errors.Wrap(writeErr, "Failed to WriteField")
 	}
 
@@ -249,7 +245,7 @@ func (bot *Bot) UploadFile(filePath string) (*File, error) {
 		return nil, errors.Wrap(closeErr, "Failed to Close")
 	}
 
-	url := fmt.Sprintf("https://%s/api/drive/files/create", bot.Domain)
+	url := fmt.Sprintf("https://%s/api/drive/files/create", bot.BotRequest.Domain)
 	req, err := http.NewRequest("POST", url, &buf)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to libHttp.NewRequest")
@@ -258,7 +254,7 @@ func (bot *Bot) UploadFile(filePath string) (*File, error) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("User-Agent", bot.UserAgent)
 
-	resp, err := bot.client.Do(req)
+	resp, err := bot.BotRequest.Client.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Do")
 	}
@@ -355,7 +351,7 @@ func (bot *Bot) ProcessAmeshCommand(note *Note, place string) error {
 func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, error) {
 	// データにトークンを追加
 	payload := map[string]interface{}{
-		"i": bot.Token,
+		"i": bot.BotRequest.Token,
 	}
 
 	if data != nil {
@@ -371,7 +367,7 @@ func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, e
 		return nil, errors.Wrap(err, "Failed to json.Marshal")
 	}
 
-	url := fmt.Sprintf("https://%s/api/%s", bot.Domain, endpoint)
+	url := fmt.Sprintf("https://%s/api/%s", bot.BotRequest.Domain, endpoint)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to libHttp.NewRequest")
@@ -380,7 +376,7 @@ func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, e
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", bot.UserAgent)
 
-	resp, err := bot.client.Do(req)
+	resp, err := bot.BotRequest.Client.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Do")
 	}

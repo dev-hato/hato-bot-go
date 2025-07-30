@@ -35,13 +35,6 @@ func (w *OSFileWriter) Create(name string) (io.WriteCloser, error) {
 	return os.Create(name)
 }
 
-// GeocodeResult ジオコーディングの結果を表す構造体
-type GeocodeResult struct {
-	Lat  float64
-	Lng  float64
-	Name string
-}
-
 // CreateImageRequest レーダー画像作成のリクエスト構造体
 type CreateImageRequest struct {
 	Lat         float64 // 緯度
@@ -73,9 +66,8 @@ type CreateAndSaveImageRequest struct {
 
 // ParseLocationRequest 位置解析のリクエスト構造体
 type ParseLocationRequest struct {
-	Client libHttp.Client // HTTPクライアント
-	Place  string         // 地名または座標文字列
-	APIKey string         // Yahoo APIキー
+	Client         libHttp.Client // HTTPクライアント
+	GeocodeRequest GeocodeRequest
 }
 
 type drawDistanceCircleParams struct {
@@ -281,9 +273,9 @@ func CreateAndSaveImage(location *Location, basePath string) (string, error) {
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
-func GeocodeWithClient(client libHttp.Client, req *GeocodeRequest) (GeocodeResult, error) {
+func GeocodeWithClient(client libHttp.Client, req *GeocodeRequest) (Location, error) {
 	if req == nil {
-		return GeocodeResult{}, errors.New("req cannot be nil")
+		return Location{}, errors.New("req cannot be nil")
 	}
 
 	place := req.Place
@@ -295,19 +287,19 @@ func GeocodeWithClient(client libHttp.Client, req *GeocodeRequest) (GeocodeResul
 
 	resp, err := client.Get(requestURL)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "Failed to Get")
+		return Location{}, errors.Wrap(err, "Failed to Get")
 	}
 
 	if resp.StatusCode != 200 {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			return GeocodeResult{}, errors.Wrap(closeErr, "Failed to Close")
+			return Location{}, errors.Wrap(closeErr, "Failed to Close")
 		}
-		return GeocodeResult{}, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
+		return Location{}, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
 	}
 
 	body, err := handleHTTPResponse(resp)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "Failed to handleHTTPResponse")
+		return Location{}, errors.Wrap(err, "Failed to handleHTTPResponse")
 	}
 
 	var result struct {
@@ -320,33 +312,33 @@ func GeocodeWithClient(client libHttp.Client, req *GeocodeRequest) (GeocodeResul
 	}
 
 	if unmarshalErr := json.Unmarshal(body, &result); unmarshalErr != nil {
-		return GeocodeResult{}, errors.Wrap(ErrJSONUnmarshal, unmarshalErr.Error())
+		return Location{}, errors.Wrap(ErrJSONUnmarshal, unmarshalErr.Error())
 	}
 
 	if len(result.Feature) == 0 {
-		return GeocodeResult{}, errors.Wrapf(ErrNoResultsFound, "%s", place)
+		return Location{}, errors.Wrapf(ErrNoResultsFound, "%s", place)
 	}
 
 	feature := result.Feature[0]
 	coords := strings.Split(feature.Geometry.Coordinates, ",")
 	if len(coords) < 2 {
-		return GeocodeResult{}, ErrInvalidCoordinatesFormat
+		return Location{}, ErrInvalidCoordinatesFormat
 	}
 
 	lng, err := strconv.ParseFloat(coords[0], 64)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "Failed to strconv.ParseFloat")
+		return Location{}, errors.Wrap(err, "Failed to strconv.ParseFloat")
 	}
 
 	lat, err := strconv.ParseFloat(coords[1], 64)
 	if err != nil {
-		return GeocodeResult{}, errors.Wrap(err, "Failed to strconv.ParseFloat")
+		return Location{}, errors.Wrap(err, "Failed to strconv.ParseFloat")
 	}
 
-	return GeocodeResult{
-		Lat:  lat,
-		Lng:  lng,
-		Name: feature.Name,
+	return Location{
+		Lat:       lat,
+		Lng:       lng,
+		PlaceName: feature.Name,
 	}, nil
 }
 
@@ -359,7 +351,7 @@ func ParseLocationWithClient(req *ParseLocationRequest) (*Location, error) {
 		return nil, errors.New("client cannot be nil")
 	}
 	// 座標が直接提供されているかチェック
-	parts := strings.Fields(req.Place)
+	parts := strings.Fields(req.GeocodeRequest.Place)
 	if len(parts) == 2 {
 		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
 			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
@@ -373,26 +365,21 @@ func ParseLocationWithClient(req *ParseLocationRequest) (*Location, error) {
 	}
 
 	// 地名をジオコーディング
-	result, geocodeErr := GeocodeWithClient(req.Client, &GeocodeRequest{
-		Place:  req.Place,
-		APIKey: req.APIKey,
-	})
+	result, geocodeErr := GeocodeWithClient(req.Client, &req.GeocodeRequest)
 	if geocodeErr != nil {
 		return nil, errors.Wrap(geocodeErr, "Failed to GeocodeWithClient")
 	}
-	return &Location{
-		Lat:       result.Lat,
-		Lng:       result.Lng,
-		PlaceName: result.Name,
-	}, nil
+	return &result, nil
 }
 
 // ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
 func ParseLocation(place, apiKey string) (*Location, error) {
 	return ParseLocationWithClient(&ParseLocationRequest{
 		Client: defaultHTTPClient,
-		Place:  place,
-		APIKey: apiKey,
+		GeocodeRequest: GeocodeRequest{
+			Place:  place,
+			APIKey: apiKey,
+		},
 	})
 }
 
@@ -614,11 +601,7 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 		})
 
 		// 画像座標に変換
-		centerX, centerY := getWebMercatorPixel(&CreateImageRequest{
-			Lat:  params.CreateImageRequest.Lat,
-			Lng:  params.CreateImageRequest.Lng,
-			Zoom: params.CreateImageRequest.Zoom,
-		})
+		centerX, centerY := getWebMercatorPixel(params.CreateImageRequest)
 		imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
 
 		imgX1 := int(x1 - centerX + float64(imageSize/2))
