@@ -190,7 +190,7 @@ func (bot *Bot) CreateNote(req *CreateNoteRequest) error {
 		data["replyId"] = replyID
 	}
 
-	if len(req.FileIDs) > 0 {
+	if 0 < len(req.FileIDs) {
 		data["fileIds"] = req.FileIDs
 	}
 

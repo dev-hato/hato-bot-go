@@ -487,7 +487,7 @@ func getLatestTimestampsWithClient(client libHttp.Client) map[string]string {
 				continue
 			}
 			for _, e := range td.Elements {
-				if e == element && td.BaseTime > latestTime {
+				if e == element && latestTime < td.BaseTime {
 					latestTime = td.BaseTime
 				}
 			}
@@ -546,7 +546,7 @@ func deg2rad(degrees float64) float64 {
 
 // getWebMercatorPixel 地理座標をWebメルカトルピクセル座標に変換する
 func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
-	if params.Zoom < 0 || params.Zoom > 30 {
+	if params.Zoom < 0 || 30 < params.Zoom {
 		return 0, 0
 	}
 	zoomFactor := float64(int(1) << uint(params.Zoom))
@@ -646,10 +646,10 @@ func drawLine(params *drawLineParams) {
 	sx := 1
 	sy := 1
 
-	if params.X1 > params.X2 {
+	if params.X2 < params.X1 {
 		sx = -1
 	}
-	if params.Y1 > params.Y2 {
+	if params.Y2 < params.Y1 {
 		sy = -1
 	}
 
@@ -657,7 +657,7 @@ func drawLine(params *drawLineParams) {
 	x, y := params.X1, params.Y1
 
 	for {
-		if x >= 0 && y >= 0 && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
+		if 0 <= x && 0 <= y && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
 			params.Img.Set(x, y, params.Col)
 		}
 
@@ -666,7 +666,7 @@ func drawLine(params *drawLineParams) {
 		}
 
 		d2 := 2 * delta
-		if d2 > -dy {
+		if -dy < d2 {
 			delta -= dy
 			x += sx
 		}
@@ -706,12 +706,12 @@ func drawLightningMarker(params *drawLightningMarkerParams) {
 
 	for dy := -radius; dy <= radius; dy++ {
 		for dx := -radius; dx <= radius; dx++ {
-			if dx*dx+dy*dy > radius*radius {
+			if radius*radius < dx*dx+dy*dy {
 				continue
 			}
 			x := imgX + dx
 			y := imgY + dy
-			if x >= 0 && y >= 0 && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
+			if 0 <= x && 0 <= y && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
 				params.Img.Set(x, y, lightningColor)
 			}
 		}
