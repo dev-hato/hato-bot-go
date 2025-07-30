@@ -32,6 +32,17 @@ go mod tidy
 - `github.com/gorilla/websocket`: WebSocket通信（Misskeyボット用）
 - `github.com/cockroachdb/errors`: エラーハンドリング
 
+### 1.1. 開発環境のセットアップ
+
+開発時はpre-commitフックをインストールしてください：
+
+```bash
+# pre-commitのインストール（gitleaksによるシークレットスキャン）
+uv tool run pre-commit install
+```
+
+これにより、コミット時に自動的にgitleaksによるシークレットスキャンが実行されます。
+
 ### 2. 前提条件
 
 1. [Yahoo Developer Network](https://developer.yahoo.co.jp/)からYahoo Maps APIキーを取得

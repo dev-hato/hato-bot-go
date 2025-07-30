@@ -18,6 +18,9 @@ go mod tidy
 
 # Node.js依存関係のインストール（リンティング用）
 npm install
+
+# pre-commitフックのインストール（gitleaksによるシークレットスキャン）
+uv tool run pre-commit install
 ```
 
 ### ボットの実行
