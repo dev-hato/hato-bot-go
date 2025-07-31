@@ -12,7 +12,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -212,18 +211,8 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) error {
 	return nil
 }
 
-// UploadFile ファイルをアップロード
-func (bot *Bot) UploadFile(ctx context.Context, filePath string) (*File, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to os.Open")
-	}
-	defer func(file *os.File) {
-		if closeErr := file.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
-	}(file)
-
+// UploadFileFromReader io.Readerからファイルをアップロード
+func (bot *Bot) UploadFileFromReader(ctx context.Context, reader io.Reader, fileName string) (*File, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
@@ -233,12 +222,12 @@ func (bot *Bot) UploadFile(ctx context.Context, filePath string) (*File, error) 
 	}
 
 	// ファイルフィールドを追加
-	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+	part, err := writer.CreateFormFile("file", fileName)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to CreateFormFile")
 	}
 
-	if _, copyErr := io.Copy(part, file); copyErr != nil {
+	if _, copyErr := io.Copy(part, reader); copyErr != nil {
 		return nil, errors.Wrap(copyErr, "Failed to io.Copy")
 	}
 
@@ -317,16 +306,19 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, note *Note, place strin
 
 	fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
-	// 画像を作成して保存
-	filePath, err := amesh.CreateAndSaveImage(ctx, location, "/tmp")
+	// 画像をメモリ上に作成
+	imageReader, err := amesh.CreateImageReader(ctx, location)
 	if err != nil {
-		return errors.Wrap(err, "Failed to amesh.CreateAndSaveImage")
+		return errors.Wrap(err, "Failed to amesh.CreateImageReader")
 	}
 
-	// Misskeyにファイルをアップロード
-	uploadedFile, err := bot.UploadFile(ctx, filePath)
+	// ファイル名を生成
+	fileName := amesh.GenerateFileName(location)
+
+	// Misskeyにメモリから直接アップロード
+	uploadedFile, err := bot.UploadFileFromReader(ctx, imageReader, fileName)
 	if err != nil {
-		return errors.Wrap(err, "Failed to UploadFile")
+		return errors.Wrap(err, "Failed to UploadFileFromReader")
 	}
 
 	// 結果をノートとして投稿

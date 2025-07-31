@@ -17,36 +17,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// mockFileWriter はテスト用のファイルライターのモック
-type mockFileWriter struct {
-	CreateFunc  func(name string) (io.WriteCloser, error)
-	ShouldError bool
-}
-
-func (m *mockFileWriter) Create(name string) (io.WriteCloser, error) {
-	if m.CreateFunc != nil {
-		return m.CreateFunc(name)
-	}
-	if m.ShouldError {
-		return nil, errors.New("mock file creation error")
-	}
-	return &mockWriteCloser{}, nil
-}
-
-// mockWriteCloser はテスト用のWriteCloserのモック
-type mockWriteCloser struct {
-	WriteData []byte
-}
-
-func (m *mockWriteCloser) Write(p []byte) (n int, err error) {
-	m.WriteData = append(m.WriteData, p...)
-	return len(p), nil
-}
-
-func (m *mockWriteCloser) Close() error {
-	return nil
-}
-
 // httpMockConfig モックHTTPクライアントの設定
 type httpMockConfig struct {
 	TimestampsResponse string
@@ -372,44 +342,56 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 	}
 }
 
-// TestCreateAndSaveImageWithClient CreateAndSaveImageWithClient関数をモックを使用してテストする
-func TestCreateAndSaveImageWithClient(t *testing.T) {
+// TestCreateImageReaderWithClient CreateImageReaderWithClient関数をテストする
+func TestCreateImageReaderWithClient(t *testing.T) {
 	tests := []struct {
-		name         string
-		location     *amesh.Location
-		basePath     string
-		fileError    bool
-		expectError  bool
-		expectedPath string
+		name               string
+		request            *amesh.CreateImageReaderRequest
+		timestampsResponse string
+		lightningResponse  string
+		expectError        bool
 	}{
 		{
-			name: "成功した画像作成と保存",
-			location: &amesh.Location{
-				Lat:       35.6895,
-				Lng:       139.6917,
-				PlaceName: "東京",
+			name: "成功したio.Reader作成",
+			request: &amesh.CreateImageReaderRequest{
+				Location: &amesh.Location{
+					Lat:       35.6895,
+					Lng:       139.6917,
+					PlaceName: "東京",
+				},
 			},
-			basePath:     "/tmp",
-			fileError:    false,
-			expectError:  false,
-			expectedPath: "/tmp/amesh_東京_", // タイムスタンプが付与されるため部分一致
+			timestampsResponse: `[
+				{
+					"basetime": "20240101120000",
+					"validtime": "20240101120000", 
+					"elements": ["hrpns_nd", "liden"]
+				}
+			]`,
+			lightningResponse: `{"features": []}`,
+			expectError:       false,
 		},
 		{
-			name:        "nilロケーション",
-			location:    nil,
-			basePath:    "/tmp",
-			fileError:   false,
+			name:        "nilリクエスト",
+			request:     nil,
 			expectError: true,
 		},
 		{
-			name: "ファイル作成エラー",
-			location: &amesh.Location{
-				Lat:       35.6895,
-				Lng:       139.6917,
-				PlaceName: "東京",
+			name: "nilクライアント",
+			request: &amesh.CreateImageReaderRequest{
+				Client: nil,
+				Location: &amesh.Location{
+					Lat:       35.6895,
+					Lng:       139.6917,
+					PlaceName: "東京",
+				},
 			},
-			basePath:    "/tmp",
-			fileError:   true,
+			expectError: true,
+		},
+		{
+			name: "nilロケーション",
+			request: &amesh.CreateImageReaderRequest{
+				Location: nil,
+			},
 			expectError: true,
 		},
 	}
@@ -417,73 +399,44 @@ func TestCreateAndSaveImageWithClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			// ダミータイルデータを作成
-			dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
-			if err != nil {
-				t.Fatal(err)
+
+			// モッククライアントを設定（リクエストがnilでない場合のみ）
+			if tt.request != nil && tt.request.Client == nil && !tt.expectError {
+				dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+				if err != nil {
+					t.Fatal(err)
+				}
+				tt.request.Client = createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: tt.timestampsResponse,
+					LightningResponse:  tt.lightningResponse,
+					DummyTileBytes:     dummyTileBytes,
+				})
 			}
 
-			// モックHTTPクライアントを作成
-			mockHTTPClient := createConfigurableMockHTTPClient(httpMockConfig{
-				TimestampsResponse: `[
-			{
-				"basetime": "20240101120000",
-				"validtime": "20240101120000", 
-				"elements": ["hrpns_nd", "liden"]
-			}
-		]`,
-				LightningResponse: `{"features": []}`,
-				DummyTileBytes:    dummyTileBytes,
-			})
-
-			// モックファイルライターを作成
-			mockFileWriter := &mockFileWriter{
-				ShouldError: tt.fileError,
-			}
-
-			filePath, err := amesh.CreateAndSaveImageWithClient(context.Background(), &amesh.CreateAndSaveImageRequest{
-				Client:   mockHTTPClient,
-				Writer:   mockFileWriter,
-				Location: tt.location,
-				BasePath: tt.basePath,
-			})
+			result, err := amesh.CreateImageReaderWithClient(context.Background(), tt.request)
 
 			if (err != nil) != tt.expectError {
-				t.Errorf("CreateAndSaveImageWithClient() error = %v, expectError %v", err, tt.expectError)
+				t.Errorf("CreateImageReaderWithClient() error = %v, expectError %v", err, tt.expectError)
 				return
 			}
 
-			if !tt.expectError && tt.expectedPath != "" {
-				if !strings.HasPrefix(filePath, tt.expectedPath) {
-					t.Errorf("CreateAndSaveImageWithClient() filePath = %v, expected to start with %v", filePath, tt.expectedPath)
+			if !tt.expectError {
+				if result == nil {
+					t.Error("CreateImageReaderWithClient() returned nil reader")
+					return
 				}
-			}
-		})
-	}
-}
 
-// TestCreateAndSaveImage CreateAndSaveImage関数をテストする（基本的なテストのみ）
-func TestCreateAndSaveImage(t *testing.T) {
-	tests := []struct {
-		name        string
-		location    *amesh.Location
-		basePath    string
-		expectError bool
-	}{
-		{
-			name:        "nilロケーション",
-			location:    nil,
-			basePath:    "/tmp",
-			expectError: true,
-		},
-	}
+				// io.Readerからデータを読み取って、有効なPNGデータかチェック
+				data, err := io.ReadAll(result)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			_, err := amesh.CreateAndSaveImage(context.Background(), tt.location, tt.basePath)
-			if (err != nil) != tt.expectError {
-				t.Errorf("CreateAndSaveImage() error = %v, expectError %v", err, tt.expectError)
+				// PNGデータのデコードを試行
+				if _, _, err = image.Decode(bytes.NewReader(data)); err != nil {
+					t.Error(err)
+				}
 			}
 		})
 	}
@@ -577,6 +530,79 @@ func TestParseLocationWithClient(t *testing.T) {
 			if !errors.Is(err, tt.expectError) {
 				t.Errorf("ParseLocationWithClient() error = %v, expectError %v", err, tt.expectError)
 				return
+			}
+		})
+	}
+}
+
+// TestGenerateFileName GenerateFileName関数をテストする
+func TestGenerateFileName(t *testing.T) {
+	tests := []struct {
+		name        string
+		location    *amesh.Location
+		expectError bool
+	}{
+		{
+			name: "基本的なファイル名生成",
+			location: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "東京",
+			},
+			expectError: false,
+		},
+		{
+			name: "座標",
+			location: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "35.6895,139.6917",
+			},
+			expectError: false,
+		},
+		{
+			name: "空の地名",
+			location: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "",
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := amesh.GenerateFileName(tt.location)
+
+			if !tt.expectError {
+				// ファイル名の基本フォーマットをチェック
+				if !strings.HasPrefix(result, "amesh_") {
+					t.Errorf("GenerateFileName() result = %v, expected to start with 'amesh_'", result)
+				}
+				if !strings.HasSuffix(result, ".png") {
+					t.Errorf("GenerateFileName() result = %v, expected to end with '.png'", result)
+				}
+
+				// 地名がファイル名に含まれているかチェック（スペースはアンダースコアに変換）
+				expectedPlaceName := strings.ReplaceAll(tt.location.PlaceName, " ", "_")
+				if !strings.Contains(result, expectedPlaceName) {
+					t.Errorf("GenerateFileName() result = %v, expected to contain place name %v", result, expectedPlaceName)
+				}
+
+				// タイムスタンプが含まれているかチェック（数字が含まれていることを確認）
+				hasNumber := false
+				for _, char := range result {
+					if char >= '0' && char <= '9' {
+						hasNumber = true
+						break
+					}
+				}
+				if !hasNumber {
+					t.Errorf("GenerateFileName() result = %v, expected to contain timestamp numbers", result)
+				}
 			}
 		})
 	}

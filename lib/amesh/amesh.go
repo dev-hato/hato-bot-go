@@ -1,9 +1,12 @@
 package amesh
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cockroachdb/errors"
+	"golang.org/x/exp/constraints"
 	libHttp "hato-bot-go/lib/http"
 	"image"
 	"image/color"
@@ -14,27 +17,14 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/cockroachdb/errors"
-	"golang.org/x/exp/constraints"
 )
 
 // FileWriter はファイル書き込み操作を行うインターフェース
 type FileWriter interface {
 	Create(name string) (io.WriteCloser, error)
-}
-
-// OSFileWriter は実際のファイルシステムを使用するFileWriterの実装
-type OSFileWriter struct{}
-
-// Create 実際のファイルを作成する
-func (w *OSFileWriter) Create(name string) (io.WriteCloser, error) {
-	return os.Create(name)
 }
 
 // CreateImageRequest レーダー画像作成のリクエスト構造体
@@ -58,12 +48,10 @@ type Location struct {
 	PlaceName string  // 地名
 }
 
-// CreateAndSaveImageRequest 画像作成・保存のリクエスト構造体
-type CreateAndSaveImageRequest struct {
+// CreateImageReaderRequest amesh画像リーダー作成のリクエスト構造体
+type CreateImageReaderRequest struct {
 	Client   libHttp.Client // HTTPクライアント
-	Writer   FileWriter     // ファイルライター
 	Location *Location      // 位置情報
-	BasePath string         // 保存先ベースパス
 }
 
 // ParseLocationRequest 位置解析のリクエスト構造体
@@ -216,19 +204,16 @@ func CreateAmeshImageWithClient(ctx context.Context, client libHttp.Client, req 
 	return img, nil
 }
 
-// CreateAndSaveImageWithClient HTTPクライアントとファイルライターを指定してamesh画像を作成してファイルに保存する
-func CreateAndSaveImageWithClient(ctx context.Context, req *CreateAndSaveImageRequest) (string, error) {
+// CreateImageReaderWithClient HTTPクライアントを指定してamesh画像をメモリ上に作成してio.Readerを返す
+func CreateImageReaderWithClient(ctx context.Context, req *CreateImageReaderRequest) (io.Reader, error) {
 	if req == nil {
-		return "", errors.New("req cannot be nil")
+		return nil, errors.New("req cannot be nil")
 	}
 	if req.Client == nil {
-		return "", errors.New("client cannot be nil")
-	}
-	if req.Writer == nil {
-		return "", errors.New("writer cannot be nil")
+		return nil, errors.New("client cannot be nil")
 	}
 	if req.Location == nil {
-		return "", errors.New("location cannot be nil")
+		return nil, errors.New("location cannot be nil")
 	}
 	img, err := CreateAmeshImageWithClient(ctx, req.Client, &CreateImageRequest{
 		Lat:         req.Location.Lat,
@@ -237,40 +222,23 @@ func CreateAndSaveImageWithClient(ctx context.Context, req *CreateAndSaveImageRe
 		AroundTiles: 2,
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to CreateAmeshImageWithClient")
+		return nil, errors.Wrap(err, "Failed to CreateAmeshImageWithClient")
 	}
 
-	fileName := fmt.Sprintf(
-		"amesh_%s_%d.png",
-		strings.ReplaceAll(req.Location.PlaceName, " ", "_"),
-		time.Now().Unix(),
-	)
-	filePath := filepath.Join(req.BasePath, fileName)
-
-	file, err := req.Writer.Create(filePath)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to writer.Create")
-	}
-	defer func(file io.WriteCloser) {
-		if closeErr := file.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
-	}(file)
-
-	if err := png.Encode(file, img); err != nil {
-		return "", errors.Wrap(err, "Failed to png.Encode")
+	// バイトバッファに画像をエンコード
+	buf := &bytes.Buffer{}
+	if err := png.Encode(buf, img); err != nil {
+		return nil, errors.Wrap(err, "Failed to png.Encode")
 	}
 
-	return filePath, nil
+	return buf, nil
 }
 
-// CreateAndSaveImage amesh画像を作成してファイルに保存する
-func CreateAndSaveImage(ctx context.Context, location *Location, basePath string) (string, error) {
-	return CreateAndSaveImageWithClient(ctx, &CreateAndSaveImageRequest{
+// CreateImageReader amesh画像をメモリ上に作成してio.Readerを返す
+func CreateImageReader(ctx context.Context, location *Location) (io.Reader, error) {
+	return CreateImageReaderWithClient(ctx, &CreateImageReaderRequest{
 		Client:   defaultHTTPClient,
-		Writer:   &OSFileWriter{},
 		Location: location,
-		BasePath: basePath,
 	})
 }
 
@@ -383,6 +351,15 @@ func ParseLocation(place, apiKey string) (*Location, error) {
 			APIKey: apiKey,
 		},
 	})
+}
+
+// GenerateFileName 位置情報からamesh画像のファイル名を生成する
+func GenerateFileName(location *Location) string {
+	return fmt.Sprintf(
+		"amesh_%s_%d.png",
+		strings.ReplaceAll(location.PlaceName, " ", "_"),
+		time.Now().Unix(),
+	)
 }
 
 // handleHTTPResponse HTTPレスポンスの共通処理を行う

@@ -4,6 +4,7 @@ import (
 	"context"
 	"hato-bot-go/lib/http"
 	"hato-bot-go/lib/misskey"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -180,24 +181,27 @@ func TestCreateNote(t *testing.T) {
 	}
 }
 
-func TestUploadFile(t *testing.T) {
+func TestUploadFileFromReader(t *testing.T) {
 	tests := []struct {
 		name         string
-		filePath     string
+		fileName     string
+		readerData   string
 		statusCode   int
 		responseBody string
 		expectError  bool
 	}{
 		{
-			name:         "存在しないファイル",
-			filePath:     "/nonexistent/file.txt",
+			name:         "成功したファイルアップロード",
+			fileName:     "test.txt",
+			readerData:   "test file content",
 			statusCode:   200,
 			responseBody: `{"id":"file123","name":"test.txt","url":"https://example.com/file123"}`,
-			expectError:  true, // ファイルが存在しないためエラーになる
+			expectError:  false,
 		},
 		{
 			name:         "APIエラー応答",
-			filePath:     "/tmp/test.txt", // 実際には呼ばれない
+			fileName:     "test.txt",
+			readerData:   "test content",
 			statusCode:   400,
 			responseBody: `{"error":"bad request"}`,
 			expectError:  true,
@@ -215,8 +219,9 @@ func TestUploadFile(t *testing.T) {
 				Client: mockClient,
 			})
 
-			if _, err := bot.UploadFile(context.Background(), tt.filePath); (err != nil) != tt.expectError {
-				t.Errorf("UploadFile() error = %v, expectError %v", err, tt.expectError)
+			reader := strings.NewReader(tt.readerData)
+			if _, err := bot.UploadFileFromReader(context.Background(), reader, tt.fileName); (err != nil) != tt.expectError {
+				t.Errorf("UploadFileFromReader() error = %v, expectError %v", err, tt.expectError)
 			}
 		})
 	}

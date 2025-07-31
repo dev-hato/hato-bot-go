@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"hato-bot-go/lib/amesh"
+	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 )
@@ -48,13 +50,32 @@ func main() {
 
 		fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
-		// amesh画像を作成・保存
-		filename, err := amesh.CreateAndSaveImage(context.Background(), location, ".")
+		// amesh画像をメモリ上に作成
+		imageReader, err := amesh.CreateImageReader(context.Background(), location)
 		if err != nil {
-			panic(errors.Wrap(err, "Failed to amesh.CreateAndSaveImage"))
+			panic(errors.Wrap(err, "Failed to amesh.CreateImageReader"))
 		}
 
-		fmt.Printf("Amesh image saved to %s\n", filename)
+		// ファイル名を生成
+		fileName := amesh.GenerateFileName(location)
+		filePath := filepath.Join(".", fileName)
+
+		// ファイルに保存
+		file, err := os.Create(filePath)
+		if err != nil {
+			panic(errors.Wrap(err, "Failed to os.Create"))
+		}
+		defer func(file *os.File) {
+			if closeErr := file.Close(); closeErr != nil {
+				panic(errors.Wrap(closeErr, "Failed to Close"))
+			}
+		}(file)
+
+		if _, err := io.Copy(file, imageReader); err != nil {
+			panic(errors.Wrap(err, "Failed to io.Copy"))
+		}
+
+		fmt.Printf("Amesh image saved to %s\n", filePath)
 		break
 	default:
 		panic(errors.Errorf("Unknown command: %s", command))
