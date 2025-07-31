@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cockroachdb/errors"
-	"golang.org/x/exp/constraints"
 	libHttp "hato-bot-go/lib/http"
 	"image"
 	"image/color"
@@ -20,6 +18,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cockroachdb/errors"
+	"golang.org/x/exp/constraints"
 )
 
 // FileWriter はファイル書き込み操作を行うインターフェース
