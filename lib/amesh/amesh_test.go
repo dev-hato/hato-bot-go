@@ -153,6 +153,7 @@ func TestGeocodeWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			mockClient := libHttp.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
 			result, err := amesh.GeocodeWithClient(mockClient, &amesh.GeocodeRequest{
@@ -325,6 +326,7 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 			if err != nil {
 				t.Error(err)
@@ -413,6 +415,7 @@ func TestCreateAndSaveImageWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// ダミータイルデータを作成
 			dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 			if err != nil {
@@ -476,6 +479,7 @@ func TestCreateAndSaveImage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := amesh.CreateAndSaveImage(tt.location, tt.basePath)
 			if (err != nil) != tt.expectError {
 				t.Errorf("CreateAndSaveImage() error = %v, expectError %v", err, tt.expectError)
@@ -556,6 +560,7 @@ func TestParseLocationWithClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			mockClient := libHttp.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
 			result, err := amesh.ParseLocationWithClient(&amesh.ParseLocationRequest{

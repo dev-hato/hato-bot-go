@@ -73,6 +73,7 @@ func TestParseAmeshCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := misskey.ParseAmeshCommand(tt.input)
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
 				t.Errorf("ParseAmeshCommand(%q) diff: %s", tt.input, diff)
@@ -107,6 +108,7 @@ func TestAddReaction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			runSimpleBotTest(t, tt.statusCode, func(bot *misskey.Bot) error {
 				return bot.AddReaction(tt.noteID, tt.reaction)
 			}, tt.expectError, "AddReaction()")
@@ -169,6 +171,7 @@ func TestCreateNote(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			runBotTest(t, tt.statusCode, tt.responseBody, func(bot *misskey.Bot) error {
 				return bot.CreateNote(tt.req)
 			}, tt.expectError, "CreateNote()")
@@ -202,6 +205,7 @@ func TestUploadFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			t.Helper()
 			mockClient := http.NewMockHTTPClient(tt.statusCode, tt.responseBody)
 			bot := misskey.NewBotWithClient(&misskey.BotSetting{
@@ -243,6 +247,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			runSimpleBotTest(t, 204, func(bot *misskey.Bot) error {
 				return bot.ProcessAmeshCommand(tt.note, tt.place)
 			}, tt.expectError, "ProcessAmeshCommand()")
