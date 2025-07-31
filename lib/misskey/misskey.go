@@ -258,7 +258,7 @@ func (bot *Bot) UploadFileFromReader(ctx context.Context, reader io.Reader, file
 }
 
 // AddReaction リアクションを追加
-func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) error {
+func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err error) {
 	data := map[string]interface{}{
 		"noteId":   noteID,
 		"reaction": reaction,
@@ -269,9 +269,7 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) error 
 		return errors.Wrap(err, "Failed to apiRequest")
 	}
 	defer func(body io.ReadCloser) {
-		if closeErr := body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
+		err = body.Close()
 	}(resp.Body)
 
 	if resp.StatusCode != 204 {
@@ -415,7 +413,7 @@ func ParseAmeshCommand(text string) ParseResult {
 }
 
 // checkStatusAndDecodeJSON ステータスコードをチェックしJSONをデコードする共通処理
-func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) error {
+func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) (err error) {
 	if resp.StatusCode != 200 {
 		if err := resp.Body.Close(); err != nil {
 			return errors.Wrap(err, "Failed to Close")
@@ -424,9 +422,7 @@ func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) error {
 	}
 
 	defer func(body io.ReadCloser) {
-		if closeErr := body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
+		err = body.Close()
 	}(resp.Body)
 
 	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {

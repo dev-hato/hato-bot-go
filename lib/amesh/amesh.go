@@ -364,14 +364,12 @@ func GenerateFileName(location *Location) string {
 }
 
 // handleHTTPResponse HTTPレスポンスの共通処理を行う
-func handleHTTPResponse(resp *http.Response) ([]byte, error) {
+func handleHTTPResponse(resp *http.Response) (body []byte, err error) {
 	defer func(body io.ReadCloser) {
-		if closeErr := body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
+		err = body.Close()
 	}(resp.Body)
 
-	body, err := io.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to io.ReadAll")
 	}
@@ -526,7 +524,7 @@ func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
 }
 
 // downloadTileWithClient HTTPクライアントを指定してマップタイルをダウンロードする
-func downloadTileWithClient(ctx context.Context, client libHttp.Client, tileURL string) (image.Image, error) {
+func downloadTileWithClient(ctx context.Context, client libHttp.Client, tileURL string) (img image.Image, err error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", tileURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to libHttp.NewRequestWithContext")
@@ -538,16 +536,14 @@ func downloadTileWithClient(ctx context.Context, client libHttp.Client, tileURL 
 		return nil, errors.Wrap(err, "Failed to Do")
 	}
 	defer func(body io.ReadCloser) {
-		if closeErr := body.Close(); closeErr != nil {
-			panic(errors.Wrap(closeErr, "Failed to Close"))
-		}
+		err = body.Close()
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("タイルのダウンロードに失敗: ステータス %d", resp.StatusCode)
 	}
 
-	img, _, err := image.Decode(resp.Body)
+	img, _, err = image.Decode(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to image.Decode")
 	}
