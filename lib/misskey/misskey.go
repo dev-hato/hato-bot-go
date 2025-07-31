@@ -261,7 +261,7 @@ func (bot *Bot) UploadFile(filePath string) (*File, error) {
 
 	var uploadedFile File
 	if err := checkStatusAndDecodeJSON(resp, &uploadedFile); err != nil {
-		return nil, errors.Wrap(err, "Faild to checkStatusAndDecodeJSON")
+		return nil, errors.Wrap(err, "Failed to checkStatusAndDecodeJSON")
 	}
 
 	return &uploadedFile, nil
