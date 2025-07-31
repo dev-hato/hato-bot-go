@@ -14,7 +14,7 @@
 
 ```bash
 # Go依存関係のインストール
-go mod tidy
+go mod download
 
 # Node.js依存関係のインストール（リンティング用）
 npm install
