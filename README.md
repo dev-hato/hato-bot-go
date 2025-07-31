@@ -24,7 +24,7 @@
 ### 1. 依存関係のインストール
 
 ```bash
-go mod tidy
+go mod download
 ```
 
 **主な依存関係**:
