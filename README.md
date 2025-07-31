@@ -81,10 +81,10 @@ export YAHOO_API_TOKEN=your_yahoo_api_token
 
 
 # ソースから実行
-go run cmd/cli/main.go 東京
+go run cmd/cli/main.go amesh 東京
 
 # 座標で実行
-go run cmd/cli/main.go "35.6762 139.6503"
+go run cmd/cli/main.go amesh "35.6762 139.6503"
 ```
 
 ### ビルド

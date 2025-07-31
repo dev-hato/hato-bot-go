@@ -74,7 +74,7 @@ go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 
 ### コアコンポーネント
 
-- **`cmd/cli/main.go`**: スタンドアロン気象レーダー画像生成のCLIエントリーポイント
+- **`cmd/cli/main.go`**: スタンドアロンのCLIエントリーポイント
 - **`cmd/misskey_bot/main.go`**: WebSocketストリーミング付きMisskeyボットエントリーポイント
 - **`cmd/health_check/main.go`**: コンテナオーケストレーション用ヘルスチェックサービス
 - **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能
