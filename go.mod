@@ -7,6 +7,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/pkg/errors v0.9.1
+	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b
 )
 
 require (

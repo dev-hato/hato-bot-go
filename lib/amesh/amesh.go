@@ -3,6 +3,7 @@ package amesh
 import (
 	"encoding/json"
 	"fmt"
+	"golang.org/x/exp/constraints"
 	libHttp "hato-bot-go/lib/http"
 	"image"
 	"image/color"
@@ -665,8 +666,8 @@ func drawLine(params *drawLineParams) {
 	}
 }
 
-// abs 整数の絶対値を返す
-func abs(x int) int {
+// abs 絶対値を返す
+func abs[T constraints.Signed | constraints.Float](x T) T {
 	if x < 0 {
 		return -x
 	}
