@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"hato-bot-go/lib/amesh"
 	"os"
@@ -48,7 +49,7 @@ func main() {
 		fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 		// amesh画像を作成・保存
-		filename, err := amesh.CreateAndSaveImage(location, ".")
+		filename, err := amesh.CreateAndSaveImage(context.Background(), location, ".")
 		if err != nil {
 			panic(errors.Wrap(err, "Failed to amesh.CreateAndSaveImage"))
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"hato-bot-go/lib/amesh"
 	"hato-bot-go/lib/misskey"
@@ -48,13 +49,14 @@ func main() {
 		}
 
 		log.Printf("Processing amesh command for place: %s", parseResult.Place)
+		ctx := context.Background()
 
 		// ameshコマンドを処理
-		if err := bot.ProcessAmeshCommand(note, parseResult.Place); err != nil {
+		if err := bot.ProcessAmeshCommand(ctx, note, parseResult.Place); err != nil {
 			log.Printf("Error processing amesh command: %v", err)
 
 			// エラーメッセージを投稿
-			if replyErr := bot.CreateNote(&misskey.CreateNoteRequest{
+			if replyErr := bot.CreateNote(ctx, &misskey.CreateNoteRequest{
 				Text:         "申し訳ないっぽ。ameshコマンドの処理中にエラーが発生したっぽ",
 				FileIDs:      nil,
 				OriginalNote: note,

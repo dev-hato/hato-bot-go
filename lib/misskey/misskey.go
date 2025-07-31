@@ -2,6 +2,7 @@ package misskey
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"hato-bot-go/lib/amesh"
@@ -160,7 +161,7 @@ func (bot *Bot) Listen(messageHandler func(note *Note)) error {
 }
 
 // CreateNote ノートを作成
-func (bot *Bot) CreateNote(req *CreateNoteRequest) error {
+func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) error {
 	if req == nil {
 		return errors.New("req cannot be nil")
 	}
@@ -195,7 +196,7 @@ func (bot *Bot) CreateNote(req *CreateNoteRequest) error {
 		data["cw"] = "隠すっぽ！"
 	}
 
-	resp, err := bot.apiRequest("notes/create", data)
+	resp, err := bot.apiRequest(ctx, "notes/create", data)
 	if err != nil {
 		return errors.Wrap(err, "Failed to apiRequest")
 	}
@@ -212,7 +213,7 @@ func (bot *Bot) CreateNote(req *CreateNoteRequest) error {
 }
 
 // UploadFile ファイルをアップロード
-func (bot *Bot) UploadFile(filePath string) (*File, error) {
+func (bot *Bot) UploadFile(ctx context.Context, filePath string) (*File, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to os.Open")
@@ -246,9 +247,9 @@ func (bot *Bot) UploadFile(filePath string) (*File, error) {
 	}
 
 	url := fmt.Sprintf("https://%s/api/drive/files/create", bot.BotSetting.Domain)
-	req, err := http.NewRequest("POST", url, &buf)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, &buf)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to libHttp.NewRequest")
+		return nil, errors.Wrap(err, "Failed to libHttp.NewRequestWithContext")
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -268,13 +269,13 @@ func (bot *Bot) UploadFile(filePath string) (*File, error) {
 }
 
 // AddReaction リアクションを追加
-func (bot *Bot) AddReaction(noteID, reaction string) error {
+func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) error {
 	data := map[string]interface{}{
 		"noteId":   noteID,
 		"reaction": reaction,
 	}
 
-	resp, err := bot.apiRequest("notes/reactions/create", data)
+	resp, err := bot.apiRequest(ctx, "notes/reactions/create", data)
 	if err != nil {
 		return errors.Wrap(err, "Failed to apiRequest")
 	}
@@ -292,13 +293,13 @@ func (bot *Bot) AddReaction(noteID, reaction string) error {
 }
 
 // ProcessAmeshCommand ameshコマンドを処理
-func (bot *Bot) ProcessAmeshCommand(note *Note, place string) error {
+func (bot *Bot) ProcessAmeshCommand(ctx context.Context, note *Note, place string) error {
 	if note == nil {
 		return errors.New("note cannot be nil")
 	}
 
 	// 処理中リアクションを追加
-	if err := bot.AddReaction(note.ID, "👀"); err != nil {
+	if err := bot.AddReaction(ctx, note.ID, "👀"); err != nil {
 		return errors.Wrap(err, "Failed to AddReaction")
 	}
 
@@ -317,13 +318,13 @@ func (bot *Bot) ProcessAmeshCommand(note *Note, place string) error {
 	fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 	// 画像を作成して保存
-	filePath, err := amesh.CreateAndSaveImage(location, "/tmp")
+	filePath, err := amesh.CreateAndSaveImage(ctx, location, "/tmp")
 	if err != nil {
 		return errors.Wrap(err, "Failed to amesh.CreateAndSaveImage")
 	}
 
 	// Misskeyにファイルをアップロード
-	uploadedFile, err := bot.UploadFile(filePath)
+	uploadedFile, err := bot.UploadFile(ctx, filePath)
 	if err != nil {
 		return errors.Wrap(err, "Failed to UploadFile")
 	}
@@ -335,7 +336,7 @@ func (bot *Bot) ProcessAmeshCommand(note *Note, place string) error {
 		location.Lat,
 		location.Lng,
 	)
-	if err := bot.CreateNote(&CreateNoteRequest{
+	if err := bot.CreateNote(ctx, &CreateNoteRequest{
 		Text:         text,
 		FileIDs:      []string{uploadedFile.ID},
 		OriginalNote: note,
@@ -348,7 +349,7 @@ func (bot *Bot) ProcessAmeshCommand(note *Note, place string) error {
 }
 
 // apiRequest MisskeyAPIリクエストを送信
-func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, error) {
+func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
 	// データにトークンを追加
 	payload := map[string]interface{}{
 		"i": bot.BotSetting.Token,
@@ -368,9 +369,9 @@ func (bot *Bot) apiRequest(endpoint string, data interface{}) (*http.Response, e
 	}
 
 	url := fmt.Sprintf("https://%s/api/%s", bot.BotSetting.Domain, endpoint)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to libHttp.NewRequest")
+		return nil, errors.Wrap(err, "Failed to libHttp.NewRequestWithContext")
 	}
 
 	req.Header.Set("Content-Type", "application/json")

@@ -2,6 +2,7 @@ package amesh_test
 
 import (
 	"bytes"
+	"context"
 	"hato-bot-go/lib/amesh"
 	libHttp "hato-bot-go/lib/http"
 	"image"
@@ -337,7 +338,7 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 				DummyTileBytes:     dummyTileBytes,
 			})
 
-			result, err := amesh.CreateAmeshImageWithClient(mockClient, &amesh.CreateImageRequest{
+			result, err := amesh.CreateAmeshImageWithClient(context.Background(), mockClient, &amesh.CreateImageRequest{
 				Lat:         tt.lat,
 				Lng:         tt.lng,
 				Zoom:        tt.zoom,
@@ -440,7 +441,7 @@ func TestCreateAndSaveImageWithClient(t *testing.T) {
 				ShouldError: tt.fileError,
 			}
 
-			filePath, err := amesh.CreateAndSaveImageWithClient(&amesh.CreateAndSaveImageRequest{
+			filePath, err := amesh.CreateAndSaveImageWithClient(context.Background(), &amesh.CreateAndSaveImageRequest{
 				Client:   mockHTTPClient,
 				Writer:   mockFileWriter,
 				Location: tt.location,
@@ -480,7 +481,7 @@ func TestCreateAndSaveImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := amesh.CreateAndSaveImage(tt.location, tt.basePath)
+			_, err := amesh.CreateAndSaveImage(context.Background(), tt.location, tt.basePath)
 			if (err != nil) != tt.expectError {
 				t.Errorf("CreateAndSaveImage() error = %v, expectError %v", err, tt.expectError)
 			}

@@ -1,6 +1,7 @@
 package amesh
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	libHttp "hato-bot-go/lib/http"
@@ -127,7 +128,7 @@ var (
 var defaultHTTPClient = libHttp.DefaultHTTPClient
 
 // CreateAmeshImageWithClient HTTPクライアントを指定してameshレーダー画像を作成する
-func CreateAmeshImageWithClient(client libHttp.Client, req *CreateImageRequest) (*image.RGBA, error) {
+func CreateAmeshImageWithClient(ctx context.Context, client libHttp.Client, req *CreateImageRequest) (*image.RGBA, error) {
 	if req == nil {
 		return nil, errors.New("req cannot be nil")
 	}
@@ -164,7 +165,7 @@ func CreateAmeshImageWithClient(client libHttp.Client, req *CreateImageRequest) 
 			// ベースマップタイル（OpenStreetMap）をダウンロード
 			baseURL := fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png", req.Zoom, tileX, tileY)
 
-			baseTile, err := downloadTileWithClient(client, baseURL)
+			baseTile, err := downloadTileWithClient(ctx, client, baseURL)
 			if err != nil {
 				log.Printf("Failed to downloadTileWithClient: %v", err)
 				continue
@@ -181,7 +182,7 @@ func CreateAmeshImageWithClient(client libHttp.Client, req *CreateImageRequest) 
 
 			// レーダータイルをダウンロードしてオーバーレイ
 			radarURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png", hrpnsTimestamp, hrpnsTimestamp, req.Zoom, tileX, tileY)
-			radarTile, err := downloadTileWithClient(client, radarURL)
+			radarTile, err := downloadTileWithClient(ctx, client, radarURL)
 			if err != nil {
 				log.Printf("Failed to downloadTileWithClient: %v", err)
 				continue
@@ -216,7 +217,7 @@ func CreateAmeshImageWithClient(client libHttp.Client, req *CreateImageRequest) 
 }
 
 // CreateAndSaveImageWithClient HTTPクライアントとファイルライターを指定してamesh画像を作成してファイルに保存する
-func CreateAndSaveImageWithClient(req *CreateAndSaveImageRequest) (string, error) {
+func CreateAndSaveImageWithClient(ctx context.Context, req *CreateAndSaveImageRequest) (string, error) {
 	if req == nil {
 		return "", errors.New("req cannot be nil")
 	}
@@ -229,7 +230,7 @@ func CreateAndSaveImageWithClient(req *CreateAndSaveImageRequest) (string, error
 	if req.Location == nil {
 		return "", errors.New("location cannot be nil")
 	}
-	img, err := CreateAmeshImageWithClient(req.Client, &CreateImageRequest{
+	img, err := CreateAmeshImageWithClient(ctx, req.Client, &CreateImageRequest{
 		Lat:         req.Location.Lat,
 		Lng:         req.Location.Lng,
 		Zoom:        10,
@@ -264,8 +265,8 @@ func CreateAndSaveImageWithClient(req *CreateAndSaveImageRequest) (string, error
 }
 
 // CreateAndSaveImage amesh画像を作成してファイルに保存する
-func CreateAndSaveImage(location *Location, basePath string) (string, error) {
-	return CreateAndSaveImageWithClient(&CreateAndSaveImageRequest{
+func CreateAndSaveImage(ctx context.Context, location *Location, basePath string) (string, error) {
+	return CreateAndSaveImageWithClient(ctx, &CreateAndSaveImageRequest{
 		Client:   defaultHTTPClient,
 		Writer:   &OSFileWriter{},
 		Location: location,
@@ -547,10 +548,10 @@ func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
 }
 
 // downloadTileWithClient HTTPクライアントを指定してマップタイルをダウンロードする
-func downloadTileWithClient(client libHttp.Client, tileURL string) (image.Image, error) {
-	req, err := http.NewRequest("GET", tileURL, nil)
+func downloadTileWithClient(ctx context.Context, client libHttp.Client, tileURL string) (image.Image, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", tileURL, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to libHttp.NewRequest")
+		return nil, errors.Wrap(err, "Failed to libHttp.NewRequestWithContext")
 	}
 	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
 

@@ -1,6 +1,7 @@
 package misskey_test
 
 import (
+	"context"
 	"hato-bot-go/lib/http"
 	"hato-bot-go/lib/misskey"
 	"testing"
@@ -110,7 +111,7 @@ func TestAddReaction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			runSimpleBotTest(t, tt.statusCode, func(bot *misskey.Bot) error {
-				return bot.AddReaction(tt.noteID, tt.reaction)
+				return bot.AddReaction(context.Background(), tt.noteID, tt.reaction)
 			}, tt.expectError, "AddReaction()")
 		})
 	}
@@ -173,7 +174,7 @@ func TestCreateNote(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			runBotTest(t, tt.statusCode, tt.responseBody, func(bot *misskey.Bot) error {
-				return bot.CreateNote(tt.req)
+				return bot.CreateNote(context.Background(), tt.req)
 			}, tt.expectError, "CreateNote()")
 		})
 	}
@@ -214,7 +215,7 @@ func TestUploadFile(t *testing.T) {
 				Client: mockClient,
 			})
 
-			if _, err := bot.UploadFile(tt.filePath); (err != nil) != tt.expectError {
+			if _, err := bot.UploadFile(context.Background(), tt.filePath); (err != nil) != tt.expectError {
 				t.Errorf("UploadFile() error = %v, expectError %v", err, tt.expectError)
 			}
 		})
@@ -249,7 +250,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			runSimpleBotTest(t, 204, func(bot *misskey.Bot) error {
-				return bot.ProcessAmeshCommand(tt.note, tt.place)
+				return bot.ProcessAmeshCommand(context.Background(), tt.note, tt.place)
 			}, tt.expectError, "ProcessAmeshCommand()")
 		})
 	}
