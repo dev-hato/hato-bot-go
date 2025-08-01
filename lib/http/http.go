@@ -7,7 +7,7 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-var ErrGeocodingAPIError = errors.New("geocoding API returned error status")
+var ErrHTTPRequestError = errors.New("A http request returned error status")
 
 // ExecuteHTTPRequest HTTPリクエストを実行し、共通のエラーハンドリングを行う
 func ExecuteHTTPRequest(client *http.Client, req *http.Request) (resq *http.Response, err error) {
@@ -26,7 +26,7 @@ func ExecuteHTTPRequest(client *http.Client, req *http.Request) (resq *http.Resp
 			return nil, errors.Wrap(err, "Failed to Close")
 		}
 
-		return nil, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
+		return nil, errors.Wrapf(ErrHTTPRequestError, "ステータス %d", resp.StatusCode)
 	}
 
 	return resp, nil
