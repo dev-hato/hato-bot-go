@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"hato-bot-go/lib/amesh"
 	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
+
+	"hato-bot-go/lib/amesh"
 )
 
 // main スタンドアロンモードで実行

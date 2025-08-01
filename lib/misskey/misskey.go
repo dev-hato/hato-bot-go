@@ -3,13 +3,14 @@ package misskey
 import (
 	"encoding/json"
 	"fmt"
-	"hato-bot-go/lib/amesh"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
+
+	"hato-bot-go/lib/amesh"
 )
 
 // BotSetting Misskeyボットの設定

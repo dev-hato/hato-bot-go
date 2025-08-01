@@ -3,8 +3,6 @@ package amesh_test
 import (
 	"bytes"
 	"context"
-	"hato-bot-go/lib/amesh"
-	libHttp "hato-bot-go/lib/http"
 	"image"
 	"image/color"
 	"image/png"
@@ -15,6 +13,9 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/google/go-cmp/cmp"
+
+	"hato-bot-go/lib/amesh"
+	libHttp "hato-bot-go/lib/http"
 )
 
 // httpMockConfig モックHTTPクライアントの設定

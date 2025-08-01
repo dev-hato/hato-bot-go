@@ -2,10 +2,11 @@ package misskey_test
 
 import (
 	"context"
-	"hato-bot-go/lib/http"
-	"hato-bot-go/lib/misskey"
 	"strings"
 	"testing"
+
+	"hato-bot-go/lib/http"
+	"hato-bot-go/lib/misskey"
 )
 
 func TestAddReaction(t *testing.T) {
