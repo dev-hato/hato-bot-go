@@ -3,6 +3,7 @@ package http
 import (
 	"io"
 	"net/http"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 )
@@ -21,7 +22,7 @@ func ExecuteHTTPRequest(client *http.Client, req *http.Request) (resq *http.Resp
 		}
 	}(resp.Body)
 
-	if resp.StatusCode != 200 {
+	if !slices.Contains([]int{http.StatusOK, http.StatusNoContent}, resp.StatusCode) {
 		if err := resp.Body.Close(); err != nil {
 			return nil, errors.Wrap(err, "Failed to Close")
 		}
