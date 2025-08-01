@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io"
 	"log"
 	"net/http"
 
@@ -17,18 +16,8 @@ func main() {
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to http.NewRequestWithContext"))
 	}
-	resp, err := libHttp.ExecuteHTTPRequest(http.DefaultClient, req)
-	if err != nil {
-		panic(errors.Wrap(err, "Failed to executeHTTPRequest"))
-	}
-	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			panic(errors.Wrap(err, "Failed to Close"))
-		}
-	}(resp.Body)
-
-	if resp.StatusCode != 200 {
-		panic(errors.Errorf("Health check failed: HTTP %d", resp.StatusCode))
+	if _, err := libHttp.ExecuteHTTPRequest(http.DefaultClient, req); err != nil {
+		panic(errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest"))
 	}
 
 	log.Println("Health check passed")

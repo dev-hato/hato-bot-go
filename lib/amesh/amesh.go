@@ -28,7 +28,6 @@ const Version = "1.0"
 
 // エラー定数
 var (
-	ErrGeocodingAPIError        = errors.New("geocoding API returned error status")
 	ErrNoResultsFound           = errors.New("no results found for place")
 	ErrInvalidCoordinatesFormat = errors.New("invalid coordinates format")
 	ErrJSONUnmarshal            = errors.New("failed to json.Unmarshal")
@@ -255,14 +254,7 @@ func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeReq
 	}
 	resp, err := libHttp.ExecuteHTTPRequest(client, httpReq)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
-	}
-
-	if resp.StatusCode != 200 {
-		if closeErr := handleHTTPError(resp); closeErr != nil {
-			return nil, errors.Wrap(closeErr, "Failed to handleHTTPError")
-		}
-		return nil, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
+		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
 	}
 
 	body, err := handleHTTPResponse(resp)
@@ -358,14 +350,6 @@ func GenerateFileName(location *Location) string {
 		strings.ReplaceAll(location.PlaceName, " ", "_"),
 		time.Now().Unix(),
 	)
-}
-
-// handleHTTPError HTTPエラーレスポンスの共通処理を行う
-func handleHTTPError(resp *http.Response) error {
-	if err := resp.Body.Close(); err != nil {
-		return errors.Wrap(err, "Failed to Close")
-	}
-	return nil
 }
 
 // deg2rad 度数をラジアンに変換する
@@ -533,15 +517,6 @@ func downloadTileWithClient(ctx context.Context, client *http.Client, tileURL st
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
 	}
-	defer func(body io.ReadCloser) {
-		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
-		}
-	}(resp.Body)
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("タイルのダウンロードに失敗: ステータス %d", resp.StatusCode)
-	}
 
 	img, _, err = image.Decode(resp.Body)
 	if err != nil {
@@ -558,14 +533,11 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 	}
 	resp, err := libHttp.ExecuteHTTPRequest(client, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
-	}
-
-	if resp.StatusCode != 200 {
-		if closeErr := handleHTTPError(resp); closeErr != nil {
-			return nil, errors.Wrap(closeErr, "Failed to handleHTTPError")
+		if errors.Is(err, libHttp.ErrGeocodingAPIError) {
+			return &httpRequestResult{Body: nil, IsEmpty: true}, nil
 		}
-		return &httpRequestResult{Body: nil, IsEmpty: true}, nil
+
+		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
 	}
 
 	body, err := handleHTTPResponse(resp)
