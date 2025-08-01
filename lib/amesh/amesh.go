@@ -22,11 +22,6 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-// FileWriter はファイル書き込み操作を行うインターフェース
-type FileWriter interface {
-	Create(name string) (io.WriteCloser, error)
-}
-
 // CreateImageRequest レーダー画像作成のリクエスト構造体
 type CreateImageRequest struct {
 	Lat         float64 // 緯度
