@@ -24,6 +24,32 @@ type httpMockConfig struct {
 	DummyTileBytes     []byte
 }
 
+type roundTrip struct {
+	Config httpMockConfig
+}
+
+func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
+	url := req.URL.String()
+	switch {
+	case strings.Contains(url, "targetTimes"):
+		if f.Config.TimestampsResponse == "" {
+			return mockResponse(500, "Internal Server Error"), nil
+		}
+		return mockResponse(200, f.Config.TimestampsResponse), nil
+	case strings.Contains(url, "liden/data.geojson"):
+		if f.Config.LightningResponse == "" {
+			return mockResponse(404, "Not Found"), nil
+		}
+		return mockResponse(200, f.Config.LightningResponse), nil
+	case strings.Contains(url, ".png"):
+		return createPNGResponse(f.Config.DummyTileBytes), nil
+	case strings.Contains(url, ".png"):
+		return createPNGResponse(f.Config.DummyTileBytes), nil
+	default:
+		return mockResponse(404, "Not Found"), nil
+	}
+}
+
 // TestGeocodeWithClient GeocodeWithClient関数をモックHTTPレスポンスでテストする
 func TestGeocodeWithClient(t *testing.T) {
 	tests := []struct {
@@ -608,6 +634,31 @@ func TestGenerateFileName(t *testing.T) {
 	}
 }
 
+// createDummyPNGBytes ダミーのPNG画像バイトを作成する
+func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, c)
+		}
+	}
+
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return nil, errors.Wrap(err, "Failed to png.Encode")
+	}
+	return buf.Bytes(), nil
+}
+
+// createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
+func createConfigurableMockHTTPClient(config httpMockConfig) *http.Client {
+	return &http.Client{
+		Transport: roundTrip{
+			Config: config,
+		},
+	}
+}
+
 // mockResponse ヘルパー関数でHTTPレスポンスを作成
 func mockResponse(statusCode int, body string) *http.Response {
 	return &http.Response{
@@ -624,55 +675,4 @@ func createPNGResponse(dummyTileBytes []byte) *http.Response {
 		Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
 		Header:     make(http.Header),
 	}
-}
-
-type roundTrip struct {
-	Config httpMockConfig
-}
-
-func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
-	url := req.URL.String()
-	switch {
-	case strings.Contains(url, "targetTimes"):
-		if f.Config.TimestampsResponse == "" {
-			return mockResponse(500, "Internal Server Error"), nil
-		}
-		return mockResponse(200, f.Config.TimestampsResponse), nil
-	case strings.Contains(url, "liden/data.geojson"):
-		if f.Config.LightningResponse == "" {
-			return mockResponse(404, "Not Found"), nil
-		}
-		return mockResponse(200, f.Config.LightningResponse), nil
-	case strings.Contains(url, ".png"):
-		return createPNGResponse(f.Config.DummyTileBytes), nil
-	case strings.Contains(url, ".png"):
-		return createPNGResponse(f.Config.DummyTileBytes), nil
-	default:
-		return mockResponse(404, "Not Found"), nil
-	}
-}
-
-// createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
-func createConfigurableMockHTTPClient(config httpMockConfig) *http.Client {
-	return &http.Client{
-		Transport: roundTrip{
-			Config: config,
-		},
-	}
-}
-
-// createDummyPNGBytes ダミーのPNG画像バイトを作成する
-func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			img.Set(x, y, c)
-		}
-	}
-
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		return nil, errors.Wrap(err, "Failed to png.Encode")
-	}
-	return buf.Bytes(), nil
 }

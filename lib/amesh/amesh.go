@@ -22,6 +22,16 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+const Version = "1.0"
+
+// エラー定数
+var (
+	ErrGeocodingAPIError        = errors.New("geocoding API returned error status")
+	ErrNoResultsFound           = errors.New("no results found for place")
+	ErrInvalidCoordinatesFormat = errors.New("invalid coordinates format")
+	ErrJSONUnmarshal            = errors.New("failed to json.Unmarshal")
+)
+
 // CreateImageRequest レーダー画像作成のリクエスト構造体
 type CreateImageRequest struct {
 	Lat         float64 // 緯度
@@ -30,10 +40,10 @@ type CreateImageRequest struct {
 	AroundTiles int     // 周囲のタイル数
 }
 
-// GeocodeRequest ジオコーディングのリクエスト構造体
-type GeocodeRequest struct {
-	Place  string // 地名
-	APIKey string // APIキー
+// CreateImageReaderRequest amesh画像リーダー作成のリクエスト構造体
+type CreateImageReaderRequest struct {
+	Client   *http.Client // HTTPクライアント
+	Location *Location    // 位置情報
 }
 
 // Location 位置情報の構造体
@@ -43,10 +53,10 @@ type Location struct {
 	PlaceName string  // 地名
 }
 
-// CreateImageReaderRequest amesh画像リーダー作成のリクエスト構造体
-type CreateImageReaderRequest struct {
-	Client   *http.Client // HTTPクライアント
-	Location *Location    // 位置情報
+// GeocodeRequest ジオコーディングのリクエスト構造体
+type GeocodeRequest struct {
+	Place  string // 地名
+	APIKey string // APIキー
 }
 
 // ParseLocationRequest 位置解析のリクエスト構造体
@@ -55,11 +65,17 @@ type ParseLocationRequest struct {
 	GeocodeRequest GeocodeRequest
 }
 
-type drawDistanceCircleParams struct {
+// lightningPoint 落雷データを表す構造体
+type lightningPoint struct {
+	Lat  float64 `json:"lat"`
+	Lng  float64 `json:"lng"`
+	Type int     `json:"type"`
+}
+
+type drawLightningMarkerParams struct {
 	Img                *image.RGBA
+	Lightning          lightningPoint
 	CreateImageRequest *CreateImageRequest
-	RadiusKm           float64
-	Col                color.RGBA
 }
 
 type drawLineParams struct {
@@ -71,10 +87,11 @@ type drawLineParams struct {
 	Col color.RGBA
 }
 
-type drawLightningMarkerParams struct {
+type drawDistanceCircleParams struct {
 	Img                *image.RGBA
-	Lightning          lightningPoint
 	CreateImageRequest *CreateImageRequest
+	RadiusKm           float64
+	Col                color.RGBA
 }
 
 // httpRequestResult HTTPリクエストの結果を表す構造体
@@ -89,23 +106,6 @@ type timeJSONElement struct {
 	ValidTime string   `json:"validtime"`
 	Elements  []string `json:"elements"`
 }
-
-// lightningPoint 落雷データを表す構造体
-type lightningPoint struct {
-	Lat  float64 `json:"lat"`
-	Lng  float64 `json:"lng"`
-	Type int     `json:"type"`
-}
-
-const Version = "1.0"
-
-// エラー定数
-var (
-	ErrGeocodingAPIError        = errors.New("geocoding API returned error status")
-	ErrNoResultsFound           = errors.New("no results found for place")
-	ErrInvalidCoordinatesFormat = errors.New("invalid coordinates format")
-	ErrJSONUnmarshal            = errors.New("failed to json.Unmarshal")
-)
 
 // CreateAmeshImageWithClient HTTPクライアントを指定してameshレーダー画像を作成する
 func CreateAmeshImageWithClient(ctx context.Context, client *http.Client, req *CreateImageRequest) (*image.RGBA, error) {
@@ -354,19 +354,186 @@ func GenerateFileName(location *Location) string {
 	)
 }
 
-// handleHTTPResponse HTTPレスポンスの共通処理を行う
-func handleHTTPResponse(resp *http.Response) (body []byte, err error) {
+// deg2rad 度数をラジアンに変換する
+func deg2rad(degrees float64) float64 {
+	return degrees * math.Pi / 180
+}
+
+// getWebMercatorPixel 地理座標をWebメルカトル投影でピクセル座標に変換
+// - 地理座標（度数）をピクセル座標に変換
+// - ズームレベルに応じたスケール調整
+// - 地図タイルの標準的な座標系を使用
+func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
+	if params.Zoom < 0 || 30 < params.Zoom {
+		return 0, 0
+	}
+	zoomFactor := float64(int(1) << uint(params.Zoom))
+	x := 256.0 * zoomFactor * (params.Lng + 180) / 360.0
+	y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(params.Lat)/2))/(2.0*math.Pi))
+	return x, y
+}
+
+// drawLightningMarker 画像上に落雷マーカーを描画する
+// 円形塗りつぶしアルゴリズム使用
+func drawLightningMarker(params *drawLightningMarkerParams) {
+	// ピクセル座標に変換
+	x, y := getWebMercatorPixel(&CreateImageRequest{
+		Lat:  params.Lightning.Lat,
+		Lng:  params.Lightning.Lng,
+		Zoom: params.CreateImageRequest.Zoom,
+	})
+	centerX, centerY := getWebMercatorPixel(params.CreateImageRequest)
+
+	// 画像座標に変換
+	imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
+	imgX := int(x - centerX + float64(imageSize/2))
+	imgY := int(y - centerY + float64(imageSize/2))
+
+	// 落雷記号を描画（シンプルな円）
+	radius := 7
+	lightningColor := color.RGBA{G: 255, B: 255, A: 255}
+
+	// ピタゴラスの定理による円内判定
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			if radius*radius < dx*dx+dy*dy {
+				continue
+			}
+			x := imgX + dx
+			y := imgY + dy
+			if 0 <= x && 0 <= y && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
+				params.Img.Set(x, y, lightningColor)
+			}
+		}
+	}
+}
+
+// abs 絶対値を返す
+func abs[T constraints.Signed | constraints.Float](x T) T {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// drawLine 二点間に直線を描画する
+// ブレゼンハムアルゴリズム使用
+func drawLine(params *drawLineParams) {
+	// シンプルな直線描画アルゴリズム
+	dx := abs(params.X2 - params.X1)
+	dy := abs(params.Y2 - params.Y1)
+	sx := 1
+	sy := 1
+
+	if params.X2 < params.X1 {
+		sx = -1
+	}
+	if params.Y2 < params.Y1 {
+		sy = -1
+	}
+
+	delta := dx - dy
+	x, y := params.X1, params.Y1
+
+	for {
+		if 0 <= x && 0 <= y && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
+			params.Img.Set(x, y, params.Col)
+		}
+
+		if x == params.X2 && y == params.Y2 {
+			break
+		}
+
+		d2 := 2 * delta
+		if -dy < d2 {
+			delta -= dy
+			x += sx
+		}
+		if d2 < dx {
+			delta += dx
+			y += sy
+		}
+	}
+}
+
+// drawDistanceCircle 画像上に距離円を描画する
+// 64個の線分で円を近似し、地球の曲率を考慮した地理的距離円を描画
+func drawDistanceCircle(params *drawDistanceCircleParams) {
+	// 線分で円を近似
+	numSegments := 64
+	earthRadius := 6371.0 // 地球半径（キロメートル）
+
+	for i := 0; i < numSegments; i++ {
+		angle1 := float64(i) * 2 * math.Pi / float64(numSegments)
+		angle2 := float64(i+1) * 2 * math.Pi / float64(numSegments)
+
+		// 円上の点を計算（地球の曲率を考慮）
+		lat1 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
+		lng1 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
+
+		lat2 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle2)*180/math.Pi
+		lng2 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle2)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
+
+		// ピクセル座標に変換
+		x1, y1 := getWebMercatorPixel(&CreateImageRequest{
+			Lat:  lat1,
+			Lng:  lng1,
+			Zoom: params.CreateImageRequest.Zoom,
+		})
+		x2, y2 := getWebMercatorPixel(&CreateImageRequest{
+			Lat:  lat2,
+			Lng:  lng2,
+			Zoom: params.CreateImageRequest.Zoom,
+		})
+
+		// 画像座標に変換
+		centerX, centerY := getWebMercatorPixel(params.CreateImageRequest)
+		imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
+
+		imgX1 := int(x1 - centerX + float64(imageSize/2))
+		imgY1 := int(y1 - centerY + float64(imageSize/2))
+		imgX2 := int(x2 - centerX + float64(imageSize/2))
+		imgY2 := int(y2 - centerY + float64(imageSize/2))
+
+		// 線分を描画
+		drawLine(&drawLineParams{
+			Img: params.Img,
+			X1:  imgX1,
+			Y1:  imgY1,
+			X2:  imgX2,
+			Y2:  imgY2,
+			Col: params.Col,
+		})
+	}
+}
+
+// downloadTileWithClient HTTPクライアントを指定してマップタイルをダウンロードする
+func downloadTileWithClient(ctx context.Context, client *http.Client, tileURL string) (img image.Image, err error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", tileURL, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
+	}
+	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to Do")
+	}
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
 			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
 
-	body, err = io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to io.ReadAll")
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("タイルのダウンロードに失敗: ステータス %d", resp.StatusCode)
 	}
-	return body, nil
+
+	img, _, err = image.Decode(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to image.Decode")
+	}
+	return img, nil
 }
 
 // makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
@@ -389,6 +556,47 @@ func makeHTTPRequest(client *http.Client, url string) (*httpRequestResult, error
 	}
 
 	return &httpRequestResult{Body: body, IsEmpty: false}, nil
+}
+
+// getLightningDataWithClient HTTPクライアントを指定して落雷データを取得する
+func getLightningDataWithClient(client *http.Client, timestamp string) ([]lightningPoint, error) {
+	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
+
+	result, err := makeHTTPRequest(client, apiURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
+	}
+	if result.IsEmpty {
+		return []lightningPoint{}, nil
+	}
+
+	var geoJSON struct {
+		Features []struct {
+			Geometry struct {
+				Coordinates []float64 `json:"coordinates"`
+			} `json:"geometry"`
+			Properties struct {
+				Type int `json:"type"`
+			} `json:"properties"`
+		} `json:"features"`
+	}
+	if err := json.Unmarshal(result.Body, &geoJSON); err != nil {
+		return nil, errors.Wrap(err, "Failed to json.Unmarshal")
+	}
+
+	var lightningPoints []lightningPoint
+	for _, feature := range geoJSON.Features {
+		if len(feature.Geometry.Coordinates) < 2 {
+			continue
+		}
+		lightningPoints = append(lightningPoints, lightningPoint{
+			Lat:  feature.Geometry.Coordinates[1],
+			Lng:  feature.Geometry.Coordinates[0],
+			Type: feature.Properties.Type,
+		})
+	}
+
+	return lightningPoints, nil
 }
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
@@ -456,227 +664,19 @@ func getLatestTimestampsWithClient(client *http.Client) map[string]string {
 	return result
 }
 
-// getLightningDataWithClient HTTPクライアントを指定して落雷データを取得する
-func getLightningDataWithClient(client *http.Client, timestamp string) ([]lightningPoint, error) {
-	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
-
-	result, err := makeHTTPRequest(client, apiURL)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
-	}
-	if result.IsEmpty {
-		return []lightningPoint{}, nil
-	}
-
-	var geoJSON struct {
-		Features []struct {
-			Geometry struct {
-				Coordinates []float64 `json:"coordinates"`
-			} `json:"geometry"`
-			Properties struct {
-				Type int `json:"type"`
-			} `json:"properties"`
-		} `json:"features"`
-	}
-	if err := json.Unmarshal(result.Body, &geoJSON); err != nil {
-		return nil, errors.Wrap(err, "Failed to json.Unmarshal")
-	}
-
-	var lightningPoints []lightningPoint
-	for _, feature := range geoJSON.Features {
-		if len(feature.Geometry.Coordinates) < 2 {
-			continue
-		}
-		lightningPoints = append(lightningPoints, lightningPoint{
-			Lat:  feature.Geometry.Coordinates[1],
-			Lng:  feature.Geometry.Coordinates[0],
-			Type: feature.Properties.Type,
-		})
-	}
-
-	return lightningPoints, nil
-}
-
-// deg2rad 度数をラジアンに変換する
-func deg2rad(degrees float64) float64 {
-	return degrees * math.Pi / 180
-}
-
-// getWebMercatorPixel 地理座標をWebメルカトル投影でピクセル座標に変換
-// - 地理座標（度数）をピクセル座標に変換
-// - ズームレベルに応じたスケール調整
-// - 地図タイルの標準的な座標系を使用
-func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
-	if params.Zoom < 0 || 30 < params.Zoom {
-		return 0, 0
-	}
-	zoomFactor := float64(int(1) << uint(params.Zoom))
-	x := 256.0 * zoomFactor * (params.Lng + 180) / 360.0
-	y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(params.Lat)/2))/(2.0*math.Pi))
-	return x, y
-}
-
-// downloadTileWithClient HTTPクライアントを指定してマップタイルをダウンロードする
-func downloadTileWithClient(ctx context.Context, client *http.Client, tileURL string) (img image.Image, err error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", tileURL, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
-	}
-	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Do")
-	}
+// handleHTTPResponse HTTPレスポンスの共通処理を行う
+func handleHTTPResponse(resp *http.Response) (body []byte, err error) {
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
 			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("タイルのダウンロードに失敗: ステータス %d", resp.StatusCode)
-	}
-
-	img, _, err = image.Decode(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to image.Decode")
+		return nil, errors.Wrap(err, "Failed to io.ReadAll")
 	}
-	return img, nil
-}
-
-// drawDistanceCircle 画像上に距離円を描画する
-// 64個の線分で円を近似し、地球の曲率を考慮した地理的距離円を描画
-func drawDistanceCircle(params *drawDistanceCircleParams) {
-	// 線分で円を近似
-	numSegments := 64
-	earthRadius := 6371.0 // 地球半径（キロメートル）
-
-	for i := 0; i < numSegments; i++ {
-		angle1 := float64(i) * 2 * math.Pi / float64(numSegments)
-		angle2 := float64(i+1) * 2 * math.Pi / float64(numSegments)
-
-		// 円上の点を計算（地球の曲率を考慮）
-		lat1 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
-		lng1 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
-
-		lat2 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle2)*180/math.Pi
-		lng2 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle2)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
-
-		// ピクセル座標に変換
-		x1, y1 := getWebMercatorPixel(&CreateImageRequest{
-			Lat:  lat1,
-			Lng:  lng1,
-			Zoom: params.CreateImageRequest.Zoom,
-		})
-		x2, y2 := getWebMercatorPixel(&CreateImageRequest{
-			Lat:  lat2,
-			Lng:  lng2,
-			Zoom: params.CreateImageRequest.Zoom,
-		})
-
-		// 画像座標に変換
-		centerX, centerY := getWebMercatorPixel(params.CreateImageRequest)
-		imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
-
-		imgX1 := int(x1 - centerX + float64(imageSize/2))
-		imgY1 := int(y1 - centerY + float64(imageSize/2))
-		imgX2 := int(x2 - centerX + float64(imageSize/2))
-		imgY2 := int(y2 - centerY + float64(imageSize/2))
-
-		// 線分を描画
-		drawLine(&drawLineParams{
-			Img: params.Img,
-			X1:  imgX1,
-			Y1:  imgY1,
-			X2:  imgX2,
-			Y2:  imgY2,
-			Col: params.Col,
-		})
-	}
-}
-
-// drawLine 二点間に直線を描画する
-// ブレゼンハムアルゴリズム使用
-func drawLine(params *drawLineParams) {
-	// シンプルな直線描画アルゴリズム
-	dx := abs(params.X2 - params.X1)
-	dy := abs(params.Y2 - params.Y1)
-	sx := 1
-	sy := 1
-
-	if params.X2 < params.X1 {
-		sx = -1
-	}
-	if params.Y2 < params.Y1 {
-		sy = -1
-	}
-
-	delta := dx - dy
-	x, y := params.X1, params.Y1
-
-	for {
-		if 0 <= x && 0 <= y && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
-			params.Img.Set(x, y, params.Col)
-		}
-
-		if x == params.X2 && y == params.Y2 {
-			break
-		}
-
-		d2 := 2 * delta
-		if -dy < d2 {
-			delta -= dy
-			x += sx
-		}
-		if d2 < dx {
-			delta += dx
-			y += sy
-		}
-	}
-}
-
-// abs 絶対値を返す
-func abs[T constraints.Signed | constraints.Float](x T) T {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
-// drawLightningMarker 画像上に落雷マーカーを描画する
-// 円形塗りつぶしアルゴリズム使用
-func drawLightningMarker(params *drawLightningMarkerParams) {
-	// ピクセル座標に変換
-	x, y := getWebMercatorPixel(&CreateImageRequest{
-		Lat:  params.Lightning.Lat,
-		Lng:  params.Lightning.Lng,
-		Zoom: params.CreateImageRequest.Zoom,
-	})
-	centerX, centerY := getWebMercatorPixel(params.CreateImageRequest)
-
-	// 画像座標に変換
-	imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
-	imgX := int(x - centerX + float64(imageSize/2))
-	imgY := int(y - centerY + float64(imageSize/2))
-
-	// 落雷記号を描画（シンプルな円）
-	radius := 7
-	lightningColor := color.RGBA{G: 255, B: 255, A: 255}
-
-	// ピタゴラスの定理による円内判定
-	for dy := -radius; dy <= radius; dy++ {
-		for dx := -radius; dx <= radius; dx++ {
-			if radius*radius < dx*dx+dy*dy {
-				continue
-			}
-			x := imgX + dx
-			y := imgY + dy
-			if 0 <= x && 0 <= y && x < params.Img.Bounds().Dx() && y < params.Img.Bounds().Dy() {
-				params.Img.Set(x, y, lightningColor)
-			}
-		}
-	}
+	return body, nil
 }
 
 // parseFloat64 文字列をfloat64に変換
