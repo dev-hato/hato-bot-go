@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	libHttp "hato-bot-go/lib/http"
 	"io"
 	"log"
 	"mime/multipart"
@@ -17,6 +16,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"hato-bot-go/lib/amesh"
+	libHttp "hato-bot-go/lib/http"
 )
 
 // Bot Misskeyボットクライアント

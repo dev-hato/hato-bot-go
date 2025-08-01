@@ -1,8 +1,9 @@
 package http
 
 import (
-	"github.com/cockroachdb/errors"
 	"net/http"
+
+	"github.com/cockroachdb/errors"
 )
 
 // ExecuteHTTPRequest HTTPリクエストを実行し、共通のエラーハンドリングを行う
