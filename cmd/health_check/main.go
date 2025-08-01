@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"log"
 	"net/http"
 
@@ -16,9 +17,16 @@ func main() {
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to http.NewRequestWithContext"))
 	}
-	if _, err := libHttp.ExecuteHTTPRequest(http.DefaultClient, req); err != nil {
+
+	resp, err := libHttp.ExecuteHTTPRequest(http.DefaultClient, req)
+	if err != nil {
 		panic(errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest"))
 	}
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}(resp.Body)
 
 	log.Println("Health check passed")
 }

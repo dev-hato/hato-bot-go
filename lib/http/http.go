@@ -1,7 +1,6 @@
 package http
 
 import (
-	"io"
 	"net/http"
 	"slices"
 
@@ -16,11 +15,6 @@ func ExecuteHTTPRequest(client *http.Client, req *http.Request) (resq *http.Resp
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Do")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}(resp.Body)
 
 	if !slices.Contains([]int{http.StatusOK, http.StatusNoContent}, resp.StatusCode) {
 		if err := resp.Body.Close(); err != nil {

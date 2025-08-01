@@ -68,6 +68,11 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to apiRequest")
 	}
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}(resp.Body)
 
 	var result struct {
 		CreatedNote Note `json:"createdNote"`
@@ -117,6 +122,11 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to executeHTTPRequest")
 	}
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}(resp.Body)
 
 	var uploadedFile File
 	if err = json.NewDecoder(resp.Body).Decode(&uploadedFile); err != nil {
@@ -133,9 +143,15 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 		"reaction": reaction,
 	}
 
-	if _, err := bot.apiRequest(ctx, "notes/reactions/create", data); err != nil {
+	resp, err := bot.apiRequest(ctx, "notes/reactions/create", data)
+	if err != nil {
 		return errors.Wrap(err, "Failed to apiRequest")
 	}
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}(resp.Body)
 
 	return nil
 }

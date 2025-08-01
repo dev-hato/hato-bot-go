@@ -499,6 +499,11 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
 	}
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}(resp.Body)
 
 	img, _, err = image.Decode(resp.Body)
 	if err != nil {
