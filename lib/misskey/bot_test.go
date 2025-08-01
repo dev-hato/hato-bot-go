@@ -40,9 +40,14 @@ func TestAddReaction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runSimpleBotTest(t, tt.statusCode, func(bot *misskey.Bot) error {
-				return bot.AddReaction(context.Background(), tt.noteID, tt.reaction)
-			}, tt.expectError, "AddReaction()")
+			runSimpleBotTest(t, &runSimpleBotTestParams{
+				StatusCode: tt.statusCode,
+				TestFunc: func(bot *misskey.Bot) error {
+					return bot.AddReaction(context.Background(), tt.noteID, tt.reaction)
+				},
+				ExpectError: tt.expectError,
+				TestName:    "AddReaction()",
+			})
 		})
 	}
 }
@@ -105,9 +110,15 @@ func TestCreateNote(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runBotTest(t, tt.statusCode, tt.responseBody, func(bot *misskey.Bot) error {
-				return bot.CreateNote(context.Background(), tt.req)
-			}, tt.expectError, "CreateNote()")
+			runBotTest(t, &runBotTestParams{
+				StatusCode:   tt.statusCode,
+				ResponseBody: tt.responseBody,
+				TestFunc: func(bot *misskey.Bot) error {
+					return bot.CreateNote(context.Background(), tt.req)
+				},
+				ExpectError: tt.expectError,
+				TestName:    "CreateNote()",
+			})
 		})
 	}
 }
@@ -196,9 +207,14 @@ func TestProcessAmeshCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runSimpleBotTest(t, http.StatusNoContent, func(bot *misskey.Bot) error {
-				return bot.ProcessAmeshCommand(context.Background(), tt.req)
-			}, tt.expectError, "ProcessAmeshCommand()")
+			runSimpleBotTest(t, &runSimpleBotTestParams{
+				StatusCode: http.StatusNoContent,
+				TestFunc: func(bot *misskey.Bot) error {
+					return bot.ProcessAmeshCommand(context.Background(), tt.req)
+				},
+				ExpectError: tt.expectError,
+				TestName:    "ProcessAmeshCommand()",
+			})
 		})
 	}
 }
