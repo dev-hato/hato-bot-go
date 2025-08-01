@@ -52,31 +52,34 @@ func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // TestCreateAmeshImage CreateAmeshImage関数をテストする
 func TestCreateAmeshImage(t *testing.T) {
+	dummyTileBytes, err := createDummyPNGBytes(
+		256,
+		256,
+		color.RGBA{R: 255, G: 255, B: 255, A: 255},
+	)
+	if err != nil {
+		t.Error(err)
+	}
+
 	tests := []struct {
-		name               string
-		params             *amesh.CreateAmeshImageParams
-		timestampsResponse string
-		lightningResponse  string
-		checkCenterColor   bool
-		expectedImageSize  int
-		expectError        error
+		name              string
+		params            *amesh.CreateAmeshImageParams
+		checkCenterColor  bool
+		expectedImageSize int
+		expectError       error
 	}{
 		{
 			name: "成功した画像作成",
 			params: &amesh.CreateAmeshImageParams{
-				Lat:         35.6895,
-				Lng:         139.6917,
-				Zoom:        10,
-				AroundTiles: 1,
-			},
-			timestampsResponse: `[
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: `[
 				{
 					"basetime": "20240101120000",
 					"validtime": "20240101120000", 
 					"elements": ["hrpns_nd", "liden"]
 				}
 			]`,
-			lightningResponse: `{
+					LightningResponse: `{
 				"features": [
 					{
 						"geometry": {
@@ -88,6 +91,13 @@ func TestCreateAmeshImage(t *testing.T) {
 					}
 				]
 			}`,
+					DummyTileBytes: dummyTileBytes,
+				}),
+				Lat:         35.6895,
+				Lng:         139.6917,
+				Zoom:        10,
+				AroundTiles: 1,
+			},
 			checkCenterColor:  true,
 			expectedImageSize: 768,
 			expectError:       nil,
@@ -95,33 +105,39 @@ func TestCreateAmeshImage(t *testing.T) {
 		{
 			name: "空のタイムスタンプ結果",
 			params: &amesh.CreateAmeshImageParams{
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: `[]`,
+					LightningResponse:  `{"features": []}`,
+					DummyTileBytes:     dummyTileBytes,
+				}),
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
 				AroundTiles: 1,
 			},
-			timestampsResponse: `[]`,
-			lightningResponse:  `{"features": []}`,
-			checkCenterColor:   true,
-			expectedImageSize:  768,
-			expectError:        nil,
+			checkCenterColor:  true,
+			expectedImageSize: 768,
+			expectError:       nil,
 		},
 		{
 			name: "タイルダウンロード失敗を適切に処理",
 			params: &amesh.CreateAmeshImageParams{
-				Lat:         35.6895,
-				Lng:         139.6917,
-				Zoom:        10,
-				AroundTiles: 1,
-			},
-			timestampsResponse: `[
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: `[
 				{
 					"basetime": "20240101120000",
 					"validtime": "20240101120000", 
 					"elements": ["hrpns_nd", "liden"]
 				}
 			]`,
-			lightningResponse: `{"features": []}`,
+					LightningResponse: `{"features": []}`,
+					DummyTileBytes:    dummyTileBytes,
+				}),
+				Lat:         35.6895,
+				Lng:         139.6917,
+				Zoom:        10,
+				AroundTiles: 1,
+			},
 			checkCenterColor:  true,
 			expectedImageSize: 768,
 			expectError:       nil,
@@ -129,47 +145,56 @@ func TestCreateAmeshImage(t *testing.T) {
 		{
 			name: "不正なJSONタイムスタンプで処理継続",
 			params: &amesh.CreateAmeshImageParams{
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: `invalid json`,
+					LightningResponse:  `{"features": []}`,
+					DummyTileBytes:     dummyTileBytes,
+				}),
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
 				AroundTiles: 1,
 			},
-			timestampsResponse: `invalid json`,
-			lightningResponse:  `{"features": []}`,
-			checkCenterColor:   true,
-			expectedImageSize:  768,
-			expectError:        nil,
+			checkCenterColor:  true,
+			expectedImageSize: 768,
+			expectError:       nil,
 		},
 		{
 			name: "すべてのタイムスタンプAPIが失敗",
 			params: &amesh.CreateAmeshImageParams{
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: "",
+					LightningResponse:  `{"features": []}`,
+					DummyTileBytes:     dummyTileBytes,
+				}),
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
 				AroundTiles: 1,
 			},
-			timestampsResponse: "",
-			lightningResponse:  `{"features": []}`,
-			checkCenterColor:   true,
-			expectedImageSize:  768,
-			expectError:        nil,
+			checkCenterColor:  true,
+			expectedImageSize: 768,
+			expectError:       nil,
 		},
 		{
 			name: "落雷データJSONエラー",
 			params: &amesh.CreateAmeshImageParams{
-				Lat:         35.6895,
-				Lng:         139.6917,
-				Zoom:        10,
-				AroundTiles: 1,
-			},
-			timestampsResponse: `[
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: `[
 				{
 					"basetime": "20240101120000",
 					"validtime": "20240101120000", 
 					"elements": ["hrpns_nd", "liden"]
 				}
 			]`,
-			lightningResponse: `invalid json`,
+					LightningResponse: `invalid json`,
+					DummyTileBytes:    dummyTileBytes,
+				}),
+				Lat:         35.6895,
+				Lng:         139.6917,
+				Zoom:        10,
+				AroundTiles: 1,
+			},
 			checkCenterColor:  true,
 			expectedImageSize: 768,
 			expectError:       nil,
@@ -177,19 +202,15 @@ func TestCreateAmeshImage(t *testing.T) {
 		{
 			name: "小さなタイル数でのテスト",
 			params: &amesh.CreateAmeshImageParams{
-				Lat:         35.6895,
-				Lng:         139.6917,
-				Zoom:        5,
-				AroundTiles: 0,
-			},
-			timestampsResponse: `[
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: `[
 				{
 					"basetime": "20240101120000",
 					"validtime": "20240101120000", 
 					"elements": ["hrpns_nd", "liden"]
 				}
 			]`,
-			lightningResponse: `{
+					LightningResponse: `{
 				"features": [
 					{
 						"geometry": {
@@ -209,46 +230,29 @@ func TestCreateAmeshImage(t *testing.T) {
 					}
 				]
 			}`,
+					DummyTileBytes: dummyTileBytes,
+				}),
+				Lat:         35.6895,
+				Lng:         139.6917,
+				Zoom:        5,
+				AroundTiles: 0,
+			},
 			checkCenterColor:  false,
 			expectedImageSize: 256,
 			expectError:       nil,
 		},
 		{
-			name:   "nilリクエスト",
-			params: nil,
-			timestampsResponse: `[
-			  {
-				"basetime": "20240101120000",
-				"validtime": "20240101120000",
-				"elements": [
-				  "hrpns_nd",
-				  "liden"
-				]
-			  }
-			]`,
-			lightningResponse: `{"features": []}`,
-			expectError:       lib.ErrParamsNil,
+			name:        "nilリクエスト",
+			params:      nil,
+			expectError: lib.ErrParamsNil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			dummyTileBytes, err := createDummyPNGBytes(
-				256,
-				256,
-				color.RGBA{R: 255, G: 255, B: 255, A: 255},
-			)
-			if err != nil {
-				t.Error(err)
-			}
-			mockClient := createConfigurableMockHTTPClient(httpMockConfig{
-				TimestampsResponse: tt.timestampsResponse,
-				LightningResponse:  tt.lightningResponse,
-				DummyTileBytes:     dummyTileBytes,
-			})
 
-			result, err := amesh.CreateAmeshImage(context.Background(), mockClient, tt.params)
+			result, err := amesh.CreateAmeshImage(context.Background(), tt.params)
 			if !errors.Is(err, tt.expectError) {
 				t.Errorf("CreateAmeshImage() unexpected error: %v, expected: %v", err, tt.expectError)
 				return

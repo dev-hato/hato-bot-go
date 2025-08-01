@@ -36,10 +36,11 @@ var (
 
 // CreateAmeshImageParams レーダー画像作成のリクエスト構造体
 type CreateAmeshImageParams struct {
-	Lat         float64 // 緯度
-	Lng         float64 // 経度
-	Zoom        int     // ズームレベル
-	AroundTiles int     // 周囲のタイル数
+	Client      *http.Client // HTTPクライアント
+	Lat         float64      // 緯度
+	Lng         float64      // 経度
+	Zoom        int          // ズームレベル
+	AroundTiles int          // 周囲のタイル数
 }
 
 // CreateImageReaderWithClientParams amesh画像リーダー作成のリクエスト構造体
@@ -110,18 +111,18 @@ type timeJSONElement struct {
 }
 
 // CreateAmeshImage ameshレーダー画像を作成する
-func CreateAmeshImage(ctx context.Context, client *http.Client, params *CreateAmeshImageParams) (*image.RGBA, error) {
-	if params == nil {
+func CreateAmeshImage(ctx context.Context, params *CreateAmeshImageParams) (*image.RGBA, error) {
+	if params == nil || params.Client == nil {
 		return nil, lib.ErrParamsNil
 	}
 	// 最新のタイムスタンプを取得
-	timestamps := getLatestTimestamps(ctx, client)
+	timestamps := getLatestTimestamps(ctx, params.Client)
 
 	hrpnsTimestamp := timestamps["hrpns_nd"]
 	lidenTimestamp := timestamps["liden"]
 
 	// 落雷データを取得
-	lightningData, err := getLightningData(ctx, client, lidenTimestamp)
+	lightningData, err := getLightningData(ctx, params.Client, lidenTimestamp)
 	if err != nil {
 		log.Printf("落雷データの取得に失敗: %v", err)
 		lightningData = nil
@@ -147,7 +148,7 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, params *CreateAm
 			// ベースマップタイル（OpenStreetMap）をダウンロード
 			baseURL := fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png", params.Zoom, tileX, tileY)
 
-			baseTile, err := downloadTile(ctx, client, baseURL)
+			baseTile, err := downloadTile(ctx, params.Client, baseURL)
 			if err != nil {
 				log.Printf("Failed to downloadTile: %v", err)
 				continue
@@ -171,7 +172,7 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, params *CreateAm
 				tileX,
 				tileY,
 			)
-			radarTile, err := downloadTile(ctx, client, radarURL)
+			radarTile, err := downloadTile(ctx, params.Client, radarURL)
 			if err != nil {
 				log.Printf("Failed to downloadTile: %v", err)
 				continue
@@ -218,7 +219,8 @@ func CreateImageReaderWithClient(ctx context.Context, params *CreateImageReaderW
 	if params == nil || params.Client == nil || params.Location == nil {
 		return nil, lib.ErrParamsNil
 	}
-	img, err := CreateAmeshImage(ctx, params.Client, &CreateAmeshImageParams{
+	img, err := CreateAmeshImage(ctx, &CreateAmeshImageParams{
+		Client:      params.Client,
 		Lat:         params.Location.Lat,
 		Lng:         params.Location.Lng,
 		Zoom:        10,
