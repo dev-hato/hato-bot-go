@@ -501,7 +501,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			err = closeErr
+			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
 

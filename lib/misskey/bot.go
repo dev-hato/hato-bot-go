@@ -70,7 +70,7 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) (err err
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			err = closeErr
+			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
 
@@ -124,7 +124,7 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			err = closeErr
+			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
 
@@ -149,7 +149,7 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			err = closeErr
+			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
 
