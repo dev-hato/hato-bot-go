@@ -85,6 +85,7 @@ func TestCreateNote(t *testing.T) {
 			responseBody: `{"createdNote":{"id":"created123"}}`,
 			expectError:  nil,
 		},
+		// jscpd:ignore-start
 		{
 			name: "APIエラー応答",
 			req: &misskey.CreateNoteRequest{
@@ -98,6 +99,7 @@ func TestCreateNote(t *testing.T) {
 			responseBody: `{"error":"bad request"}`,
 			expectError:  libHttp.ErrHTTPRequestError,
 		},
+		// jscpd:ignore-end
 	}
 
 	for _, tt := range tests {
@@ -127,6 +129,7 @@ func TestUploadFile(t *testing.T) {
 			responseBody: `{"id":"file123","name":"test.txt","url":"https://example.com/file123"}`,
 			expectError:  nil,
 		},
+		// jscpd:ignore-start
 		{
 			name:         "APIエラー応答",
 			fileName:     "test.txt",
@@ -135,6 +138,7 @@ func TestUploadFile(t *testing.T) {
 			responseBody: `{"error":"bad request"}`,
 			expectError:  libHttp.ErrHTTPRequestError,
 		},
+		// jscpd:ignore-end
 	}
 
 	for _, tt := range tests {
