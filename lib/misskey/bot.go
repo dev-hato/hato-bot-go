@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cockroachdb/errors"
-	"github.com/gorilla/websocket"
 	"hato-bot-go/lib/amesh"
 	"io"
 	"log"
@@ -14,6 +12,9 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/cockroachdb/errors"
+	"github.com/gorilla/websocket"
 )
 
 // Bot Misskeyボットクライアント
