@@ -91,7 +91,7 @@ func main() {
 
 // statusHandler /statusエンドポイントのハンドラー
 func statusHandler(w http.ResponseWriter, _ *http.Request) {
-	response := map[string]string{
+	response := map[string]interface{}{
 		"message": "hato-bot-go is running",
 		"version": amesh.Version,
 	}
