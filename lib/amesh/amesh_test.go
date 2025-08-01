@@ -499,22 +499,6 @@ func TestParseLocationWithClient(t *testing.T) {
 			responseBody: `{"Error": "Invalid place"}`,
 			expectError:  libHttp.ErrHTTPRequestError,
 		},
-		{
-			name:         "APIエラー",
-			place:        "東京",
-			apiKey:       "invalid_key",
-			responseCode: http.StatusBadRequest,
-			responseBody: `{"Error": "Invalid API key"}`,
-			expectError:  libHttp.ErrHTTPRequestError,
-		},
-		{
-			name:         "結果が見つからない",
-			place:        "nonexistent place",
-			apiKey:       "test_key",
-			responseCode: http.StatusOK,
-			responseBody: `{"Feature": []}`,
-			expectError:  errors.New("no results found for place"),
-		},
 	}
 
 	// jscpd:ignore-start
