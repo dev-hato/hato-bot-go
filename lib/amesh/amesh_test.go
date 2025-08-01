@@ -49,125 +49,6 @@ func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 }
 
-// TestGeocodeWithClient GeocodeWithClient関数をモックHTTPレスポンスでテストする
-func TestGeocodeWithClient(t *testing.T) {
-	tests := []struct {
-		name         string
-		place        string
-		apiKey       string
-		responseCode int
-		responseBody string
-		expectError  error
-		expected     *amesh.Location
-	}{
-		{
-			name:         "成功したジオコーディング",
-			place:        "東京",
-			apiKey:       "test_key",
-			responseCode: http.StatusOK,
-			responseBody: `{
-				"Feature": [
-					{
-						"Name": "東京都",
-						"Geometry": {
-							"Coordinates": "139.6917,35.6895"
-						}
-					}
-				]
-			}`,
-			expectError: nil,
-			expected: &amesh.Location{
-				Lat:       35.6895,
-				Lng:       139.6917,
-				PlaceName: "東京都",
-			},
-		},
-		{
-			name:         "空の場所は東京がデフォルト",
-			place:        "",
-			apiKey:       "test_key",
-			responseCode: http.StatusOK,
-			responseBody: `{
-				"Feature": [
-					{
-						"Name": "東京都",
-						"Geometry": {
-							"Coordinates": "139.6917,35.6895"
-						}
-					}
-				]
-			}`,
-			expectError: nil,
-			expected: &amesh.Location{
-				Lat:       35.6895,
-				Lng:       139.6917,
-				PlaceName: "東京都",
-			},
-		},
-		{
-			name:         "APIがエラーステータスを返す",
-			place:        "東京",
-			apiKey:       "invalid_key",
-			responseCode: http.StatusBadRequest,
-			responseBody: `{"Error": "Invalid API key"}`,
-			expectError:  libHttp.ErrHTTPRequestError,
-		},
-		{
-			name:         "結果が見つからない",
-			place:        "nonexistent place",
-			apiKey:       "test_key",
-			responseCode: http.StatusOK,
-			responseBody: `{"Feature": []}`,
-			expectError:  amesh.ErrNoResultsFound,
-		},
-		{
-			name:         "無効な座標フォーマット",
-			place:        "東京",
-			apiKey:       "test_key",
-			responseCode: http.StatusOK,
-			responseBody: `{
-				"Feature": [
-					{
-						"Name": "東京都",
-						"Geometry": {
-							"Coordinates": "invalid_format"
-						}
-					}
-				]
-			}`,
-			expectError: amesh.ErrInvalidCoordinatesFormat,
-		},
-		{
-			name:         "不正なJSON",
-			place:        "東京",
-			apiKey:       "test_key",
-			responseCode: http.StatusOK,
-			responseBody: `{"Feature": [invalid json}`,
-			expectError:  amesh.ErrJSONUnmarshal,
-		},
-	}
-
-	// jscpd:ignore-start
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			mockClient := libHttp.NewMockHTTPClient(tt.responseCode, tt.responseBody)
-
-			result, err := amesh.GeocodeWithClient(context.Background(), mockClient, &amesh.GeocodeRequest{
-				Place:  tt.place,
-				APIKey: tt.apiKey,
-			})
-			if diff := cmp.Diff(result, tt.expected); diff != "" {
-				t.Errorf("GeocodeWithClient(%q, %q) diff: %s", tt.place, tt.apiKey, diff)
-			}
-			if !errors.Is(err, tt.expectError) {
-				t.Errorf("GeocodeWithClient(%q, %q) unexpected error: %v, excepted: %v", tt.place, tt.apiKey, err, tt.expectError)
-			}
-		})
-	}
-	// jscpd:ignore-end
-}
-
 // TestCreateAmeshImageWithClient CreateAmeshImageWithClient関数をテストする
 func TestCreateAmeshImageWithClient(t *testing.T) {
 	tests := []struct {
@@ -481,6 +362,28 @@ func TestParseLocationWithClient(t *testing.T) {
 		expected     *amesh.Location
 	}{
 		{
+			name:         "成功したジオコーディング",
+			place:        "東京",
+			apiKey:       "test_key",
+			responseCode: http.StatusOK,
+			responseBody: `{
+				"Feature": [
+					{
+						"Name": "東京都",
+						"Geometry": {
+							"Coordinates": "139.6917,35.6895"
+						}
+					}
+				]
+			}`,
+			expectError: nil,
+			expected: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "東京都",
+			},
+		},
+		{
 			name:        "座標文字列の解析",
 			place:       "35.6895 139.6917",
 			apiKey:      "dummy_key",
@@ -492,6 +395,28 @@ func TestParseLocationWithClient(t *testing.T) {
 			},
 		},
 		{
+			name:         "空の場所は東京がデフォルト",
+			place:        "",
+			apiKey:       "test_key",
+			responseCode: http.StatusOK,
+			responseBody: `{
+				"Feature": [
+					{
+						"Name": "東京都",
+						"Geometry": {
+							"Coordinates": "139.6917,35.6895"
+						}
+					}
+				]
+			}`,
+			expectError: nil,
+			expected: &amesh.Location{
+				Lat:       35.6895,
+				Lng:       139.6917,
+				PlaceName: "東京都",
+			},
+		},
+		{
 			name:         "無効な座標文字列",
 			place:        "invalid coordinates",
 			apiKey:       "test_key",
@@ -499,9 +424,49 @@ func TestParseLocationWithClient(t *testing.T) {
 			responseBody: `{"Error": "Invalid place"}`,
 			expectError:  libHttp.ErrHTTPRequestError,
 		},
+		{
+			name:         "無効な座標フォーマット",
+			place:        "東京",
+			apiKey:       "test_key",
+			responseCode: http.StatusOK,
+			responseBody: `{
+				"Feature": [
+					{
+						"Name": "東京都",
+						"Geometry": {
+							"Coordinates": "invalid_format"
+						}
+					}
+				]
+			}`,
+			expectError: amesh.ErrInvalidCoordinatesFormat,
+		},
+		{
+			name:         "APIがエラーステータスを返す",
+			place:        "東京",
+			apiKey:       "invalid_key",
+			responseCode: http.StatusBadRequest,
+			responseBody: `{"Error": "Invalid API key"}`,
+			expectError:  libHttp.ErrHTTPRequestError,
+		},
+		{
+			name:         "結果が見つからない",
+			place:        "nonexistent place",
+			apiKey:       "test_key",
+			responseCode: http.StatusOK,
+			responseBody: `{"Feature": []}`,
+			expectError:  amesh.ErrNoResultsFound,
+		},
+		{
+			name:         "不正なJSON",
+			place:        "東京",
+			apiKey:       "test_key",
+			responseCode: http.StatusOK,
+			responseBody: `{"Feature": [invalid json}`,
+			expectError:  amesh.ErrJSONUnmarshal,
+		},
 	}
 
-	// jscpd:ignore-start
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
@@ -523,7 +488,6 @@ func TestParseLocationWithClient(t *testing.T) {
 			}
 		})
 	}
-	// jscpd:ignore-end
 }
 
 // TestGenerateFileName GenerateFileName関数をテストする

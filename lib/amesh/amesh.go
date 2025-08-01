@@ -235,24 +235,41 @@ func CreateImageReader(ctx context.Context, location *Location) (io.Reader, erro
 	})
 }
 
-// GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
-func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeRequest) (*Location, error) {
+// ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
+func ParseLocationWithClient(ctx context.Context, req *ParseLocationRequest) (*Location, error) {
 	if req == nil {
 		return nil, errors.New("req cannot be nil")
 	}
+	if req.Client == nil {
+		return nil, errors.New("client cannot be nil")
+	}
+	// 座標が直接提供されているかチェック
+	parts := strings.Fields(req.GeocodeRequest.Place)
+	if len(parts) == 2 {
+		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
+			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
+				return &Location{
+					Lat:       parsedLat,
+					Lng:       parsedLng,
+					PlaceName: fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng),
+				}, nil
+			}
+		}
+	}
 
-	place := req.Place
+	// 地名をジオコーディング
+	place := req.GeocodeRequest.Place
 	if place == "" {
 		place = "東京"
 	}
 
-	requestURL := fmt.Sprintf("https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json", req.APIKey, url.QueryEscape(place))
+	requestURL := fmt.Sprintf("https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json", req.GeocodeRequest.APIKey, url.QueryEscape(place))
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := libHttp.ExecuteHTTPRequest(client, httpReq)
+	resp, err := libHttp.ExecuteHTTPRequest(req.Client, httpReq)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
 	}
@@ -300,36 +317,6 @@ func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeReq
 		Lng:       lng,
 		PlaceName: feature.Name,
 	}, nil
-}
-
-// ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocationWithClient(ctx context.Context, req *ParseLocationRequest) (*Location, error) {
-	if req == nil {
-		return nil, errors.New("req cannot be nil")
-	}
-	if req.Client == nil {
-		return nil, errors.New("client cannot be nil")
-	}
-	// 座標が直接提供されているかチェック
-	parts := strings.Fields(req.GeocodeRequest.Place)
-	if len(parts) == 2 {
-		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
-			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
-				return &Location{
-					Lat:       parsedLat,
-					Lng:       parsedLng,
-					PlaceName: fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng),
-				}, nil
-			}
-		}
-	}
-
-	// 地名をジオコーディング
-	result, geocodeErr := GeocodeWithClient(ctx, req.Client, &req.GeocodeRequest)
-	if geocodeErr != nil {
-		return nil, errors.Wrap(geocodeErr, "Failed to GeocodeWithClient")
-	}
-	return result, nil
 }
 
 // ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
