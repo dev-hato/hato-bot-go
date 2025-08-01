@@ -269,7 +269,9 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 		return errors.Wrap(err, "Failed to apiRequest")
 	}
 	defer func(body io.ReadCloser) {
-		err = body.Close()
+		if closeErr := body.Close(); closeErr != nil {
+			err = errors.Wrap(closeErr, "Failed to Close")
+		}
 	}(resp.Body)
 
 	if resp.StatusCode != 204 {
@@ -422,7 +424,9 @@ func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) (err erro
 	}
 
 	defer func(body io.ReadCloser) {
-		err = body.Close()
+		if closeErr := body.Close(); closeErr != nil {
+			err = errors.Wrap(closeErr, "Failed to Close")
+		}
 	}(resp.Body)
 
 	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {

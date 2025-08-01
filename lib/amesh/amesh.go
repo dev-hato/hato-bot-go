@@ -366,7 +366,9 @@ func GenerateFileName(location *Location) string {
 // handleHTTPResponse HTTPレスポンスの共通処理を行う
 func handleHTTPResponse(resp *http.Response) (body []byte, err error) {
 	defer func(body io.ReadCloser) {
-		err = body.Close()
+		if closeErr := body.Close(); closeErr != nil {
+			err = errors.Wrap(closeErr, "Failed to Close")
+		}
 	}(resp.Body)
 
 	body, err = io.ReadAll(resp.Body)
@@ -536,7 +538,9 @@ func downloadTileWithClient(ctx context.Context, client libHttp.Client, tileURL 
 		return nil, errors.Wrap(err, "Failed to Do")
 	}
 	defer func(body io.ReadCloser) {
-		err = body.Close()
+		if closeErr := body.Close(); closeErr != nil {
+			err = errors.Wrap(closeErr, "Failed to Close")
+		}
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
