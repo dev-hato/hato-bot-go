@@ -210,7 +210,7 @@ draw.Draw(img, destRect, baseTile, image.Point{}, draw.Over)
 
 // レーダータイル透明度付き描画
 draw.DrawMask(img, destRect, radarTile, image.Point{},
-    &image.Uniform{C: color.RGBA{R: 255, G: 255, B: 255, A: 128}},
+    image.NewUniform(color.RGBA{R: 255, G: 255, B: 255, A: 128}),
     image.Point{}, draw.Over)
 ```
 

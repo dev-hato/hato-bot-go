@@ -134,7 +134,7 @@ func CreateAmeshImageWithClient(ctx context.Context, client *http.Client, req *C
 	img := image.NewRGBA(image.Rect(0, 0, imageSize, imageSize))
 
 	// 白い背景で塗りつぶし
-	draw.Draw(img, img.Bounds(), &image.Uniform{C: color.RGBA{R: 255, G: 255, B: 255, A: 255}}, image.Point{}, draw.Src)
+	draw.Draw(img, img.Bounds(), image.NewUniform(color.RGBA{R: 255, G: 255, B: 255, A: 255}), image.Point{}, draw.Src)
 
 	// タイルをダウンロードして合成
 	for dy := -req.AroundTiles; dy <= req.AroundTiles; dy++ {
@@ -169,7 +169,7 @@ func CreateAmeshImageWithClient(ctx context.Context, client *http.Client, req *C
 			}
 
 			// レーダータイルを透明度付きで描画
-			draw.DrawMask(img, destRect, radarTile, image.Point{}, &image.Uniform{C: color.RGBA{R: 255, G: 255, B: 255, A: 128}}, image.Point{}, draw.Over)
+			draw.DrawMask(img, destRect, radarTile, image.Point{}, image.NewUniform(color.RGBA{R: 255, G: 255, B: 255, A: 128}), image.Point{}, draw.Over)
 		}
 	}
 
