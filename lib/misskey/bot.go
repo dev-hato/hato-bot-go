@@ -78,8 +78,8 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) error {
 	return nil
 }
 
-// UploadFileFromReader io.Readerからファイルをアップロード
-func (bot *Bot) UploadFileFromReader(ctx context.Context, reader io.Reader, fileName string) (*File, error) {
+// UploadFile ファイルをアップロード
+func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName string) (*File, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
@@ -173,9 +173,9 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, note *Note, place strin
 	fileName := amesh.GenerateFileName(location)
 
 	// Misskeyにメモリから直接アップロード
-	uploadedFile, err := bot.UploadFileFromReader(ctx, imageReader, fileName)
+	uploadedFile, err := bot.UploadFile(ctx, imageReader, fileName)
 	if err != nil {
-		return errors.Wrap(err, "Failed to UploadFileFromReader")
+		return errors.Wrap(err, "Failed to UploadFile")
 	}
 
 	// 結果をノートとして投稿

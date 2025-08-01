@@ -108,19 +108,19 @@ type timeJSONElement struct {
 	Elements  []string `json:"elements"`
 }
 
-// CreateAmeshImageWithClient HTTPクライアントを指定してameshレーダー画像を作成する
-func CreateAmeshImageWithClient(ctx context.Context, client *http.Client, req *CreateImageRequest) (*image.RGBA, error) {
+// CreateAmeshImage ameshレーダー画像を作成する
+func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImageRequest) (*image.RGBA, error) {
 	if req == nil {
 		return nil, errors.New("req cannot be nil")
 	}
 	// 最新のタイムスタンプを取得
-	timestamps := getLatestTimestampsWithClient(ctx, client)
+	timestamps := getLatestTimestamps(ctx, client)
 
 	hrpnsTimestamp := timestamps["hrpns_nd"]
 	lidenTimestamp := timestamps["liden"]
 
 	// 落雷データを取得
-	lightningData, err := getLightningDataWithClient(ctx, client, lidenTimestamp)
+	lightningData, err := getLightningData(ctx, client, lidenTimestamp)
 	if err != nil {
 		log.Printf("落雷データの取得に失敗: %v", err)
 		lightningData = nil
@@ -146,9 +146,9 @@ func CreateAmeshImageWithClient(ctx context.Context, client *http.Client, req *C
 			// ベースマップタイル（OpenStreetMap）をダウンロード
 			baseURL := fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png", req.Zoom, tileX, tileY)
 
-			baseTile, err := downloadTileWithClient(ctx, client, baseURL)
+			baseTile, err := downloadTile(ctx, client, baseURL)
 			if err != nil {
-				log.Printf("Failed to downloadTileWithClient: %v", err)
+				log.Printf("Failed to downloadTile: %v", err)
 				continue
 			}
 
@@ -163,9 +163,9 @@ func CreateAmeshImageWithClient(ctx context.Context, client *http.Client, req *C
 
 			// レーダータイルをダウンロードしてオーバーレイ
 			radarURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png", hrpnsTimestamp, hrpnsTimestamp, req.Zoom, tileX, tileY)
-			radarTile, err := downloadTileWithClient(ctx, client, radarURL)
+			radarTile, err := downloadTile(ctx, client, radarURL)
 			if err != nil {
-				log.Printf("Failed to downloadTileWithClient: %v", err)
+				log.Printf("Failed to downloadTile: %v", err)
 				continue
 			}
 
@@ -208,14 +208,14 @@ func CreateImageReaderWithClient(ctx context.Context, req *CreateImageReaderRequ
 	if req.Location == nil {
 		return nil, errors.New("location cannot be nil")
 	}
-	img, err := CreateAmeshImageWithClient(ctx, req.Client, &CreateImageRequest{
+	img, err := CreateAmeshImage(ctx, req.Client, &CreateImageRequest{
 		Lat:         req.Location.Lat,
 		Lng:         req.Location.Lng,
 		Zoom:        10,
 		AroundTiles: 2,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to CreateAmeshImageWithClient")
+		return nil, errors.Wrap(err, "Failed to CreateAmeshImage")
 	}
 
 	// バイトバッファに画像をエンコード
@@ -492,8 +492,8 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 	}
 }
 
-// downloadTileWithClient HTTPクライアントを指定してマップタイルをダウンロードする
-func downloadTileWithClient(ctx context.Context, client *http.Client, tileURL string) (img image.Image, err error) {
+// downloadTile マップタイルをダウンロードする
+func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img image.Image, err error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", tileURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
@@ -535,8 +535,8 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 	return &httpRequestResult{Body: body, IsEmpty: false}, nil
 }
 
-// getLightningDataWithClient HTTPクライアントを指定して落雷データを取得する
-func getLightningDataWithClient(ctx context.Context, client *http.Client, timestamp string) ([]lightningPoint, error) {
+// getLightningData 落雷データを取得する
+func getLightningData(ctx context.Context, client *http.Client, timestamp string) ([]lightningPoint, error) {
 	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
 
 	result, err := makeHTTPRequest(ctx, client, apiURL)
@@ -576,8 +576,8 @@ func getLightningDataWithClient(ctx context.Context, client *http.Client, timest
 	return lightningPoints, nil
 }
 
-// fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
-func fetchTimeDataFromURLWithClient(ctx context.Context, client *http.Client, apiURL string) ([]timeJSONElement, error) {
+// fetchTimeData タイムデータを取得する
+func fetchTimeData(ctx context.Context, client *http.Client, apiURL string) ([]timeJSONElement, error) {
 	body, err := makeHTTPRequest(ctx, client, apiURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
@@ -594,8 +594,8 @@ func fetchTimeDataFromURLWithClient(ctx context.Context, client *http.Client, ap
 	return timeData, nil
 }
 
-// getLatestTimestampsWithClient HTTPクライアントを指定して最新のタイムスタンプを取得する
-func getLatestTimestampsWithClient(ctx context.Context, client *http.Client) map[string]string {
+// getLatestTimestamps 最新のタイムスタンプを取得する
+func getLatestTimestamps(ctx context.Context, client *http.Client) map[string]string {
 	urls := []string{
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json",
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N2.json",
@@ -605,9 +605,9 @@ func getLatestTimestampsWithClient(ctx context.Context, client *http.Client) map
 	var allTimeData []timeJSONElement
 
 	for _, apiURL := range urls {
-		timeData, err := fetchTimeDataFromURLWithClient(ctx, client, apiURL)
+		timeData, err := fetchTimeData(ctx, client, apiURL)
 		if err != nil {
-			log.Printf("Failed to fetchTimeDataFromURLWithClient: %v", err)
+			log.Printf("Failed to fetchTimeData: %v", err)
 			continue
 		}
 		allTimeData = append(allTimeData, timeData...)

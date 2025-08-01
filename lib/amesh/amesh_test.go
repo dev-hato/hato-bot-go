@@ -49,8 +49,8 @@ func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 }
 
-// TestCreateAmeshImageWithClient CreateAmeshImageWithClient関数をテストする
-func TestCreateAmeshImageWithClient(t *testing.T) {
+// TestCreateAmeshImage CreateAmeshImage関数をテストする
+func TestCreateAmeshImage(t *testing.T) {
 	tests := []struct {
 		name               string
 		lat                float64
@@ -216,25 +216,25 @@ func TestCreateAmeshImageWithClient(t *testing.T) {
 				DummyTileBytes:     dummyTileBytes,
 			})
 
-			result, err := amesh.CreateAmeshImageWithClient(context.Background(), mockClient, &amesh.CreateImageRequest{
+			result, err := amesh.CreateAmeshImage(context.Background(), mockClient, &amesh.CreateImageRequest{
 				Lat:         tt.lat,
 				Lng:         tt.lng,
 				Zoom:        tt.zoom,
 				AroundTiles: tt.aroundTiles,
 			})
 			if !errors.Is(err, tt.expectError) {
-				t.Errorf("CreateAmeshImageWithClient() unexpected error: %v, expected: %v", err, tt.expectError)
+				t.Errorf("CreateAmeshImage() unexpected error: %v, expected: %v", err, tt.expectError)
 				return
 			}
 
 			if result == nil {
-				t.Errorf("CreateAmeshImageWithClient() returned nil image")
+				t.Errorf("CreateAmeshImage() returned nil image")
 				return
 			}
 
 			bounds := result.Bounds()
 			if bounds.Dx() != tt.expectedImageSize || bounds.Dy() != tt.expectedImageSize {
-				t.Errorf("CreateAmeshImageWithClient() image size = %dx%d, want %dx%d",
+				t.Errorf("CreateAmeshImage() image size = %dx%d, want %dx%d",
 					bounds.Dx(), bounds.Dy(), tt.expectedImageSize, tt.expectedImageSize)
 				return
 			}

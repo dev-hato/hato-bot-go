@@ -107,7 +107,7 @@ func TestCreateNote(t *testing.T) {
 	}
 }
 
-func TestUploadFileFromReader(t *testing.T) {
+func TestUploadFile(t *testing.T) {
 	tests := []struct {
 		name         string
 		fileName     string
@@ -146,8 +146,8 @@ func TestUploadFileFromReader(t *testing.T) {
 			})
 
 			reader := strings.NewReader(tt.readerData)
-			if _, err := bot.UploadFileFromReader(context.Background(), reader, tt.fileName); (err != nil) != tt.expectError {
-				t.Errorf("UploadFileFromReader() error = %v, expectError %v", err, tt.expectError)
+			if _, err := bot.UploadFile(context.Background(), reader, tt.fileName); (err != nil) != tt.expectError {
+				t.Errorf("UploadFile() error = %v, expectError %v", err, tt.expectError)
 			}
 		})
 	}
