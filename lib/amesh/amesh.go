@@ -533,7 +533,7 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 	}
 	resp, err := libHttp.ExecuteHTTPRequest(client, req)
 	if err != nil {
-		if errors.Is(err, libHttp.ErrGeocodingAPIError) {
+		if errors.Is(err, libHttp.ErrHTTPRequestError) {
 			return &httpRequestResult{Body: nil, IsEmpty: true}, nil
 		}
 
