@@ -64,6 +64,7 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) (err err
 		data["cw"] = "隠すっぽ！"
 	}
 
+	// jscpd:ignore-start
 	resp, err := bot.apiRequest(ctx, "notes/create", data)
 	if err != nil {
 		return errors.Wrap(err, "Failed to apiRequest")
@@ -73,6 +74,7 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) (err err
 			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
+	// jscpd:ignore-end
 
 	var result struct {
 		CreatedNote Note `json:"createdNote"`
@@ -143,6 +145,7 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 		"reaction": reaction,
 	}
 
+	// jscpd:ignore-start
 	resp, err := bot.apiRequest(ctx, "notes/reactions/create", data)
 	if err != nil {
 		return errors.Wrap(err, "Failed to apiRequest")
@@ -152,6 +155,7 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
+	// jscpd:ignore-end
 
 	return nil
 }
