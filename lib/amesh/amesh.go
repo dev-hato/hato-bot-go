@@ -34,16 +34,16 @@ var (
 	ErrJSONUnmarshal            = errors.New("failed to json.Unmarshal")
 )
 
-// CreateImageRequest レーダー画像作成のリクエスト構造体
-type CreateImageRequest struct {
+// CreateAmeshImageParams レーダー画像作成のリクエスト構造体
+type CreateAmeshImageParams struct {
 	Lat         float64 // 緯度
 	Lng         float64 // 経度
 	Zoom        int     // ズームレベル
 	AroundTiles int     // 周囲のタイル数
 }
 
-// CreateImageReaderRequest amesh画像リーダー作成のリクエスト構造体
-type CreateImageReaderRequest struct {
+// CreateImageReaderWithClientParams amesh画像リーダー作成のリクエスト構造体
+type CreateImageReaderWithClientParams struct {
 	Client   *http.Client // HTTPクライアント
 	Location *Location    // 位置情報
 }
@@ -61,8 +61,8 @@ type GeocodeRequest struct {
 	APIKey string // APIキー
 }
 
-// ParseLocationRequest 位置解析のリクエスト構造体
-type ParseLocationRequest struct {
+// ParseLocationWithClientParams 位置解析のリクエスト構造体
+type ParseLocationWithClientParams struct {
 	Client         *http.Client // HTTPクライアント
 	GeocodeRequest GeocodeRequest
 }
@@ -75,9 +75,9 @@ type lightningPoint struct {
 }
 
 type drawLightningMarkerParams struct {
-	Img                *image.RGBA
-	Lightning          lightningPoint
-	CreateImageRequest *CreateImageRequest
+	Img                    *image.RGBA
+	Lightning              lightningPoint
+	CreateAmeshImageParams *CreateAmeshImageParams
 }
 
 type drawLineParams struct {
@@ -90,10 +90,10 @@ type drawLineParams struct {
 }
 
 type drawDistanceCircleParams struct {
-	Img                *image.RGBA
-	CreateImageRequest *CreateImageRequest
-	RadiusKm           float64
-	Col                color.RGBA
+	Img                    *image.RGBA
+	CreateAmeshImageParams *CreateAmeshImageParams
+	RadiusKm               float64
+	Col                    color.RGBA
 }
 
 // httpRequestResult HTTPリクエストの結果を表す構造体
@@ -110,8 +110,8 @@ type timeJSONElement struct {
 }
 
 // CreateAmeshImage ameshレーダー画像を作成する
-func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImageRequest) (*image.RGBA, error) {
-	if req == nil {
+func CreateAmeshImage(ctx context.Context, client *http.Client, params *CreateAmeshImageParams) (*image.RGBA, error) {
+	if params == nil {
 		return nil, lib.ErrParamsNil
 	}
 	// 最新のタイムスタンプを取得
@@ -128,24 +128,24 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImage
 	}
 
 	// ピクセル座標を計算
-	centerX, centerY := getWebMercatorPixel(req)
+	centerX, centerY := getWebMercatorPixel(params)
 	centerTileX, centerTileY := int(centerX/256), int(centerY/256)
 
 	// ベース画像を作成
-	imageSize := (2*req.AroundTiles + 1) * 256
+	imageSize := (2*params.AroundTiles + 1) * 256
 	img := image.NewRGBA(image.Rect(0, 0, imageSize, imageSize))
 
 	// 白い背景で塗りつぶし
 	draw.Draw(img, img.Bounds(), image.NewUniform(color.RGBA{R: 255, G: 255, B: 255, A: 255}), image.Point{}, draw.Src)
 
 	// タイルをダウンロードして合成
-	for dy := -req.AroundTiles; dy <= req.AroundTiles; dy++ {
-		for dx := -req.AroundTiles; dx <= req.AroundTiles; dx++ {
+	for dy := -params.AroundTiles; dy <= params.AroundTiles; dy++ {
+		for dx := -params.AroundTiles; dx <= params.AroundTiles; dx++ {
 			tileX := centerTileX + dx
 			tileY := centerTileY + dy
 
 			// ベースマップタイル（OpenStreetMap）をダウンロード
-			baseURL := fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png", req.Zoom, tileX, tileY)
+			baseURL := fmt.Sprintf("https://tile.openstreetmap.org/%d/%d/%d.png", params.Zoom, tileX, tileY)
 
 			baseTile, err := downloadTile(ctx, client, baseURL)
 			if err != nil {
@@ -155,10 +155,10 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImage
 
 			// ベースタイルを描画
 			destRect := image.Rect(
-				(dx+req.AroundTiles)*256,
-				(dy+req.AroundTiles)*256,
-				(dx+req.AroundTiles+1)*256,
-				(dy+req.AroundTiles+1)*256,
+				(dx+params.AroundTiles)*256,
+				(dy+params.AroundTiles)*256,
+				(dx+params.AroundTiles+1)*256,
+				(dy+params.AroundTiles+1)*256,
 			)
 			draw.Draw(img, destRect, baseTile, image.Point{}, draw.Over)
 
@@ -167,7 +167,7 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImage
 				"https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png",
 				hrpnsTimestamp,
 				hrpnsTimestamp,
-				req.Zoom,
+				params.Zoom,
 				tileX,
 				tileY,
 			)
@@ -194,19 +194,19 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImage
 	for d := 10; d <= 50; d += 10 {
 		drawDistanceCircle(
 			&drawDistanceCircleParams{
-				Img:                img,
-				CreateImageRequest: req,
-				RadiusKm:           float64(d),
-				Col:                color.RGBA{R: 100, G: 100, B: 100, A: 255},
+				Img:                    img,
+				CreateAmeshImageParams: params,
+				RadiusKm:               float64(d),
+				Col:                    color.RGBA{R: 100, G: 100, B: 100, A: 255},
 			})
 	}
 
 	// 落雷マーカーを描画
 	for _, lightning := range lightningData {
 		drawLightningMarker(&drawLightningMarkerParams{
-			Img:                img,
-			Lightning:          lightning,
-			CreateImageRequest: req,
+			Img:                    img,
+			Lightning:              lightning,
+			CreateAmeshImageParams: params,
 		})
 	}
 
@@ -214,13 +214,13 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImage
 }
 
 // CreateImageReaderWithClient HTTPクライアントを指定してamesh画像をメモリ上に作成してio.Readerを返す
-func CreateImageReaderWithClient(ctx context.Context, req *CreateImageReaderRequest) (io.Reader, error) {
-	if req == nil || req.Client == nil || req.Location == nil {
+func CreateImageReaderWithClient(ctx context.Context, params *CreateImageReaderWithClientParams) (io.Reader, error) {
+	if params == nil || params.Client == nil || params.Location == nil {
 		return nil, lib.ErrParamsNil
 	}
-	img, err := CreateAmeshImage(ctx, req.Client, &CreateImageRequest{
-		Lat:         req.Location.Lat,
-		Lng:         req.Location.Lng,
+	img, err := CreateAmeshImage(ctx, params.Client, &CreateAmeshImageParams{
+		Lat:         params.Location.Lat,
+		Lng:         params.Location.Lng,
 		Zoom:        10,
 		AroundTiles: 2,
 	})
@@ -239,14 +239,14 @@ func CreateImageReaderWithClient(ctx context.Context, req *CreateImageReaderRequ
 
 // CreateImageReader amesh画像をメモリ上に作成してio.Readerを返す
 func CreateImageReader(ctx context.Context, location *Location) (io.Reader, error) {
-	return CreateImageReaderWithClient(ctx, &CreateImageReaderRequest{
+	return CreateImageReaderWithClient(ctx, &CreateImageReaderWithClientParams{
 		Client:   http.DefaultClient,
 		Location: location,
 	})
 }
 
 // ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocationWithClient(ctx context.Context, req *ParseLocationRequest) (*Location, error) {
+func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientParams) (*Location, error) {
 	if req == nil || req.Client == nil {
 		return nil, lib.ErrParamsNil
 	}
@@ -332,7 +332,7 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationRequest) (*L
 
 // ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
 func ParseLocation(ctx context.Context, place, apiKey string) (*Location, error) {
-	return ParseLocationWithClient(ctx, &ParseLocationRequest{
+	return ParseLocationWithClient(ctx, &ParseLocationWithClientParams{
 		Client: http.DefaultClient,
 		GeocodeRequest: GeocodeRequest{
 			Place:  place,
@@ -359,7 +359,7 @@ func deg2rad(degrees float64) float64 {
 // - 地理座標（度数）をピクセル座標に変換
 // - ズームレベルに応じたスケール調整
 // - 地図タイルの標準的な座標系を使用
-func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
+func getWebMercatorPixel(params *CreateAmeshImageParams) (float64, float64) {
 	if params.Zoom < 0 || 30 < params.Zoom {
 		return 0, 0
 	}
@@ -373,15 +373,15 @@ func getWebMercatorPixel(params *CreateImageRequest) (float64, float64) {
 // 円形塗りつぶしアルゴリズム使用
 func drawLightningMarker(params *drawLightningMarkerParams) {
 	// ピクセル座標に変換
-	x, y := getWebMercatorPixel(&CreateImageRequest{
+	x, y := getWebMercatorPixel(&CreateAmeshImageParams{
 		Lat:  params.Lightning.Lat,
 		Lng:  params.Lightning.Lng,
-		Zoom: params.CreateImageRequest.Zoom,
+		Zoom: params.CreateAmeshImageParams.Zoom,
 	})
-	centerX, centerY := getWebMercatorPixel(params.CreateImageRequest)
+	centerX, centerY := getWebMercatorPixel(params.CreateAmeshImageParams)
 
 	// 画像座標に変換
-	imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
+	imageSize := (2*params.CreateAmeshImageParams.AroundTiles + 1) * 256
 	imgX := int(x - centerX + float64(imageSize/2))
 	imgY := int(y - centerY + float64(imageSize/2))
 
@@ -464,27 +464,27 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 		angle2 := float64(i+1) * 2 * math.Pi / float64(numSegments)
 
 		// 円上の点を計算（地球の曲率を考慮）
-		lat1 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
-		lng1 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
+		lat1 := params.CreateAmeshImageParams.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
+		lng1 := params.CreateAmeshImageParams.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(params.CreateAmeshImageParams.Lat))
 
-		lat2 := params.CreateImageRequest.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle2)*180/math.Pi
-		lng2 := params.CreateImageRequest.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle2)*180/math.Pi/math.Cos(deg2rad(params.CreateImageRequest.Lat))
+		lat2 := params.CreateAmeshImageParams.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle2)*180/math.Pi
+		lng2 := params.CreateAmeshImageParams.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle2)*180/math.Pi/math.Cos(deg2rad(params.CreateAmeshImageParams.Lat))
 
 		// ピクセル座標に変換
-		x1, y1 := getWebMercatorPixel(&CreateImageRequest{
+		x1, y1 := getWebMercatorPixel(&CreateAmeshImageParams{
 			Lat:  lat1,
 			Lng:  lng1,
-			Zoom: params.CreateImageRequest.Zoom,
+			Zoom: params.CreateAmeshImageParams.Zoom,
 		})
-		x2, y2 := getWebMercatorPixel(&CreateImageRequest{
+		x2, y2 := getWebMercatorPixel(&CreateAmeshImageParams{
 			Lat:  lat2,
 			Lng:  lng2,
-			Zoom: params.CreateImageRequest.Zoom,
+			Zoom: params.CreateAmeshImageParams.Zoom,
 		})
 
 		// 画像座標に変換
-		centerX, centerY := getWebMercatorPixel(params.CreateImageRequest)
-		imageSize := (2*params.CreateImageRequest.AroundTiles + 1) * 256
+		centerX, centerY := getWebMercatorPixel(params.CreateAmeshImageParams)
+		imageSize := (2*params.CreateAmeshImageParams.AroundTiles + 1) * 256
 
 		imgX1 := int(x1 - centerX + float64(imageSize/2))
 		imgY1 := int(y1 - centerY + float64(imageSize/2))

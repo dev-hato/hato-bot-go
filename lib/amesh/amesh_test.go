@@ -54,7 +54,7 @@ func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
 func TestCreateAmeshImage(t *testing.T) {
 	tests := []struct {
 		name               string
-		req                *amesh.CreateImageRequest
+		params             *amesh.CreateAmeshImageParams
 		timestampsResponse string
 		lightningResponse  string
 		checkCenterColor   bool
@@ -63,7 +63,7 @@ func TestCreateAmeshImage(t *testing.T) {
 	}{
 		{
 			name: "成功した画像作成",
-			req: &amesh.CreateImageRequest{
+			params: &amesh.CreateAmeshImageParams{
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
@@ -94,7 +94,7 @@ func TestCreateAmeshImage(t *testing.T) {
 		},
 		{
 			name: "空のタイムスタンプ結果",
-			req: &amesh.CreateImageRequest{
+			params: &amesh.CreateAmeshImageParams{
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
@@ -108,7 +108,7 @@ func TestCreateAmeshImage(t *testing.T) {
 		},
 		{
 			name: "タイルダウンロード失敗を適切に処理",
-			req: &amesh.CreateImageRequest{
+			params: &amesh.CreateAmeshImageParams{
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
@@ -128,7 +128,7 @@ func TestCreateAmeshImage(t *testing.T) {
 		},
 		{
 			name: "不正なJSONタイムスタンプで処理継続",
-			req: &amesh.CreateImageRequest{
+			params: &amesh.CreateAmeshImageParams{
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
@@ -142,7 +142,7 @@ func TestCreateAmeshImage(t *testing.T) {
 		},
 		{
 			name: "すべてのタイムスタンプAPIが失敗",
-			req: &amesh.CreateImageRequest{
+			params: &amesh.CreateAmeshImageParams{
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
@@ -156,7 +156,7 @@ func TestCreateAmeshImage(t *testing.T) {
 		},
 		{
 			name: "落雷データJSONエラー",
-			req: &amesh.CreateImageRequest{
+			params: &amesh.CreateAmeshImageParams{
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        10,
@@ -176,7 +176,7 @@ func TestCreateAmeshImage(t *testing.T) {
 		},
 		{
 			name: "小さなタイル数でのテスト",
-			req: &amesh.CreateImageRequest{
+			params: &amesh.CreateAmeshImageParams{
 				Lat:         35.6895,
 				Lng:         139.6917,
 				Zoom:        5,
@@ -214,8 +214,8 @@ func TestCreateAmeshImage(t *testing.T) {
 			expectError:       nil,
 		},
 		{
-			name: "nilリクエスト",
-			req:  nil,
+			name:   "nilリクエスト",
+			params: nil,
 			timestampsResponse: `[
 			  {
 				"basetime": "20240101120000",
@@ -248,7 +248,7 @@ func TestCreateAmeshImage(t *testing.T) {
 				DummyTileBytes:     dummyTileBytes,
 			})
 
-			result, err := amesh.CreateAmeshImage(context.Background(), mockClient, tt.req)
+			result, err := amesh.CreateAmeshImage(context.Background(), mockClient, tt.params)
 			if !errors.Is(err, tt.expectError) {
 				t.Errorf("CreateAmeshImage() unexpected error: %v, expected: %v", err, tt.expectError)
 				return
@@ -289,12 +289,12 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		request     *amesh.CreateImageReaderRequest
+		params      *amesh.CreateImageReaderWithClientParams
 		expectError error
 	}{
 		{
 			name: "成功したio.Reader作成",
-			request: &amesh.CreateImageReaderRequest{
+			params: &amesh.CreateImageReaderWithClientParams{
 				Client: createConfigurableMockHTTPClient(httpMockConfig{
 					TimestampsResponse: `[
 				{
@@ -316,12 +316,12 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 		},
 		{
 			name:        "nilリクエスト",
-			request:     nil,
+			params:      nil,
 			expectError: lib.ErrParamsNil,
 		},
 		{
 			name: "nilクライアント",
-			request: &amesh.CreateImageReaderRequest{
+			params: &amesh.CreateImageReaderWithClientParams{
 				Client: nil,
 				Location: &amesh.Location{
 					Lat:       35.6895,
@@ -333,7 +333,7 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 		},
 		{
 			name: "nilロケーション",
-			request: &amesh.CreateImageReaderRequest{
+			params: &amesh.CreateImageReaderWithClientParams{
 				Client: createConfigurableMockHTTPClient(httpMockConfig{
 					TimestampsResponse: `[
 				{
@@ -354,7 +354,7 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result, err := amesh.CreateImageReaderWithClient(context.Background(), tt.request)
+			result, err := amesh.CreateImageReaderWithClient(context.Background(), tt.params)
 			if !errors.Is(err, tt.expectError) {
 				t.Errorf("CreateImageReaderWithClient() error = %v, expectError = %v", err, tt.expectError)
 				return
@@ -386,13 +386,13 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 func TestParseLocationWithClient(t *testing.T) {
 	tests := []struct {
 		name        string
-		req         *amesh.ParseLocationRequest
+		params      *amesh.ParseLocationWithClientParams
 		expectError error
 		expected    *amesh.Location
 	}{
 		{
 			name: "成功したジオコーディング",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
@@ -417,7 +417,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "座標文字列の解析",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
@@ -442,7 +442,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "空の場所は東京がデフォルト",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
@@ -467,7 +467,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "座標文字列（整数）",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
@@ -491,7 +491,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "無効な座標文字列（1つの数値のみ）",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
@@ -515,7 +515,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "無効な座標文字列",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusBadRequest, `{"Error": "Invalid place"}`),
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "invalid coordinates",
@@ -526,7 +526,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "無効な座標フォーマット",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
@@ -546,7 +546,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "APIがエラーステータスを返す",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusBadRequest, `{"Error": "Invalid API key"}`),
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "東京",
@@ -557,7 +557,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "結果が見つからない",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{"Feature": []}`),
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "nonexistent place",
@@ -568,7 +568,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "不正なJSON",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{"Feature": [invalid json}`),
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "東京",
@@ -579,7 +579,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name: "座標数が足りない場合",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
@@ -599,12 +599,12 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 		{
 			name:        "nilリクエスト",
-			req:         nil,
+			params:      nil,
 			expectError: lib.ErrParamsNil,
 		},
 		{
 			name: "nilクライアント",
-			req: &amesh.ParseLocationRequest{
+			params: &amesh.ParseLocationWithClientParams{
 				Client: nil,
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "東京",
@@ -618,7 +618,7 @@ func TestParseLocationWithClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result, err := amesh.ParseLocationWithClient(context.Background(), tt.req)
+			result, err := amesh.ParseLocationWithClient(context.Background(), tt.params)
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
 				t.Errorf("ParseLocationWithClient() diff: %s", diff)
 			}

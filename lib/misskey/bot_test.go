@@ -55,21 +55,21 @@ func TestAddReaction(t *testing.T) {
 func TestCreateNote(t *testing.T) {
 	tests := []struct {
 		name         string
-		req          *misskey.CreateNoteRequest
+		params       *misskey.CreateNoteParams
 		statusCode   int
 		responseBody string
 		expectError  error
 	}{
 		{
 			name:         "nilリクエスト",
-			req:          nil,
+			params:       nil,
 			statusCode:   http.StatusOK,
 			responseBody: `{"createdNote":{"id":"created123"}}`,
 			expectError:  lib.ErrParamsNil,
 		},
 		{
 			name: "nil OriginalNote",
-			req: &misskey.CreateNoteRequest{
+			params: &misskey.CreateNoteParams{
 				Text:         "test",
 				OriginalNote: nil,
 			},
@@ -79,7 +79,7 @@ func TestCreateNote(t *testing.T) {
 		},
 		{
 			name: "有効なリクエスト",
-			req: &misskey.CreateNoteRequest{
+			params: &misskey.CreateNoteParams{
 				Text: "test note",
 				OriginalNote: &misskey.Note{
 					ID:         "original123",
@@ -93,7 +93,7 @@ func TestCreateNote(t *testing.T) {
 		// jscpd:ignore-start
 		{
 			name: "APIエラー応答",
-			req: &misskey.CreateNoteRequest{
+			params: &misskey.CreateNoteParams{
 				Text: "test note",
 				OriginalNote: &misskey.Note{
 					ID:         "original123",
@@ -114,7 +114,7 @@ func TestCreateNote(t *testing.T) {
 				StatusCode:   tt.statusCode,
 				ResponseBody: tt.responseBody,
 				TestFunc: func(bot *misskey.Bot) error {
-					return bot.CreateNote(context.Background(), tt.req)
+					return bot.CreateNote(context.Background(), tt.params)
 				},
 				ExpectError: tt.expectError,
 				TestName:    "CreateNote()",
@@ -174,17 +174,17 @@ func TestUploadFile(t *testing.T) {
 func TestProcessAmeshCommand(t *testing.T) {
 	tests := []struct {
 		name        string
-		req         *misskey.ProcessAmeshCommandRequest
+		params      *misskey.ProcessAmeshCommandParams
 		expectError error
 	}{
 		{
 			name:        "nilリクエスト",
-			req:         nil,
+			params:      nil,
 			expectError: lib.ErrParamsNil,
 		},
 		{
 			name: "nilノート",
-			req: &misskey.ProcessAmeshCommandRequest{
+			params: &misskey.ProcessAmeshCommandParams{
 				Note:          nil,
 				Place:         "東京",
 				YahooAPIToken: "YahooAPIToken",
@@ -193,7 +193,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 		},
 		{
 			name: "Yahoo APIトークンが設定されていない",
-			req: &misskey.ProcessAmeshCommandRequest{
+			params: &misskey.ProcessAmeshCommandParams{
 				Note: &misskey.Note{
 					ID:         "note123",
 					Visibility: "home",
@@ -210,7 +210,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 			runSimpleBotTest(t, &runSimpleBotTestParams{
 				StatusCode: http.StatusNoContent,
 				TestFunc: func(bot *misskey.Bot) error {
-					return bot.ProcessAmeshCommand(context.Background(), tt.req)
+					return bot.ProcessAmeshCommand(context.Background(), tt.params)
 				},
 				ExpectError: tt.expectError,
 				TestName:    "ProcessAmeshCommand()",

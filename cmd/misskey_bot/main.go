@@ -55,7 +55,7 @@ func main() {
 		ctx := context.Background()
 
 		// ameshコマンドを処理
-		if err := bot.ProcessAmeshCommand(ctx, &misskey.ProcessAmeshCommandRequest{
+		if err := bot.ProcessAmeshCommand(ctx, &misskey.ProcessAmeshCommandParams{
 			Note:          note,
 			Place:         parseResult.Place,
 			YahooAPIToken: yahooAPIToken,
@@ -63,7 +63,7 @@ func main() {
 			log.Printf("Error processing amesh command: %v", err)
 
 			// エラーメッセージを投稿
-			if replyErr := bot.CreateNote(ctx, &misskey.CreateNoteRequest{
+			if replyErr := bot.CreateNote(ctx, &misskey.CreateNoteParams{
 				Text:         "申し訳ないっぽ。ameshコマンドの処理中にエラーが発生したっぽ",
 				FileIDs:      nil,
 				OriginalNote: note,

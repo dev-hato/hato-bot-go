@@ -32,14 +32,14 @@ type Bot struct {
 }
 
 // CreateNote ノートを作成
-func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) (err error) {
-	if req == nil || req.OriginalNote == nil {
+func (bot *Bot) CreateNote(ctx context.Context, params *CreateNoteParams) (err error) {
+	if params == nil || params.OriginalNote == nil {
 		return lib.ErrParamsNil
 	}
 
 	// noteから必要な情報を取得
-	visibility := req.OriginalNote.Visibility
-	replyID := req.OriginalNote.ID
+	visibility := params.OriginalNote.Visibility
+	replyID := params.OriginalNote.ID
 
 	// 公開範囲がpublicならばhomeにする
 	if visibility == "public" {
@@ -47,7 +47,7 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) (err err
 	}
 
 	data := map[string]interface{}{
-		"text":       req.Text,
+		"text":       params.Text,
 		"visibility": visibility,
 	}
 
@@ -55,12 +55,12 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) (err err
 		data["replyId"] = replyID
 	}
 
-	if 0 < len(req.FileIDs) {
-		data["fileIds"] = req.FileIDs
+	if 0 < len(params.FileIDs) {
+		data["fileIds"] = params.FileIDs
 	}
 
 	// 元の投稿がCWされていた場合、それに合わせてCW投稿する
-	if req.OriginalNote.CW != nil {
+	if params.OriginalNote.CW != nil {
 		data["cw"] = "隠すっぽ！"
 	}
 
@@ -161,21 +161,21 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 }
 
 // ProcessAmeshCommand ameshコマンドを処理
-func (bot *Bot) ProcessAmeshCommand(ctx context.Context, req *ProcessAmeshCommandRequest) error {
-	if req == nil || req.Note == nil {
+func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCommandParams) error {
+	if params == nil || params.Note == nil {
 		return lib.ErrParamsNil
 	}
-	if req.YahooAPIToken == "" {
+	if params.YahooAPIToken == "" {
 		return ErrParamsEmptyString
 	}
 
 	// 処理中リアクションを追加
-	if err := bot.AddReaction(ctx, req.Note.ID, "👀"); err != nil {
+	if err := bot.AddReaction(ctx, params.Note.ID, "👀"); err != nil {
 		return errors.Wrap(err, "Failed to AddReaction")
 	}
 
 	// 位置を解析
-	location, err := amesh.ParseLocation(ctx, req.Place, req.YahooAPIToken)
+	location, err := amesh.ParseLocation(ctx, params.Place, params.YahooAPIToken)
 	if err != nil {
 		return errors.Wrap(err, "Failed to amesh.ParseLocation")
 	}
@@ -204,10 +204,10 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, req *ProcessAmeshComman
 		location.Lat,
 		location.Lng,
 	)
-	if err := bot.CreateNote(ctx, &CreateNoteRequest{
+	if err := bot.CreateNote(ctx, &CreateNoteParams{
 		Text:         text,
 		FileIDs:      []string{uploadedFile.ID},
-		OriginalNote: req.Note,
+		OriginalNote: params.Note,
 	}); err != nil {
 		return errors.Wrap(err, "Failed to CreateNote")
 	}

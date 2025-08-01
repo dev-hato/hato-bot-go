@@ -30,8 +30,8 @@ type Note struct {
 	} `json:"user"`
 }
 
-// CreateNoteRequest ノート作成のリクエスト構造体
-type CreateNoteRequest struct {
+// CreateNoteParams ノート作成のリクエスト構造体
+type CreateNoteParams struct {
 	Text         string   // ノートのテキスト
 	FileIDs      []string // 添付ファイルのID一覧
 	OriginalNote *Note    // 返信元のノート
@@ -44,13 +44,13 @@ type File struct {
 	URL  string `json:"url"`
 }
 
-// ParseResult ameshコマンドの解析結果を表す構造体
-type ParseResult struct {
+// ParseAmeshCommandResult ameshコマンドの解析結果を表す構造体
+type ParseAmeshCommandResult struct {
 	Place   string
 	IsAmesh bool
 }
 
-type ProcessAmeshCommandRequest struct {
+type ProcessAmeshCommandParams struct {
 	Note          *Note
 	Place         string
 	YahooAPIToken string
@@ -80,7 +80,7 @@ func NewBot(domain, token string) *Bot {
 }
 
 // ParseAmeshCommand ameshコマンドを解析
-func ParseAmeshCommand(text string) ParseResult {
+func ParseAmeshCommand(text string) ParseAmeshCommandResult {
 	// メンションを除去
 	text = strings.TrimSpace(text)
 
@@ -97,20 +97,20 @@ func ParseAmeshCommand(text string) ParseResult {
 	// ameshコマンドかチェック
 	if strings.HasPrefix(text, "amesh ") {
 		place := strings.TrimPrefix(text, "amesh ")
-		return ParseResult{
+		return ParseAmeshCommandResult{
 			Place:   strings.TrimSpace(place),
 			IsAmesh: true,
 		}
 	}
 
 	if text == "amesh" {
-		return ParseResult{
+		return ParseAmeshCommandResult{
 			Place:   "東京", // デフォルトの場所
 			IsAmesh: true,
 		}
 	}
 
-	return ParseResult{
+	return ParseAmeshCommandResult{
 		Place:   "",
 		IsAmesh: false,
 	}
