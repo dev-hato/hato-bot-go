@@ -291,10 +291,8 @@ func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data map[string
 		"i": bot.BotSetting.Token,
 	}
 
-	if data != nil {
-		for k, v := range data {
-			payload[k] = v
-		}
+	for k, v := range data {
+		payload[k] = v
 	}
 
 	jsonData, err := json.Marshal(payload)
