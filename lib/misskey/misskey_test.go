@@ -1,11 +1,12 @@
 package misskey_test
 
 import (
-	"hato-bot-go/lib/http"
-	"hato-bot-go/lib/misskey"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
+	"hato-bot-go/lib/http"
+	"hato-bot-go/lib/misskey"
 )
 
 func TestParseAmeshCommand(t *testing.T) {

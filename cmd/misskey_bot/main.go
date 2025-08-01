@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"hato-bot-go/lib/amesh"
-	"hato-bot-go/lib/misskey"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"hato-bot-go/lib/amesh"
+	"hato-bot-go/lib/misskey"
 )
 
 // main Misskeyボットとして実行
