@@ -112,7 +112,7 @@ type timeJSONElement struct {
 // CreateAmeshImage ameshレーダー画像を作成する
 func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImageRequest) (*image.RGBA, error) {
 	if req == nil {
-		return nil, errors.New("req cannot be nil")
+		return nil, lib.ErrParamsNil
 	}
 	// 最新のタイムスタンプを取得
 	timestamps := getLatestTimestamps(ctx, client)
@@ -232,11 +232,8 @@ func CreateImageReader(ctx context.Context, location *Location) (io.Reader, erro
 
 // ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
 func ParseLocationWithClient(ctx context.Context, req *ParseLocationRequest) (*Location, error) {
-	if req == nil {
-		return nil, errors.New("req cannot be nil")
-	}
-	if req.Client == nil {
-		return nil, errors.New("client cannot be nil")
+	if req == nil || req.Client == nil {
+		return nil, lib.ErrParamsNil
 	}
 	// 座標が直接提供されているかチェック
 	parts := strings.Fields(req.GeocodeRequest.Place)

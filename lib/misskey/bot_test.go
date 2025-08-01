@@ -167,6 +167,11 @@ func TestProcessAmeshCommand(t *testing.T) {
 		expectError error
 	}{
 		{
+			name:        "nilリクエスト",
+			req:         nil,
+			expectError: lib.ErrParamsNil,
+		},
+		{
 			name: "nilノート",
 			req: &misskey.ProcessAmeshCommandRequest{
 				Note:          nil,
