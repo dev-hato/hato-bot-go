@@ -76,7 +76,6 @@ func main() {
 		}
 
 		fmt.Printf("Amesh image saved to %s\n", filePath)
-		break
 	default:
 		panic(errors.Errorf("Unknown command: %s", command))
 	}

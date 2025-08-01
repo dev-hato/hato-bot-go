@@ -43,8 +43,6 @@ func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
 		return mockResponse(200, f.Config.LightningResponse), nil
 	case strings.Contains(url, ".png"):
 		return createPNGResponse(f.Config.DummyTileBytes), nil
-	case strings.Contains(url, ".png"):
-		return createPNGResponse(f.Config.DummyTileBytes), nil
 	default:
 		return mockResponse(404, "Not Found"), nil
 	}
@@ -148,6 +146,7 @@ func TestGeocodeWithClient(t *testing.T) {
 		},
 	}
 
+	// jscpd:ignore-start
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
@@ -165,6 +164,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			}
 		})
 	}
+	// jscpd:ignore-end
 }
 
 // TestCreateAmeshImageWithClient CreateAmeshImageWithClient関数をテストする
@@ -538,6 +538,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		},
 	}
 
+	// jscpd:ignore-start
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
@@ -559,6 +560,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			}
 		})
 	}
+	// jscpd:ignore-end
 }
 
 // TestGenerateFileName GenerateFileName関数をテストする

@@ -117,7 +117,7 @@ func ParseAmeshCommand(text string) ParseResult {
 // checkStatusAndDecodeJSON ステータスコードをチェックしJSONをデコードする共通処理
 func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) (err error) {
 	if resp.StatusCode != 200 {
-		if err := resp.Body.Close(); err != nil {
+		if err = resp.Body.Close(); err != nil {
 			return errors.Wrap(err, "Failed to Close")
 		}
 		return fmt.Errorf("API returned status %d", resp.StatusCode)
@@ -129,7 +129,7 @@ func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) (err erro
 		}
 	}(resp.Body)
 
-	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(target); err != nil {
 		return errors.Wrap(err, "Failed to json.NewDecoder")
 	}
 
