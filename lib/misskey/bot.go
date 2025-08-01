@@ -32,7 +32,7 @@ type Bot struct {
 }
 
 // CreateNote ノートを作成
-func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) error {
+func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) (err error) {
 	if req == nil || req.OriginalNote == nil {
 		return lib.ErrParamsNil
 	}
@@ -86,7 +86,7 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) error {
 }
 
 // UploadFile ファイルをアップロード
-func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName string) (*File, error) {
+func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName string) (file *File, err error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 

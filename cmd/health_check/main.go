@@ -24,7 +24,7 @@ func main() {
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {
-			err = closeErr
+			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
