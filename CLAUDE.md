@@ -172,7 +172,7 @@ go test ./...
 # 3. 最小限のコードで通す
 # 4. リファクタリング（フォーマット含む）
 go mod tidy
-gci write --skip-generated -s standard -s "prefix(hato-bot-go)" -s default .
+gci write -s default -s standard -s "prefix(hato-bot-go)" .
 
 # 5. すべてのテストが通ることを確認
 go test ./...
