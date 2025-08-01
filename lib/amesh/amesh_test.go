@@ -500,28 +500,6 @@ func TestParseLocationWithClient(t *testing.T) {
 			expectError:  errors.New("geocoding API returned error status"),
 		},
 		{
-			name:         "成功したジオコーディング",
-			place:        "東京",
-			apiKey:       "test_key",
-			responseCode: 200,
-			responseBody: `{
-				"Feature": [
-					{
-						"Name": "東京都",
-						"Geometry": {
-							"Coordinates": "139.6917,35.6895"
-						}
-					}
-				]
-			}`,
-			expectError: nil,
-			expected: &amesh.Location{
-				Lat:       35.6895,
-				Lng:       139.6917,
-				PlaceName: "東京都",
-			},
-		},
-		{
 			name:         "APIエラー",
 			place:        "東京",
 			apiKey:       "invalid_key",

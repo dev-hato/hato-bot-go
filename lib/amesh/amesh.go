@@ -257,8 +257,8 @@ func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeReq
 	}
 
 	if resp.StatusCode != 200 {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			return nil, errors.Wrap(closeErr, "Failed to Close")
+		if err := handleHTTPError(resp); err != nil {
+			return nil, errors.Wrap(err, "Failed to handleHTTPError")
 		}
 		return nil, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
 	}
@@ -356,6 +356,14 @@ func GenerateFileName(location *Location) string {
 		strings.ReplaceAll(location.PlaceName, " ", "_"),
 		time.Now().Unix(),
 	)
+}
+
+// handleHTTPError HTTPエラーレスポンスの共通処理を行う
+func handleHTTPError(resp *http.Response) error {
+	if err := resp.Body.Close(); err != nil {
+		return errors.Wrap(err, "Failed to Close")
+	}
+	return nil
 }
 
 // deg2rad 度数をラジアンに変換する
@@ -552,8 +560,8 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 	}
 
 	if resp.StatusCode != 200 {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			return nil, errors.Wrap(closeErr, "Failed to Close")
+		if err := handleHTTPError(resp); err != nil {
+			return nil, errors.Wrap(err, "Failed to handleHTTPError")
 		}
 		return &httpRequestResult{Body: nil, IsEmpty: true}, nil
 	}
