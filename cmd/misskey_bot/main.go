@@ -91,7 +91,7 @@ func statusHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(response)
 	if err != nil {
 		log.Printf("Failed to Encode: %v", err)

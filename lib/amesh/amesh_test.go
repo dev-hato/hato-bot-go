@@ -34,18 +34,18 @@ func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
 	switch {
 	case strings.Contains(url, "targetTimes"):
 		if f.Config.TimestampsResponse == "" {
-			return mockResponse(500, "Internal Server Error"), nil
+			return mockResponse(http.StatusInternalServerError, "Internal Server Error"), nil
 		}
-		return mockResponse(200, f.Config.TimestampsResponse), nil
+		return mockResponse(http.StatusOK, f.Config.TimestampsResponse), nil
 	case strings.Contains(url, "liden/data.geojson"):
 		if f.Config.LightningResponse == "" {
-			return mockResponse(404, "Not Found"), nil
+			return mockResponse(http.StatusNotFound, "Not Found"), nil
 		}
-		return mockResponse(200, f.Config.LightningResponse), nil
+		return mockResponse(http.StatusOK, f.Config.LightningResponse), nil
 	case strings.Contains(url, ".png"):
 		return createPNGResponse(f.Config.DummyTileBytes), nil
 	default:
-		return mockResponse(404, "Not Found"), nil
+		return mockResponse(http.StatusNotFound, "Not Found"), nil
 	}
 }
 
@@ -64,7 +64,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			name:         "成功したジオコーディング",
 			place:        "東京",
 			apiKey:       "test_key",
-			responseCode: 200,
+			responseCode: http.StatusOK,
 			responseBody: `{
 				"Feature": [
 					{
@@ -86,7 +86,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			name:         "空の場所は東京がデフォルト",
 			place:        "",
 			apiKey:       "test_key",
-			responseCode: 200,
+			responseCode: http.StatusOK,
 			responseBody: `{
 				"Feature": [
 					{
@@ -108,7 +108,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			name:         "APIがエラーステータスを返す",
 			place:        "東京",
 			apiKey:       "invalid_key",
-			responseCode: 400,
+			responseCode: http.StatusBadRequest,
 			responseBody: `{"Error": "Invalid API key"}`,
 			expectError:  libHttp.ErrHTTPRequestError,
 		},
@@ -116,7 +116,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			name:         "結果が見つからない",
 			place:        "nonexistent place",
 			apiKey:       "test_key",
-			responseCode: 200,
+			responseCode: http.StatusOK,
 			responseBody: `{"Feature": []}`,
 			expectError:  amesh.ErrNoResultsFound,
 		},
@@ -124,7 +124,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			name:         "無効な座標フォーマット",
 			place:        "東京",
 			apiKey:       "test_key",
-			responseCode: 200,
+			responseCode: http.StatusOK,
 			responseBody: `{
 				"Feature": [
 					{
@@ -141,7 +141,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			name:         "不正なJSON",
 			place:        "東京",
 			apiKey:       "test_key",
-			responseCode: 200,
+			responseCode: http.StatusOK,
 			responseBody: `{"Feature": [invalid json}`,
 			expectError:  amesh.ErrJSONUnmarshal,
 		},
@@ -495,7 +495,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			name:         "無効な座標文字列",
 			place:        "invalid coordinates",
 			apiKey:       "test_key",
-			responseCode: 400,
+			responseCode: http.StatusBadRequest,
 			responseBody: `{"Error": "Invalid place"}`,
 			expectError:  libHttp.ErrHTTPRequestError,
 		},
@@ -503,7 +503,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			name:         "APIエラー",
 			place:        "東京",
 			apiKey:       "invalid_key",
-			responseCode: 400,
+			responseCode: http.StatusBadRequest,
 			responseBody: `{"Error": "Invalid API key"}`,
 			expectError:  libHttp.ErrHTTPRequestError,
 		},
@@ -511,7 +511,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			name:         "結果が見つからない",
 			place:        "nonexistent place",
 			apiKey:       "test_key",
-			responseCode: 200,
+			responseCode: http.StatusOK,
 			responseBody: `{"Feature": []}`,
 			expectError:  errors.New("no results found for place"),
 		},
@@ -652,7 +652,7 @@ func mockResponse(statusCode int, body string) *http.Response {
 // createPNGResponse PNGファイル用のHTTPレスポンスを作成
 func createPNGResponse(dummyTileBytes []byte) *http.Response {
 	return &http.Response{
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 		Body:       io.NopCloser(bytes.NewReader(dummyTileBytes)),
 		Header:     make(http.Header),
 	}

@@ -2,10 +2,11 @@ package misskey_test
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 
-	"hato-bot-go/lib/http"
+	libHttp "hato-bot-go/lib/http"
 	"hato-bot-go/lib/misskey"
 )
 
@@ -21,14 +22,14 @@ func TestAddReaction(t *testing.T) {
 			name:        "正常なリアクション追加",
 			noteID:      "note123",
 			reaction:    "👍",
-			statusCode:  204,
+			statusCode:  http.StatusNoContent,
 			expectError: false,
 		},
 		{
 			name:        "APIエラー応答",
 			noteID:      "note456",
 			reaction:    "❤️",
-			statusCode:  400,
+			statusCode:  http.StatusBadRequest,
 			expectError: true,
 		},
 	}
@@ -54,7 +55,7 @@ func TestCreateNote(t *testing.T) {
 		{
 			name:         "nilリクエスト",
 			req:          nil,
-			statusCode:   200,
+			statusCode:   http.StatusOK,
 			responseBody: `{"createdNote":{"id":"created123"}}`,
 			expectError:  true,
 		},
@@ -64,7 +65,7 @@ func TestCreateNote(t *testing.T) {
 				Text:         "test",
 				OriginalNote: nil,
 			},
-			statusCode:   200,
+			statusCode:   http.StatusOK,
 			responseBody: `{"createdNote":{"id":"created123"}}`,
 			expectError:  true,
 		},
@@ -77,7 +78,7 @@ func TestCreateNote(t *testing.T) {
 					Visibility: "home",
 				},
 			},
-			statusCode:   200,
+			statusCode:   http.StatusOK,
 			responseBody: `{"createdNote":{"id":"created123"}}`,
 			expectError:  false,
 		},
@@ -90,7 +91,7 @@ func TestCreateNote(t *testing.T) {
 					Visibility: "home",
 				},
 			},
-			statusCode:   400,
+			statusCode:   http.StatusBadRequest,
 			responseBody: `{"error":"bad request"}`,
 			expectError:  true,
 		},
@@ -119,7 +120,7 @@ func TestUploadFileFromReader(t *testing.T) {
 			name:         "成功したファイルアップロード",
 			fileName:     "test.txt",
 			readerData:   "test file content",
-			statusCode:   200,
+			statusCode:   http.StatusOK,
 			responseBody: `{"id":"file123","name":"test.txt","url":"https://example.com/file123"}`,
 			expectError:  false,
 		},
@@ -127,7 +128,7 @@ func TestUploadFileFromReader(t *testing.T) {
 			name:         "APIエラー応答",
 			fileName:     "test.txt",
 			readerData:   "test content",
-			statusCode:   400,
+			statusCode:   http.StatusBadRequest,
 			responseBody: `{"error":"bad request"}`,
 			expectError:  true,
 		},
@@ -137,7 +138,7 @@ func TestUploadFileFromReader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			t.Helper()
-			mockClient := http.NewMockHTTPClient(tt.statusCode, tt.responseBody)
+			mockClient := libHttp.NewMockHTTPClient(tt.statusCode, tt.responseBody)
 			bot := misskey.NewBotWithClient(&misskey.BotSetting{
 				Domain: "example.com",
 				Token:  "token",
@@ -179,7 +180,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			runSimpleBotTest(t, 204, func(bot *misskey.Bot) error {
+			runSimpleBotTest(t, http.StatusNoContent, func(bot *misskey.Bot) error {
 				return bot.ProcessAmeshCommand(context.Background(), tt.note, tt.place)
 			}, tt.expectError, "ProcessAmeshCommand()")
 		})
