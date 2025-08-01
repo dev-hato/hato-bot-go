@@ -122,7 +122,7 @@ func CreateAmeshImageWithClient(ctx context.Context, client *http.Client, req *C
 	lightningData, err := getLightningDataWithClient(ctx, client, lidenTimestamp)
 	if err != nil {
 		log.Printf("落雷データの取得に失敗: %v", err)
-		lightningData = []lightningPoint{}
+		lightningData = nil
 	}
 
 	// ピクセル座標を計算
@@ -235,9 +235,9 @@ func CreateImageReader(ctx context.Context, location *Location) (io.Reader, erro
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
-func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeRequest) (Location, error) {
+func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeRequest) (*Location, error) {
 	if req == nil {
-		return Location{}, errors.New("req cannot be nil")
+		return nil, errors.New("req cannot be nil")
 	}
 
 	place := req.Place
@@ -249,23 +249,23 @@ func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeReq
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
-		return Location{}, errors.Wrap(err, "Failed to http.NewRequestWithContext")
+		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return Location{}, errors.Wrap(err, "Failed to Do")
+		return nil, errors.Wrap(err, "Failed to Do")
 	}
 
 	if resp.StatusCode != 200 {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			return Location{}, errors.Wrap(closeErr, "Failed to Close")
+			return nil, errors.Wrap(closeErr, "Failed to Close")
 		}
-		return Location{}, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
+		return nil, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
 	}
 
 	body, err := handleHTTPResponse(resp)
 	if err != nil {
-		return Location{}, errors.Wrap(err, "Failed to handleHTTPResponse")
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
 	}
 
 	var result struct {
@@ -278,30 +278,30 @@ func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeReq
 	}
 
 	if unmarshalErr := json.Unmarshal(body, &result); unmarshalErr != nil {
-		return Location{}, errors.Wrap(ErrJSONUnmarshal, unmarshalErr.Error())
+		return nil, errors.Wrap(ErrJSONUnmarshal, unmarshalErr.Error())
 	}
 
 	if len(result.Feature) == 0 {
-		return Location{}, errors.Wrapf(ErrNoResultsFound, "%s", place)
+		return nil, errors.Wrapf(ErrNoResultsFound, "%s", place)
 	}
 
 	feature := result.Feature[0]
 	coords := strings.Split(feature.Geometry.Coordinates, ",")
 	if len(coords) < 2 {
-		return Location{}, ErrInvalidCoordinatesFormat
+		return nil, ErrInvalidCoordinatesFormat
 	}
 
 	lng, err := strconv.ParseFloat(coords[0], 64)
 	if err != nil {
-		return Location{}, errors.Wrap(err, "Failed to strconv.ParseFloat")
+		return nil, errors.Wrap(err, "Failed to strconv.ParseFloat")
 	}
 
 	lat, err := strconv.ParseFloat(coords[1], 64)
 	if err != nil {
-		return Location{}, errors.Wrap(err, "Failed to strconv.ParseFloat")
+		return nil, errors.Wrap(err, "Failed to strconv.ParseFloat")
 	}
 
-	return Location{
+	return &Location{
 		Lat:       lat,
 		Lng:       lng,
 		PlaceName: feature.Name,
@@ -335,7 +335,7 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationRequest) (*L
 	if geocodeErr != nil {
 		return nil, errors.Wrap(geocodeErr, "Failed to GeocodeWithClient")
 	}
-	return &result, nil
+	return result, nil
 }
 
 // ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
@@ -575,7 +575,7 @@ func getLightningDataWithClient(ctx context.Context, client *http.Client, timest
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
 	}
 	if result.IsEmpty {
-		return []lightningPoint{}, nil
+		return nil, nil
 	}
 
 	var geoJSON struct {

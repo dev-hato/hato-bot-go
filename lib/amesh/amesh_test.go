@@ -58,7 +58,7 @@ func TestGeocodeWithClient(t *testing.T) {
 		responseCode int
 		responseBody string
 		expectError  error
-		expected     amesh.Location
+		expected     *amesh.Location
 	}{
 		{
 			name:         "成功したジオコーディング",
@@ -76,7 +76,7 @@ func TestGeocodeWithClient(t *testing.T) {
 				]
 			}`,
 			expectError: nil,
-			expected: amesh.Location{
+			expected: &amesh.Location{
 				Lat:       35.6895,
 				Lng:       139.6917,
 				PlaceName: "東京都",
@@ -98,7 +98,7 @@ func TestGeocodeWithClient(t *testing.T) {
 				]
 			}`,
 			expectError: nil,
-			expected: amesh.Location{
+			expected: &amesh.Location{
 				Lat:       35.6895,
 				Lng:       139.6917,
 				PlaceName: "東京都",
