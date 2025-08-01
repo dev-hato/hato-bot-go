@@ -153,7 +153,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			t.Parallel()
 			mockClient := libHttp.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
-			result, err := amesh.GeocodeWithClient(mockClient, &amesh.GeocodeRequest{
+			result, err := amesh.GeocodeWithClient(context.Background(), mockClient, &amesh.GeocodeRequest{
 				Place:  tt.place,
 				APIKey: tt.apiKey,
 			})
@@ -545,7 +545,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			t.Parallel()
 			mockClient := libHttp.NewMockHTTPClient(tt.responseCode, tt.responseBody)
 
-			result, err := amesh.ParseLocationWithClient(&amesh.ParseLocationRequest{
+			result, err := amesh.ParseLocationWithClient(context.Background(), &amesh.ParseLocationRequest{
 				Client: mockClient,
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  tt.place,

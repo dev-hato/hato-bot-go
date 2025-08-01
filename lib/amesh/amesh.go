@@ -113,13 +113,13 @@ func CreateAmeshImageWithClient(ctx context.Context, client *http.Client, req *C
 		return nil, errors.New("req cannot be nil")
 	}
 	// 最新のタイムスタンプを取得
-	timestamps := getLatestTimestampsWithClient(client)
+	timestamps := getLatestTimestampsWithClient(ctx, client)
 
 	hrpnsTimestamp := timestamps["hrpns_nd"]
 	lidenTimestamp := timestamps["liden"]
 
 	// 落雷データを取得
-	lightningData, err := getLightningDataWithClient(client, lidenTimestamp)
+	lightningData, err := getLightningDataWithClient(ctx, client, lidenTimestamp)
 	if err != nil {
 		log.Printf("落雷データの取得に失敗: %v", err)
 		lightningData = []lightningPoint{}
@@ -235,7 +235,7 @@ func CreateImageReader(ctx context.Context, location *Location) (io.Reader, erro
 }
 
 // GeocodeWithClient HTTPクライアントを指定して地名を座標に変換する
-func GeocodeWithClient(client *http.Client, req *GeocodeRequest) (Location, error) {
+func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeRequest) (Location, error) {
 	if req == nil {
 		return Location{}, errors.New("req cannot be nil")
 	}
@@ -247,9 +247,13 @@ func GeocodeWithClient(client *http.Client, req *GeocodeRequest) (Location, erro
 
 	requestURL := fmt.Sprintf("https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json", req.APIKey, url.QueryEscape(place))
 
-	resp, err := client.Get(requestURL)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
-		return Location{}, errors.Wrap(err, "Failed to Get")
+		return Location{}, errors.Wrap(err, "Failed to http.NewRequestWithContext")
+	}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return Location{}, errors.Wrap(err, "Failed to Do")
 	}
 
 	if resp.StatusCode != 200 {
@@ -305,7 +309,7 @@ func GeocodeWithClient(client *http.Client, req *GeocodeRequest) (Location, erro
 }
 
 // ParseLocationWithClient HTTPクライアントを指定して地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocationWithClient(req *ParseLocationRequest) (*Location, error) {
+func ParseLocationWithClient(ctx context.Context, req *ParseLocationRequest) (*Location, error) {
 	if req == nil {
 		return nil, errors.New("req cannot be nil")
 	}
@@ -327,7 +331,7 @@ func ParseLocationWithClient(req *ParseLocationRequest) (*Location, error) {
 	}
 
 	// 地名をジオコーディング
-	result, geocodeErr := GeocodeWithClient(req.Client, &req.GeocodeRequest)
+	result, geocodeErr := GeocodeWithClient(ctx, req.Client, &req.GeocodeRequest)
 	if geocodeErr != nil {
 		return nil, errors.Wrap(geocodeErr, "Failed to GeocodeWithClient")
 	}
@@ -335,8 +339,8 @@ func ParseLocationWithClient(req *ParseLocationRequest) (*Location, error) {
 }
 
 // ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocation(place, apiKey string) (*Location, error) {
-	return ParseLocationWithClient(&ParseLocationRequest{
+func ParseLocation(ctx context.Context, place, apiKey string) (*Location, error) {
+	return ParseLocationWithClient(ctx, &ParseLocationRequest{
 		Client: http.DefaultClient,
 		GeocodeRequest: GeocodeRequest{
 			Place:  place,
@@ -537,10 +541,14 @@ func downloadTileWithClient(ctx context.Context, client *http.Client, tileURL st
 }
 
 // makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
-func makeHTTPRequest(client *http.Client, url string) (*httpRequestResult, error) {
-	resp, err := client.Get(url)
+func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*httpRequestResult, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Get")
+		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to Do")
 	}
 
 	if resp.StatusCode != 200 {
@@ -559,10 +567,10 @@ func makeHTTPRequest(client *http.Client, url string) (*httpRequestResult, error
 }
 
 // getLightningDataWithClient HTTPクライアントを指定して落雷データを取得する
-func getLightningDataWithClient(client *http.Client, timestamp string) ([]lightningPoint, error) {
+func getLightningDataWithClient(ctx context.Context, client *http.Client, timestamp string) ([]lightningPoint, error) {
 	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
 
-	result, err := makeHTTPRequest(client, apiURL)
+	result, err := makeHTTPRequest(ctx, client, apiURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
 	}
@@ -600,8 +608,8 @@ func getLightningDataWithClient(client *http.Client, timestamp string) ([]lightn
 }
 
 // fetchTimeDataFromURLWithClient HTTPクライアントを指定してタイムデータを取得する
-func fetchTimeDataFromURLWithClient(client *http.Client, apiURL string) ([]timeJSONElement, error) {
-	body, err := makeHTTPRequest(client, apiURL)
+func fetchTimeDataFromURLWithClient(ctx context.Context, client *http.Client, apiURL string) ([]timeJSONElement, error) {
+	body, err := makeHTTPRequest(ctx, client, apiURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to makeHTTPRequest")
 	}
@@ -618,7 +626,7 @@ func fetchTimeDataFromURLWithClient(client *http.Client, apiURL string) ([]timeJ
 }
 
 // getLatestTimestampsWithClient HTTPクライアントを指定して最新のタイムスタンプを取得する
-func getLatestTimestampsWithClient(client *http.Client) map[string]string {
+func getLatestTimestampsWithClient(ctx context.Context, client *http.Client) map[string]string {
 	urls := []string{
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json",
 		"https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N2.json",
@@ -628,7 +636,7 @@ func getLatestTimestampsWithClient(client *http.Client) map[string]string {
 	var allTimeData []timeJSONElement
 
 	for _, apiURL := range urls {
-		timeData, err := fetchTimeDataFromURLWithClient(client, apiURL)
+		timeData, err := fetchTimeDataFromURLWithClient(ctx, client, apiURL)
 		if err != nil {
 			log.Printf("Failed to fetchTimeDataFromURLWithClient: %v", err)
 			continue

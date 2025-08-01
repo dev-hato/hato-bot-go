@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -10,9 +11,13 @@ import (
 
 func main() {
 	// localhost:8080/statusにHTTPリクエストを送信
-	resp, err := http.Get("http://localhost:8080/status")
+	req, err := http.NewRequestWithContext(context.Background(), "GET", "http://localhost:8080/status", nil)
 	if err != nil {
-		panic(errors.Wrap(err, "Failed to http.Get"))
+		panic(errors.Wrap(err, "Failed to http.NewRequestWithContext"))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(errors.Wrap(err, "Failed to Do"))
 	}
 	defer func(Body io.ReadCloser) {
 		if err := Body.Close(); err != nil {

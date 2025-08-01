@@ -165,7 +165,7 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, note *Note, place strin
 	}
 
 	// 位置を解析
-	location, err := amesh.ParseLocation(place, apiKey)
+	location, err := amesh.ParseLocation(ctx, place, apiKey)
 	if err != nil {
 		return errors.Wrap(err, "Failed to amesh.ParseLocation")
 	}

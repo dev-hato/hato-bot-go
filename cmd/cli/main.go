@@ -43,8 +43,10 @@ func main() {
 			panic(errors.Errorf("Please set YAHOO_API_TOKEN environment variable"))
 		}
 
+		ctx := context.Background()
+
 		// 座標が直接提供された場合の解析
-		location, err := amesh.ParseLocation(place, apiKey)
+		location, err := amesh.ParseLocation(ctx, place, apiKey)
 		if err != nil {
 			panic(errors.Wrap(err, "Failed to amesh.ParseLocation"))
 		}
@@ -52,7 +54,7 @@ func main() {
 		fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 		// amesh画像をメモリ上に作成
-		imageReader, err := amesh.CreateImageReader(context.Background(), location)
+		imageReader, err := amesh.CreateImageReader(ctx, location)
 		if err != nil {
 			panic(errors.Wrap(err, "Failed to amesh.CreateImageReader"))
 		}
