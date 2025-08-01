@@ -21,6 +21,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"golang.org/x/exp/constraints"
 
+	"hato-bot-go/lib"
 	libHttp "hato-bot-go/lib/http"
 )
 
@@ -199,14 +200,8 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImage
 
 // CreateImageReaderWithClient HTTPクライアントを指定してamesh画像をメモリ上に作成してio.Readerを返す
 func CreateImageReaderWithClient(ctx context.Context, req *CreateImageReaderRequest) (io.Reader, error) {
-	if req == nil {
-		return nil, errors.New("req cannot be nil")
-	}
-	if req.Client == nil {
-		return nil, errors.New("client cannot be nil")
-	}
-	if req.Location == nil {
-		return nil, errors.New("location cannot be nil")
+	if req == nil || req.Client == nil || req.Location == nil {
+		return nil, lib.ErrParamsNil
 	}
 	img, err := CreateAmeshImage(ctx, req.Client, &CreateImageRequest{
 		Lat:         req.Location.Lat,

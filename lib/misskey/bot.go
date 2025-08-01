@@ -9,14 +9,19 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gorilla/websocket"
 
+	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
 	libHttp "hato-bot-go/lib/http"
+)
+
+// エラー定数
+var (
+	ErrParamsEmptyString = errors.New("params cannot be empty string")
 )
 
 // Bot Misskeyボットクライアント
@@ -28,11 +33,8 @@ type Bot struct {
 
 // CreateNote ノートを作成
 func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) error {
-	if req == nil {
-		return errors.New("req cannot be nil")
-	}
-	if req.OriginalNote == nil {
-		return errors.New("originalNote cannot be nil")
+	if req == nil || req.OriginalNote == nil {
+		return lib.ErrParamsNil
 	}
 
 	// noteから必要な情報を取得
@@ -139,24 +141,21 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 }
 
 // ProcessAmeshCommand ameshコマンドを処理
-func (bot *Bot) ProcessAmeshCommand(ctx context.Context, note *Note, place string) error {
-	if note == nil {
-		return errors.New("note cannot be nil")
+func (bot *Bot) ProcessAmeshCommand(ctx context.Context, req *ProcessAmeshCommandRequest) error {
+	if req == nil || req.Note == nil {
+		return lib.ErrParamsNil
+	}
+	if req.YahooAPIToken == "" {
+		return ErrParamsEmptyString
 	}
 
 	// 処理中リアクションを追加
-	if err := bot.AddReaction(ctx, note.ID, "👀"); err != nil {
+	if err := bot.AddReaction(ctx, req.Note.ID, "👀"); err != nil {
 		return errors.Wrap(err, "Failed to AddReaction")
 	}
 
-	// Yahoo APIキーを取得
-	apiKey := os.Getenv("YAHOO_API_TOKEN")
-	if apiKey == "" {
-		return errors.New("YAHOO_API_TOKEN environment variable not set")
-	}
-
 	// 位置を解析
-	location, err := amesh.ParseLocation(ctx, place, apiKey)
+	location, err := amesh.ParseLocation(ctx, req.Place, req.YahooAPIToken)
 	if err != nil {
 		return errors.Wrap(err, "Failed to amesh.ParseLocation")
 	}
@@ -188,7 +187,7 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, note *Note, place strin
 	if err := bot.CreateNote(ctx, &CreateNoteRequest{
 		Text:         text,
 		FileIDs:      []string{uploadedFile.ID},
-		OriginalNote: note,
+		OriginalNote: req.Note,
 	}); err != nil {
 		return errors.Wrap(err, "Failed to CreateNote")
 	}

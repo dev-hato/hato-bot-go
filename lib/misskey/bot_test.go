@@ -6,6 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cockroachdb/errors"
+
+	"hato-bot-go/lib"
 	libHttp "hato-bot-go/lib/http"
 	"hato-bot-go/lib/misskey"
 )
@@ -16,21 +19,21 @@ func TestAddReaction(t *testing.T) {
 		noteID      string
 		reaction    string
 		statusCode  int
-		expectError bool
+		expectError error
 	}{
 		{
 			name:        "正常なリアクション追加",
 			noteID:      "note123",
 			reaction:    "👍",
 			statusCode:  http.StatusNoContent,
-			expectError: false,
+			expectError: nil,
 		},
 		{
 			name:        "APIエラー応答",
 			noteID:      "note456",
 			reaction:    "❤️",
 			statusCode:  http.StatusBadRequest,
-			expectError: true,
+			expectError: libHttp.ErrHTTPRequestError,
 		},
 	}
 
@@ -50,14 +53,14 @@ func TestCreateNote(t *testing.T) {
 		req          *misskey.CreateNoteRequest
 		statusCode   int
 		responseBody string
-		expectError  bool
+		expectError  error
 	}{
 		{
 			name:         "nilリクエスト",
 			req:          nil,
 			statusCode:   http.StatusOK,
 			responseBody: `{"createdNote":{"id":"created123"}}`,
-			expectError:  true,
+			expectError:  lib.ErrParamsNil,
 		},
 		{
 			name: "nil OriginalNote",
@@ -67,7 +70,7 @@ func TestCreateNote(t *testing.T) {
 			},
 			statusCode:   http.StatusOK,
 			responseBody: `{"createdNote":{"id":"created123"}}`,
-			expectError:  true,
+			expectError:  lib.ErrParamsNil,
 		},
 		{
 			name: "有効なリクエスト",
@@ -80,7 +83,7 @@ func TestCreateNote(t *testing.T) {
 			},
 			statusCode:   http.StatusOK,
 			responseBody: `{"createdNote":{"id":"created123"}}`,
-			expectError:  false,
+			expectError:  nil,
 		},
 		{
 			name: "APIエラー応答",
@@ -93,7 +96,7 @@ func TestCreateNote(t *testing.T) {
 			},
 			statusCode:   http.StatusBadRequest,
 			responseBody: `{"error":"bad request"}`,
-			expectError:  true,
+			expectError:  libHttp.ErrHTTPRequestError,
 		},
 	}
 
@@ -114,7 +117,7 @@ func TestUploadFile(t *testing.T) {
 		readerData   string
 		statusCode   int
 		responseBody string
-		expectError  bool
+		expectError  error
 	}{
 		{
 			name:         "成功したファイルアップロード",
@@ -122,7 +125,7 @@ func TestUploadFile(t *testing.T) {
 			readerData:   "test file content",
 			statusCode:   http.StatusOK,
 			responseBody: `{"id":"file123","name":"test.txt","url":"https://example.com/file123"}`,
-			expectError:  false,
+			expectError:  nil,
 		},
 		{
 			name:         "APIエラー応答",
@@ -130,7 +133,7 @@ func TestUploadFile(t *testing.T) {
 			readerData:   "test content",
 			statusCode:   http.StatusBadRequest,
 			responseBody: `{"error":"bad request"}`,
-			expectError:  true,
+			expectError:  libHttp.ErrHTTPRequestError,
 		},
 	}
 
@@ -146,8 +149,8 @@ func TestUploadFile(t *testing.T) {
 			})
 
 			reader := strings.NewReader(tt.readerData)
-			if _, err := bot.UploadFile(context.Background(), reader, tt.fileName); (err != nil) != tt.expectError {
-				t.Errorf("UploadFile() error = %v, expectError %v", err, tt.expectError)
+			if _, err := bot.UploadFile(context.Background(), reader, tt.fileName); !errors.Is(err, tt.expectError) {
+				t.Errorf("UploadFile() error = %v, expectError = %v", err, tt.expectError)
 			}
 		})
 	}
@@ -156,24 +159,28 @@ func TestUploadFile(t *testing.T) {
 func TestProcessAmeshCommand(t *testing.T) {
 	tests := []struct {
 		name        string
-		note        *misskey.Note
-		place       string
-		expectError bool
+		req         *misskey.ProcessAmeshCommandRequest
+		expectError error
 	}{
 		{
-			name:        "nilノート",
-			note:        nil,
-			place:       "東京",
-			expectError: true,
+			name: "nilノート",
+			req: &misskey.ProcessAmeshCommandRequest{
+				Note:          nil,
+				Place:         "東京",
+				YahooAPIToken: "YahooAPIToken",
+			},
+			expectError: lib.ErrParamsNil,
 		},
 		{
 			name: "Yahoo APIトークンが設定されていない",
-			note: &misskey.Note{
-				ID:         "note123",
-				Visibility: "home",
+			req: &misskey.ProcessAmeshCommandRequest{
+				Note: &misskey.Note{
+					ID:         "note123",
+					Visibility: "home",
+				},
+				Place: "東京",
 			},
-			place:       "東京",
-			expectError: true, // Yahoo APIトークンが設定されていないためエラーが発生する
+			expectError: misskey.ErrParamsEmptyString, // Yahoo APIトークンが設定されていないためエラーが発生する
 		},
 	}
 
@@ -181,7 +188,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			runSimpleBotTest(t, http.StatusNoContent, func(bot *misskey.Bot) error {
-				return bot.ProcessAmeshCommand(context.Background(), tt.note, tt.place)
+				return bot.ProcessAmeshCommand(context.Background(), tt.req)
 			}, tt.expectError, "ProcessAmeshCommand()")
 		})
 	}

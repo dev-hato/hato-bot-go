@@ -14,6 +14,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/google/go-cmp/cmp"
 
+	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
 	libHttp "hato-bot-go/lib/http"
 )
@@ -252,36 +253,42 @@ func TestCreateAmeshImage(t *testing.T) {
 
 // TestCreateImageReaderWithClient CreateImageReaderWithClient関数をテストする
 func TestCreateImageReaderWithClient(t *testing.T) {
+	dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := []struct {
-		name               string
-		request            *amesh.CreateImageReaderRequest
-		timestampsResponse string
-		lightningResponse  string
-		expectError        bool
+		name        string
+		request     *amesh.CreateImageReaderRequest
+		expectError error
 	}{
 		{
 			name: "成功したio.Reader作成",
 			request: &amesh.CreateImageReaderRequest{
-				Location: &amesh.Location{
-					Lat:       35.6895,
-					Lng:       139.6917,
-					PlaceName: "東京",
-				},
-			},
-			timestampsResponse: `[
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: `[
 				{
 					"basetime": "20240101120000",
 					"validtime": "20240101120000", 
 					"elements": ["hrpns_nd", "liden"]
 				}
 			]`,
-			lightningResponse: `{"features": []}`,
-			expectError:       false,
+					LightningResponse: `{"features": []}`,
+					DummyTileBytes:    dummyTileBytes,
+				}),
+				Location: &amesh.Location{
+					Lat:       35.6895,
+					Lng:       139.6917,
+					PlaceName: "東京",
+				},
+			},
+			expectError: nil,
 		},
 		{
 			name:        "nilリクエスト",
 			request:     nil,
-			expectError: true,
+			expectError: lib.ErrParamsNil,
 		},
 		{
 			name: "nilクライアント",
@@ -293,42 +300,38 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 					PlaceName: "東京",
 				},
 			},
-			expectError: true,
+			expectError: lib.ErrParamsNil,
 		},
 		{
 			name: "nilロケーション",
 			request: &amesh.CreateImageReaderRequest{
+				Client: createConfigurableMockHTTPClient(httpMockConfig{
+					TimestampsResponse: `[
+				{
+					"basetime": "20240101120000",
+					"validtime": "20240101120000", 
+					"elements": ["hrpns_nd", "liden"]
+				}
+			]`,
+					LightningResponse: `{"features": []}`,
+					DummyTileBytes:    dummyTileBytes,
+				}),
 				Location: nil,
 			},
-			expectError: true,
+			expectError: lib.ErrParamsNil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-
-			// モッククライアントを設定（リクエストがnilでない場合のみ）
-			if tt.request != nil && tt.request.Client == nil && !tt.expectError {
-				dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
-				if err != nil {
-					t.Fatal(err)
-				}
-				tt.request.Client = createConfigurableMockHTTPClient(httpMockConfig{
-					TimestampsResponse: tt.timestampsResponse,
-					LightningResponse:  tt.lightningResponse,
-					DummyTileBytes:     dummyTileBytes,
-				})
-			}
-
 			result, err := amesh.CreateImageReaderWithClient(context.Background(), tt.request)
-
-			if (err != nil) != tt.expectError {
-				t.Errorf("CreateImageReaderWithClient() error = %v, expectError %v", err, tt.expectError)
+			if !errors.Is(err, tt.expectError) {
+				t.Errorf("CreateImageReaderWithClient() error = %v, expectError = %v", err, tt.expectError)
 				return
 			}
 
-			if !tt.expectError {
+			if tt.expectError == nil {
 				if result == nil {
 					t.Error("CreateImageReaderWithClient() returned nil reader")
 					return
@@ -483,7 +486,7 @@ func TestParseLocationWithClient(t *testing.T) {
 				t.Errorf("ParseLocationWithClient() diff: %s", diff)
 			}
 			if !errors.Is(err, tt.expectError) {
-				t.Errorf("ParseLocationWithClient() error = %v, expectError %v", err, tt.expectError)
+				t.Errorf("ParseLocationWithClient() error = %v, expectError = %v", err, tt.expectError)
 				return
 			}
 		})
@@ -493,9 +496,8 @@ func TestParseLocationWithClient(t *testing.T) {
 // TestGenerateFileName GenerateFileName関数をテストする
 func TestGenerateFileName(t *testing.T) {
 	tests := []struct {
-		name        string
-		location    *amesh.Location
-		expectError bool
+		name     string
+		location *amesh.Location
 	}{
 		{
 			name: "基本的なファイル名生成",
@@ -504,7 +506,6 @@ func TestGenerateFileName(t *testing.T) {
 				Lng:       139.6917,
 				PlaceName: "東京",
 			},
-			expectError: false,
 		},
 		{
 			name: "座標",
@@ -513,7 +514,6 @@ func TestGenerateFileName(t *testing.T) {
 				Lng:       139.6917,
 				PlaceName: "35.6895,139.6917",
 			},
-			expectError: false,
 		},
 		{
 			name: "空の地名",
@@ -522,7 +522,6 @@ func TestGenerateFileName(t *testing.T) {
 				Lng:       139.6917,
 				PlaceName: "",
 			},
-			expectError: false,
 		},
 	}
 
@@ -532,32 +531,30 @@ func TestGenerateFileName(t *testing.T) {
 
 			result := amesh.GenerateFileName(tt.location)
 
-			if !tt.expectError {
-				// ファイル名の基本フォーマットをチェック
-				if !strings.HasPrefix(result, "amesh_") {
-					t.Errorf("GenerateFileName() result = %v, expected to start with 'amesh_'", result)
-				}
-				if !strings.HasSuffix(result, ".png") {
-					t.Errorf("GenerateFileName() result = %v, expected to end with '.png'", result)
-				}
+			// ファイル名の基本フォーマットをチェック
+			if !strings.HasPrefix(result, "amesh_") {
+				t.Errorf("GenerateFileName() result = %v, expected to start with 'amesh_'", result)
+			}
+			if !strings.HasSuffix(result, ".png") {
+				t.Errorf("GenerateFileName() result = %v, expected to end with '.png'", result)
+			}
 
-				// 地名がファイル名に含まれているかチェック（スペースはアンダースコアに変換）
-				expectedPlaceName := strings.ReplaceAll(tt.location.PlaceName, " ", "_")
-				if !strings.Contains(result, expectedPlaceName) {
-					t.Errorf("GenerateFileName() result = %v, expected to contain place name %v", result, expectedPlaceName)
-				}
+			// 地名がファイル名に含まれているかチェック（スペースはアンダースコアに変換）
+			expectedPlaceName := strings.ReplaceAll(tt.location.PlaceName, " ", "_")
+			if !strings.Contains(result, expectedPlaceName) {
+				t.Errorf("GenerateFileName() result = %v, expected to contain place name %v", result, expectedPlaceName)
+			}
 
-				// タイムスタンプが含まれているかチェック（数字が含まれていることを確認）
-				hasNumber := false
-				for _, char := range result {
-					if char >= '0' && char <= '9' {
-						hasNumber = true
-						break
-					}
+			// タイムスタンプが含まれているかチェック（数字が含まれていることを確認）
+			hasNumber := false
+			for _, char := range result {
+				if char >= '0' && char <= '9' {
+					hasNumber = true
+					break
 				}
-				if !hasNumber {
-					t.Errorf("GenerateFileName() result = %v, expected to contain timestamp numbers", result)
-				}
+			}
+			if !hasNumber {
+				t.Errorf("GenerateFileName() result = %v, expected to contain timestamp numbers", result)
 			}
 		})
 	}

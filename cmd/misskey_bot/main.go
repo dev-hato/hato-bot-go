@@ -22,8 +22,10 @@ func main() {
 		log.Fatal("MISSKEY_DOMAIN and MISSKEY_API_TOKEN environment variables must be set")
 	}
 
+	yahooAPIToken := os.Getenv("YAHOO_API_TOKEN")
+
 	// Yahoo APIキーも必要
-	if os.Getenv("YAHOO_API_TOKEN") == "" {
+	if yahooAPIToken == "" {
 		log.Fatal("YAHOO_API_TOKEN environment variable must be set")
 	}
 
@@ -53,7 +55,11 @@ func main() {
 		ctx := context.Background()
 
 		// ameshコマンドを処理
-		if err := bot.ProcessAmeshCommand(ctx, note, parseResult.Place); err != nil {
+		if err := bot.ProcessAmeshCommand(ctx, &misskey.ProcessAmeshCommandRequest{
+			Note:          note,
+			Place:         parseResult.Place,
+			YahooAPIToken: yahooAPIToken,
+		}); err != nil {
 			log.Printf("Error processing amesh command: %v", err)
 
 			// エラーメッセージを投稿

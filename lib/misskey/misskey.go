@@ -50,6 +50,12 @@ type ParseResult struct {
 	IsAmesh bool
 }
 
+type ProcessAmeshCommandRequest struct {
+	Note          *Note
+	Place         string
+	YahooAPIToken string
+}
+
 // NewBotWithClient HTTPクライアント注入可能なBotインスタンスを作成
 func NewBotWithClient(botSetting *BotSetting) *Bot {
 	if botSetting == nil {

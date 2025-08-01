@@ -3,6 +3,7 @@ package misskey_test
 import (
 	"testing"
 
+	"github.com/cockroachdb/errors"
 	"github.com/google/go-cmp/cmp"
 
 	"hato-bot-go/lib/http"
@@ -84,12 +85,12 @@ func TestParseAmeshCommand(t *testing.T) {
 }
 
 // runSimpleBotTest 空のレスポンスボディでボットテストを実行する共通ヘルパー
-func runSimpleBotTest(t *testing.T, statusCode int, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
+func runSimpleBotTest(t *testing.T, statusCode int, testFunc func(*misskey.Bot) error, expectError error, testName string) {
 	runBotTest(t, statusCode, "", testFunc, expectError, testName)
 }
 
 // runBotTest HTTPクライアントのモック付きでボットテストを実行する共通ヘルパー
-func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) error, expectError bool, testName string) {
+func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func(*misskey.Bot) error, expectError error, testName string) {
 	t.Helper()
 	mockClient := http.NewMockHTTPClient(statusCode, responseBody)
 	bot := misskey.NewBotWithClient(&misskey.BotSetting{
@@ -98,8 +99,7 @@ func runBotTest(t *testing.T, statusCode int, responseBody string, testFunc func
 		Client: mockClient,
 	})
 
-	err := testFunc(bot)
-	if (err != nil) != expectError {
-		t.Errorf("%s error = %v, expectError %v", testName, err, expectError)
+	if err := testFunc(bot); !errors.Is(err, expectError) {
+		t.Errorf("%s error = %v, expectError = %v", testName, err, expectError)
 	}
 }
