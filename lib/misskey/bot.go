@@ -234,8 +234,8 @@ func (bot *Bot) Connect() error {
 
 	// メインチャンネルに接続
 	connectMsg := struct {
-		Type string      `json:"type"`
-		Body interface{} `json:"body,omitempty"`
+		Type string                 `json:"type"`
+		Body map[string]interface{} `json:"body,omitempty"`
 	}{
 		Type: "connect",
 		Body: map[string]interface{}{
