@@ -285,17 +285,15 @@ func (bot *Bot) Listen(messageHandler func(note *Note)) error {
 }
 
 // apiRequest MisskeyAPIリクエストを送信
-func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
+func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data map[string]interface{}) (*http.Response, error) {
 	// データにトークンを追加
 	payload := map[string]interface{}{
 		"i": bot.BotSetting.Token,
 	}
 
 	if data != nil {
-		if dataMap, ok := data.(map[string]interface{}); ok {
-			for k, v := range dataMap {
-				payload[k] = v
-			}
+		for k, v := range data {
+			payload[k] = v
 		}
 	}
 
