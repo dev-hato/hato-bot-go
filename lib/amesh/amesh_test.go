@@ -626,32 +626,37 @@ func createPNGResponse(dummyTileBytes []byte) *http.Response {
 	}
 }
 
-// createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
-func createConfigurableMockHTTPClient(config httpMockConfig) *libHttp.MockHTTPClient {
-	return &libHttp.MockHTTPClient{
-		GetFunc: func(url string) (*http.Response, error) {
-			switch {
-			case strings.Contains(url, "targetTimes"):
-				if config.TimestampsResponse == "" {
-					return mockResponse(500, "Internal Server Error"), nil
-				}
-				return mockResponse(200, config.TimestampsResponse), nil
-			case strings.Contains(url, "liden/data.geojson"):
-				if config.LightningResponse == "" {
-					return mockResponse(404, "Not Found"), nil
-				}
-				return mockResponse(200, config.LightningResponse), nil
-			case strings.Contains(url, ".png"):
-				return createPNGResponse(config.DummyTileBytes), nil
-			default:
-				return mockResponse(404, "Not Found"), nil
-			}
-		},
-		DoFunc: func(req *http.Request) (*http.Response, error) {
-			if strings.Contains(req.URL.String(), ".png") {
-				return createPNGResponse(config.DummyTileBytes), nil
-			}
+type roundTrip struct {
+	Config httpMockConfig
+}
+
+func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
+	url := req.URL.String()
+	switch {
+	case strings.Contains(url, "targetTimes"):
+		if f.Config.TimestampsResponse == "" {
+			return mockResponse(500, "Internal Server Error"), nil
+		}
+		return mockResponse(200, f.Config.TimestampsResponse), nil
+	case strings.Contains(url, "liden/data.geojson"):
+		if f.Config.LightningResponse == "" {
 			return mockResponse(404, "Not Found"), nil
+		}
+		return mockResponse(200, f.Config.LightningResponse), nil
+	case strings.Contains(url, ".png"):
+		return createPNGResponse(f.Config.DummyTileBytes), nil
+	case strings.Contains(url, ".png"):
+		return createPNGResponse(f.Config.DummyTileBytes), nil
+	default:
+		return mockResponse(404, "Not Found"), nil
+	}
+}
+
+// createConfigurableMockHTTPClient 設定可能なモックHTTPクライアントを作成
+func createConfigurableMockHTTPClient(config httpMockConfig) *http.Client {
+	return &http.Client{
+		Transport: roundTrip{
+			Config: config,
 		},
 	}
 }
