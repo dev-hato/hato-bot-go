@@ -163,7 +163,14 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImage
 			draw.Draw(img, destRect, baseTile, image.Point{}, draw.Over)
 
 			// レーダータイルをダウンロードしてオーバーレイ
-			radarURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png", hrpnsTimestamp, hrpnsTimestamp, req.Zoom, tileX, tileY)
+			radarURL := fmt.Sprintf(
+				"https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/hrpns/%d/%d/%d.png",
+				hrpnsTimestamp,
+				hrpnsTimestamp,
+				req.Zoom,
+				tileX,
+				tileY,
+			)
 			radarTile, err := downloadTile(ctx, client, radarURL)
 			if err != nil {
 				log.Printf("Failed to downloadTile: %v", err)
@@ -171,7 +178,15 @@ func CreateAmeshImage(ctx context.Context, client *http.Client, req *CreateImage
 			}
 
 			// レーダータイルを透明度付きで描画
-			draw.DrawMask(img, destRect, radarTile, image.Point{}, image.NewUniform(color.RGBA{R: 255, G: 255, B: 255, A: 128}), image.Point{}, draw.Over)
+			draw.DrawMask(
+				img,
+				destRect,
+				radarTile,
+				image.Point{},
+				image.NewUniform(color.RGBA{R: 255, G: 255, B: 255, A: 128}),
+				image.Point{},
+				draw.Over,
+			)
 		}
 	}
 
@@ -255,7 +270,11 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationRequest) (*L
 		place = "東京"
 	}
 
-	requestURL := fmt.Sprintf("https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json", req.GeocodeRequest.APIKey, url.QueryEscape(place))
+	requestURL := fmt.Sprintf(
+		"https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json",
+		req.GeocodeRequest.APIKey,
+		url.QueryEscape(place),
+	)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
@@ -534,7 +553,11 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 
 // getLightningData 落雷データを取得する
 func getLightningData(ctx context.Context, client *http.Client, timestamp string) ([]lightningPoint, error) {
-	apiURL := fmt.Sprintf("https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson", timestamp, timestamp)
+	apiURL := fmt.Sprintf(
+		"https://www.jma.go.jp/bosai/jmatile/data/nowc/%s/none/%s/surf/liden/data.geojson",
+		timestamp,
+		timestamp,
+	)
 
 	result, err := makeHTTPRequest(ctx, client, apiURL)
 	if err != nil {

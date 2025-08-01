@@ -51,7 +51,12 @@ func main() {
 			panic(errors.Wrap(err, "Failed to amesh.ParseLocation"))
 		}
 
-		fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
+		fmt.Printf(
+			"Generating amesh image for %s (%.4f, %.4f)\n",
+			location.PlaceName,
+			location.Lat,
+			location.Lng,
+		)
 
 		// amesh画像をメモリ上に作成
 		imageReader, err := amesh.CreateImageReader(ctx, location)

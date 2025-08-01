@@ -214,18 +214,31 @@ func TestCreateAmeshImage(t *testing.T) {
 			expectError:       nil,
 		},
 		{
-			name:               "nilリクエスト",
-			req:                nil,
-			timestampsResponse: `[{"basetime": "20240101120000", "validtime": "20240101120000", "elements": ["hrpns_nd", "liden"]}]`,
-			lightningResponse:  `{"features": []}`,
-			expectError:        lib.ErrParamsNil,
+			name: "nilリクエスト",
+			req:  nil,
+			timestampsResponse: `[
+			  {
+				"basetime": "20240101120000",
+				"validtime": "20240101120000",
+				"elements": [
+				  "hrpns_nd",
+				  "liden"
+				]
+			  }
+			]`,
+			lightningResponse: `{"features": []}`,
+			expectError:       lib.ErrParamsNil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+			dummyTileBytes, err := createDummyPNGBytes(
+				256,
+				256,
+				color.RGBA{R: 255, G: 255, B: 255, A: 255},
+			)
 			if err != nil {
 				t.Error(err)
 			}
@@ -682,7 +695,11 @@ func TestGenerateFileName(t *testing.T) {
 			// 地名がファイル名に含まれているかチェック（スペースはアンダースコアに変換）
 			expectedPlaceName := strings.ReplaceAll(tt.location.PlaceName, " ", "_")
 			if !strings.Contains(result, expectedPlaceName) {
-				t.Errorf("GenerateFileName() result = %v, expected to contain place name %v", result, expectedPlaceName)
+				t.Errorf(
+					"GenerateFileName() result = %v, expected to contain place name %v",
+					result,
+					expectedPlaceName,
+				)
 			}
 
 			// タイムスタンプが含まれているかチェック（数字が含まれていることを確認）
