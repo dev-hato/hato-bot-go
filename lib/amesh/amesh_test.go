@@ -110,7 +110,7 @@ func TestGeocodeWithClient(t *testing.T) {
 			apiKey:       "invalid_key",
 			responseCode: 400,
 			responseBody: `{"Error": "Invalid API key"}`,
-			expectError:  amesh.ErrGeocodingAPIError,
+			expectError:  libHttp.ErrHTTPRequestError,
 		},
 		{
 			name:         "結果が見つからない",
@@ -497,7 +497,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			apiKey:       "test_key",
 			responseCode: 400,
 			responseBody: `{"Error": "Invalid place"}`,
-			expectError:  errors.New("geocoding API returned error status"),
+			expectError:  libHttp.ErrHTTPRequestError,
 		},
 		{
 			name:         "APIエラー",
@@ -505,7 +505,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			apiKey:       "invalid_key",
 			responseCode: 400,
 			responseBody: `{"Error": "Invalid API key"}`,
-			expectError:  errors.New("geocoding API returned error status"),
+			expectError:  libHttp.ErrHTTPRequestError,
 		},
 		{
 			name:         "結果が見つからない",
