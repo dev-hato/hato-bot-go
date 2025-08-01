@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	libHttp "hato-bot-go/lib/http"
 	"io"
 	"log"
 	"net/http"
 
 	"github.com/cockroachdb/errors"
+
+	libHttp "hato-bot-go/lib/http"
 )
 
 func main() {

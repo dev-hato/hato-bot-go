@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	libHttp "hato-bot-go/lib/http"
 	"image"
 	"image/color"
 	"image/draw"
@@ -21,6 +20,8 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"golang.org/x/exp/constraints"
+
+	libHttp "hato-bot-go/lib/http"
 )
 
 const Version = "1.0"
