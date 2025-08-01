@@ -125,7 +125,7 @@ func (bot *Bot) UploadFileFromReader(ctx context.Context, reader io.Reader, file
 
 // AddReaction リアクションを追加
 func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err error) {
-	data := map[string]interface{}{
+	data := map[string]string{
 		"noteId":   noteID,
 		"reaction": reaction,
 	}
@@ -224,11 +224,11 @@ func (bot *Bot) Connect() error {
 
 	// メインチャンネルに接続
 	connectMsg := struct {
-		Type string      `json:"type"`
-		Body interface{} `json:"body,omitempty"`
+		Type string            `json:"type"`
+		Body map[string]string `json:"body,omitempty"`
 	}{
 		Type: "connect",
-		Body: map[string]interface{}{
+		Body: map[string]string{
 			"channel": "main",
 			"id":      "main",
 		},
