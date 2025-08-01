@@ -71,8 +71,8 @@ func (bot *Bot) CreateNote(ctx context.Context, req *CreateNoteRequest) error {
 		CreatedNote Note `json:"createdNote"`
 	}
 
-	if err := checkStatusAndDecodeJSON(resp, &result); err != nil {
-		return errors.Wrap(err, "Failed to checkStatusAndDecodeJSON")
+	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return errors.Wrap(err, "Failed to json.NewDecoder")
 	}
 
 	return nil
@@ -117,8 +117,8 @@ func (bot *Bot) UploadFileFromReader(ctx context.Context, reader io.Reader, file
 	}
 
 	var uploadedFile File
-	if err := checkStatusAndDecodeJSON(resp, &uploadedFile); err != nil {
-		return nil, errors.Wrap(err, "Failed to checkStatusAndDecodeJSON")
+	if err = json.NewDecoder(resp.Body).Decode(&uploadedFile); err != nil {
+		return nil, errors.Wrap(err, "Failed to json.NewDecoder")
 	}
 
 	return &uploadedFile, nil
@@ -131,18 +131,8 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 		"reaction": reaction,
 	}
 
-	resp, err := bot.apiRequest(ctx, "notes/reactions/create", data)
-	if err != nil {
+	if _, err := bot.apiRequest(ctx, "notes/reactions/create", data); err != nil {
 		return errors.Wrap(err, "Failed to apiRequest")
-	}
-	defer func(body io.ReadCloser) {
-		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
-		}
-	}(resp.Body)
-
-	if resp.StatusCode != 204 {
-		return fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
 	return nil

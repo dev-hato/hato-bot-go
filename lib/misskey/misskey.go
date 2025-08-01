@@ -1,14 +1,9 @@
 package misskey
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/cockroachdb/errors"
 
 	"hato-bot-go/lib/amesh"
 )
@@ -113,26 +108,4 @@ func ParseAmeshCommand(text string) ParseResult {
 		Place:   "",
 		IsAmesh: false,
 	}
-}
-
-// checkStatusAndDecodeJSON ステータスコードをチェックしJSONをデコードする共通処理
-func checkStatusAndDecodeJSON(resp *http.Response, target interface{}) (err error) {
-	if resp.StatusCode != 200 {
-		if err = resp.Body.Close(); err != nil {
-			return errors.Wrap(err, "Failed to Close")
-		}
-		return fmt.Errorf("API returned status %d", resp.StatusCode)
-	}
-
-	defer func(body io.ReadCloser) {
-		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
-		}
-	}(resp.Body)
-
-	if err = json.NewDecoder(resp.Body).Decode(target); err != nil {
-		return errors.Wrap(err, "Failed to json.NewDecoder")
-	}
-
-	return nil
 }
