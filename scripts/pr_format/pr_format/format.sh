@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-go install tool github.com/rinchsan/gosimports/cmd/gosimports
+go install tool github.com/daixiang0/gci
 go mod tidy
-gosimports -w .
+gci write -s default -s standard -s "prefix(hato-bot-go)" .

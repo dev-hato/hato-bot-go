@@ -63,7 +63,7 @@ npm run lint:secret       # gitleaksによるシークレットスキャン
 
 # Goコードのフォーマット
 go mod tidy
-gosimports -w .
+gci write -s default -s standard -s "prefix(hato-bot-go)" .
 
 # 各プラットフォーム向けビルド
 go build -o hato-bot-go cmd/cli/main.go
@@ -172,7 +172,7 @@ go test ./...
 # 3. 最小限のコードで通す
 # 4. リファクタリング（フォーマット含む）
 go mod tidy
-gosimports -w .
+gci write --skip-generated -s standard -s "prefix(hato-bot-go)" -s default .
 
 # 5. すべてのテストが通ることを確認
 go test ./...
