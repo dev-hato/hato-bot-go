@@ -92,7 +92,7 @@ go run cmd/cli/main.go amesh "35.6762 139.6503"
 ```bash
 # CLI版のビルド
 go build -o hato-bot-go cmd/cli/main.go
-./hato-bot-go 東京
+./hato-bot-go amesh 東京
 
 # ボット版のビルド
 go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
