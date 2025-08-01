@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	libHttp "hato-bot-go/lib/http"
 	"io"
 	"log"
 	"mime/multipart"
@@ -110,9 +111,9 @@ func (bot *Bot) UploadFileFromReader(ctx context.Context, reader io.Reader, file
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("User-Agent", bot.UserAgent)
 
-	resp, err := bot.BotSetting.Client.Do(req)
+	resp, err := libHttp.ExecuteHTTPRequest(bot.BotSetting.Client, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Do")
+		return nil, errors.Wrap(err, "Failed to executeHTTPRequest")
 	}
 
 	var uploadedFile File
@@ -303,9 +304,9 @@ func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data interface{
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", bot.UserAgent)
 
-	resp, err := bot.BotSetting.Client.Do(req)
+	resp, err := libHttp.ExecuteHTTPRequest(bot.BotSetting.Client, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Do")
+		return nil, errors.Wrap(err, "Failed to executeHTTPRequest")
 	}
 
 	return resp, nil

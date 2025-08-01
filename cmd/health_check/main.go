@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	libHttp "hato-bot-go/lib/http"
 	"io"
 	"log"
 	"net/http"
@@ -15,9 +16,9 @@ func main() {
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to http.NewRequestWithContext"))
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := libHttp.ExecuteHTTPRequest(http.DefaultClient, req)
 	if err != nil {
-		panic(errors.Wrap(err, "Failed to Do"))
+		panic(errors.Wrap(err, "Failed to executeHTTPRequest"))
 	}
 	defer func(Body io.ReadCloser) {
 		if err := Body.Close(); err != nil {

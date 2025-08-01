@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	libHttp "hato-bot-go/lib/http"
 	"image"
 	"image/color"
 	"image/draw"
@@ -251,14 +252,14 @@ func GeocodeWithClient(ctx context.Context, client *http.Client, req *GeocodeReq
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := client.Do(httpReq)
+	resp, err := libHttp.ExecuteHTTPRequest(client, httpReq)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Do")
+		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
 	}
 
 	if resp.StatusCode != 200 {
-		if err := handleHTTPError(resp); err != nil {
-			return nil, errors.Wrap(err, "Failed to handleHTTPError")
+		if closeErr := handleHTTPError(resp); closeErr != nil {
+			return nil, errors.Wrap(closeErr, "Failed to handleHTTPError")
 		}
 		return nil, errors.Wrapf(ErrGeocodingAPIError, "ステータス %d", resp.StatusCode)
 	}
@@ -527,9 +528,9 @@ func downloadTileWithClient(ctx context.Context, client *http.Client, tileURL st
 	}
 	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
 
-	resp, err := client.Do(req)
+	resp, err := libHttp.ExecuteHTTPRequest(client, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Do")
+		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
 	}
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
@@ -554,14 +555,14 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := client.Do(req)
+	resp, err := libHttp.ExecuteHTTPRequest(client, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Do")
+		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
 	}
 
 	if resp.StatusCode != 200 {
-		if err := handleHTTPError(resp); err != nil {
-			return nil, errors.Wrap(err, "Failed to handleHTTPError")
+		if closeErr := handleHTTPError(resp); closeErr != nil {
+			return nil, errors.Wrap(closeErr, "Failed to handleHTTPError")
 		}
 		return &httpRequestResult{Body: nil, IsEmpty: true}, nil
 	}
