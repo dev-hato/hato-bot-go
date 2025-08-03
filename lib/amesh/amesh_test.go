@@ -2,7 +2,6 @@ package amesh_test
 
 import (
 	"bytes"
-	"context"
 	"image"
 	"image/color"
 	"image/png"
@@ -252,7 +251,7 @@ func TestCreateAmeshImage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := amesh.CreateAmeshImage(context.Background(), tt.params)
+			result, err := amesh.CreateAmeshImage(t.Context(), tt.params)
 			if !errors.Is(err, tt.expectError) {
 				t.Errorf("CreateAmeshImage() unexpected error: %v, expected: %v", err, tt.expectError)
 				return
@@ -358,7 +357,7 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result, err := amesh.CreateImageReaderWithClient(context.Background(), tt.params)
+			result, err := amesh.CreateImageReaderWithClient(t.Context(), tt.params)
 			if !errors.Is(err, tt.expectError) {
 				t.Errorf("CreateImageReaderWithClient() error = %v, expectError = %v", err, tt.expectError)
 				return
@@ -622,7 +621,7 @@ func TestParseLocationWithClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result, err := amesh.ParseLocationWithClient(context.Background(), tt.params)
+			result, err := amesh.ParseLocationWithClient(t.Context(), tt.params)
 			if diff := cmp.Diff(result, tt.expected); diff != "" {
 				t.Errorf("ParseLocationWithClient() diff: %s", diff)
 			}

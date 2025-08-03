@@ -1,7 +1,6 @@
 package misskey_test
 
 import (
-	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -43,7 +42,7 @@ func TestAddReaction(t *testing.T) {
 			runSimpleBotTest(t, &runSimpleBotTestParams{
 				StatusCode: tt.statusCode,
 				TestFunc: func(bot *misskey.Bot) error {
-					return bot.AddReaction(context.Background(), tt.noteID, tt.reaction)
+					return bot.AddReaction(t.Context(), tt.noteID, tt.reaction)
 				},
 				ExpectError: tt.expectError,
 				TestName:    "AddReaction()",
@@ -114,7 +113,7 @@ func TestCreateNote(t *testing.T) {
 				StatusCode:   tt.statusCode,
 				ResponseBody: tt.responseBody,
 				TestFunc: func(bot *misskey.Bot) error {
-					return bot.CreateNote(context.Background(), tt.params)
+					return bot.CreateNote(t.Context(), tt.params)
 				},
 				ExpectError: tt.expectError,
 				TestName:    "CreateNote()",
@@ -164,7 +163,7 @@ func TestUploadFile(t *testing.T) {
 			})
 
 			reader := strings.NewReader(tt.readerData)
-			if _, err := bot.UploadFile(context.Background(), reader, tt.fileName); !errors.Is(err, tt.expectError) {
+			if _, err := bot.UploadFile(t.Context(), reader, tt.fileName); !errors.Is(err, tt.expectError) {
 				t.Errorf("UploadFile() error = %v, expectError = %v", err, tt.expectError)
 			}
 		})
@@ -210,7 +209,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 			runSimpleBotTest(t, &runSimpleBotTestParams{
 				StatusCode: http.StatusNoContent,
 				TestFunc: func(bot *misskey.Bot) error {
-					return bot.ProcessAmeshCommand(context.Background(), tt.params)
+					return bot.ProcessAmeshCommand(t.Context(), tt.params)
 				},
 				ExpectError: tt.expectError,
 				TestName:    "ProcessAmeshCommand()",
