@@ -95,8 +95,7 @@ func ParseAmeshCommand(text string) ParseAmeshCommandResult {
 	text = strings.Join(cleanWords, " ")
 
 	// ameshコマンドかチェック
-	if strings.HasPrefix(text, "amesh ") {
-		place := strings.TrimPrefix(text, "amesh ")
+	if place, ok := strings.CutPrefix(text, "amesh "); ok {
 		return ParseAmeshCommandResult{
 			Place:   strings.TrimSpace(place),
 			IsAmesh: true,
