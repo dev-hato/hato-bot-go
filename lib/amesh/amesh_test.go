@@ -723,8 +723,8 @@ func TestGenerateFileName(t *testing.T) {
 // createDummyPNGBytes ダミーのPNG画像バイトを作成する
 func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			img.Set(x, y, c)
 		}
 	}

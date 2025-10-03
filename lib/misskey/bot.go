@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -46,7 +47,7 @@ func (bot *Bot) CreateNote(ctx context.Context, params *CreateNoteParams) (err e
 		visibility = "home"
 	}
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"text":       params.Text,
 		"visibility": visibility,
 	}
@@ -140,7 +141,7 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 
 // AddReaction リアクションを追加
 func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err error) {
-	data := map[string]interface{}{
+	data := map[string]any{
 		"noteId":   noteID,
 		"reaction": reaction,
 	}
@@ -234,11 +235,11 @@ func (bot *Bot) Connect() error {
 
 	// メインチャンネルに接続
 	connectMsg := struct {
-		Type string                 `json:"type"`
-		Body map[string]interface{} `json:"body,omitempty"`
+		Type string         `json:"type"`
+		Body map[string]any `json:"body,omitempty"`
 	}{
 		Type: "connect",
-		Body: map[string]interface{}{
+		Body: map[string]any{
 			"channel": "main",
 			"id":      "main",
 		},
@@ -285,15 +286,13 @@ func (bot *Bot) Listen(messageHandler func(note *Note)) error {
 }
 
 // apiRequest MisskeyAPIリクエストを送信
-func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data map[string]interface{}) (*http.Response, error) {
+func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data map[string]any) (*http.Response, error) {
 	// データにトークンを追加
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"i": bot.BotSetting.Token,
 	}
 
-	for k, v := range data {
-		payload[k] = v
-	}
+	maps.Copy(payload, data)
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {

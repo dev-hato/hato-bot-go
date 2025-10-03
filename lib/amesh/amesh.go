@@ -461,7 +461,7 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 	numSegments := 64
 	earthRadius := 6371.0 // 地球半径（キロメートル）
 
-	for i := 0; i < numSegments; i++ {
+	for i := range numSegments {
 		angle1 := float64(i) * 2 * math.Pi / float64(numSegments)
 		angle2 := float64(i+1) * 2 * math.Pi / float64(numSegments)
 
