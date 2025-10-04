@@ -26,7 +26,7 @@ RUN go build -a -installsuffix cgo -o hato-bot-go-misskey-bot cmd/misskey_bot/ma
 FROM builder AS dev
 
 # airをインストール
-RUN go install github.com/air-verse/air
+RUN go install github.com/air-verse/air@latest
 
 # air設定ファイルをコピー
 COPY .air.toml .
