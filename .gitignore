@@ -285,3 +285,6 @@ Temporary Items
 hato-bot-go
 hato-bot-go-misskey-bot
 amesh_*.png
+
+github_conf/branch_protection_rules.json
+super-linter-output/super-linter-summary.md
