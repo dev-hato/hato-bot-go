@@ -47,6 +47,7 @@ jobs:
           # Go modulesを使っているため、こちらはfalseにする
           VALIDATE_GO: false
           FIX_BIOME_FORMAT: true
+          FIX_JSON_PRETTIER: true
       - name: Generate a token
         id: generate_token
         if: success() || failure()
