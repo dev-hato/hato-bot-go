@@ -44,6 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Go modulesを使っているため、こちらはfalseにする
           VALIDATE_GO: false
+          VALIDATE_BIOME_FORMAT: false
   pr-dotenv-linter:
     runs-on: ubuntu-latest
     steps:
