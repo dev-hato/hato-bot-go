@@ -26,6 +26,7 @@ RUN go build -a -installsuffix cgo -o hato-bot-go-misskey-bot cmd/misskey_bot/ma
 FROM builder AS dev
 
 # airをインストール
+# hadolint ignore=DL3062
 RUN go install github.com/air-verse/air
 
 # air設定ファイルをコピー
