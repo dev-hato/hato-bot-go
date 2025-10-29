@@ -6,15 +6,15 @@ services:
       context: .
       target: prod
       cache_from:
-        - ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go:${TAG_NAME}
-        - ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go
+        - ghcr.io/${REPOSITORY:-hato-bot/hato-bot-go}/hato-bot-go:${TAG_NAME}
+        - ghcr.io/${REPOSITORY:-hato-bot/hato-bot-go}/hato-bot-go
       args:
         BUILDKIT_INLINE_CACHE: 1
       x-bake:
         platforms:
           - linux/amd64
           - linux/arm64
-    image: ghcr.io/${REPOSITORY:-massongit/hato-bot-go}/hato-bot-go:${TAG_NAME}
+    image: ghcr.io/${REPOSITORY:-hato-bot/hato-bot-go}/hato-bot-go:${TAG_NAME}
     environment:
       - MISSKEY_DOMAIN=${MISSKEY_DOMAIN}
       - MISSKEY_API_TOKEN=${MISSKEY_API_TOKEN}

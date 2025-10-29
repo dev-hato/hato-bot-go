@@ -20,7 +20,6 @@
     "ja-hiragana-keishikimeishi": true,
     "no-dead-link": {
         "ignore": [
-            "https://github.com/massongit/hato-bot-go/releases/latest",
             "https://platform.openai.com/api-keys",
             "https://fly.io/dashboard/",
             "https://fly.io/docs/getting-started/launch-demo/#1-install-flyctl",
