@@ -235,11 +235,11 @@ func (bot *Bot) Connect() error {
 
 	// メインチャンネルに接続
 	connectMsg := struct {
-		Type string         `json:"type"`
-		Body map[string]any `json:"body,omitempty"`
+		Type string            `json:"type"`
+		Body map[string]string `json:"body,omitempty"`
 	}{
 		Type: "connect",
-		Body: map[string]any{
+		Body: map[string]string{
 			"channel": "main",
 			"id":      "main",
 		},
