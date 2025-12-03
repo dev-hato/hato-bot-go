@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 bash "${GITHUB_WORKSPACE}/scripts/npm_ci.sh"
 action="$(yq '.jobs.pr-super-lint.steps[-1].uses | line_comment' .github/workflows/pr-test.yml)"
