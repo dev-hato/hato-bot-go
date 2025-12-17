@@ -1,4 +1,4 @@
 {
   "extends": ["github>dev-hato/renovate-config"],
-  "ignoreDeps": ["node-fetch"]
+  "ignoreDeps": ["node-fetch", "golang"]
 }
