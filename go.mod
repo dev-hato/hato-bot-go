@@ -1,6 +1,6 @@
 module hato-bot-go
 
-go 1.25.4
+go 1.25.5
 
 require (
 	github.com/cockroachdb/errors v1.12.0
