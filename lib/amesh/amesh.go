@@ -291,6 +291,27 @@ func tryParseCoordinates(place string) (*Location, error) {
 	}, nil
 }
 
+// executeAndReadResponse HTTPリクエストを実行してレスポンスボディを読み込む
+func executeAndReadResponse(client *http.Client, req *http.Request) (body []byte, err error) {
+	resp, err := libHttp.ExecuteHTTPRequest(client, req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
+	}
+
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			err = errors.Wrap(closeErr, "Failed to Close")
+		}
+	}(resp.Body)
+
+	body, err = handleHTTPResponse(resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
+	}
+
+	return body, nil
+}
+
 // geocodePlace 地名をジオコーディングして位置情報を取得する
 func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (location *Location, err error) {
 	place := req.GeocodeRequest.Place
@@ -308,20 +329,10 @@ func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (loca
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := libHttp.ExecuteHTTPRequest(req.Client, httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
-	}
 
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
-		}
-	}(resp.Body)
-
-	body, err := handleHTTPResponse(resp)
+	body, err := executeAndReadResponse(req.Client, httpReq)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
+		return nil, errors.Wrap(err, "Failed to executeAndReadResponse")
 	}
 
 	return parseGeocodeResponse(body, place)
@@ -573,24 +584,14 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (resu
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := libHttp.ExecuteHTTPRequest(client, req)
+
+	body, err := executeAndReadResponse(client, req)
 	if err != nil {
 		if errors.Is(err, libHttp.ErrHTTPRequestError) {
 			return &httpRequestResult{Body: nil, IsEmpty: true}, nil
 		}
 
-		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
-	}
-
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
-		}
-	}(resp.Body)
-
-	body, err := handleHTTPResponse(resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
+		return nil, errors.Wrap(err, "Failed to executeAndReadResponse")
 	}
 
 	return &httpRequestResult{Body: body, IsEmpty: false}, nil
