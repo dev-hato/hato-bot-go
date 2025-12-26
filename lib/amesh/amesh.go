@@ -253,7 +253,7 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 		return nil, lib.ErrParamsNil
 	}
 	// 座標が直接提供されているかチェック
-	location, err := tryParseCoordinates(req.GeocodeRequest.Place)
+	location, err := parseCoordinates(req.GeocodeRequest.Place)
 	if err != nil {
 		var geocodePlaceErr error
 
@@ -267,8 +267,8 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 	return location, nil
 }
 
-// tryParseCoordinates 文字列から座標を直接解析する
-func tryParseCoordinates(place string) (*Location, error) {
+// parseCoordinates 文字列から座標を直接解析する
+func parseCoordinates(place string) (*Location, error) {
 	parts := strings.Fields(place)
 	if len(parts) != 2 {
 		return nil, errors.New("not a coordinate pair")
