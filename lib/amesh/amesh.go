@@ -313,7 +313,7 @@ func executeAndReadResponse(client *http.Client, req *http.Request) (body []byte
 }
 
 // geocodePlace 地名をジオコーディングして位置情報を取得する
-func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (location *Location, err error) {
+func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Location, error) {
 	place := req.GeocodeRequest.Place
 	if place == "" {
 		place = "東京"
@@ -579,7 +579,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 }
 
 // makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
-func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (result *httpRequestResult, err error) {
+func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*httpRequestResult, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
