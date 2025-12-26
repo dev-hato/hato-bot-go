@@ -267,6 +267,26 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 	return location, nil
 }
 
+// ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
+func ParseLocation(ctx context.Context, place, apiKey string) (*Location, error) {
+	return ParseLocationWithClient(ctx, &ParseLocationWithClientParams{
+		Client: http.DefaultClient,
+		GeocodeRequest: GeocodeRequest{
+			Place:  place,
+			APIKey: apiKey,
+		},
+	})
+}
+
+// GenerateFileName 位置情報からamesh画像のファイル名を生成する
+func GenerateFileName(location *Location) string {
+	return fmt.Sprintf(
+		"amesh_%s_%d.png",
+		strings.ReplaceAll(location.PlaceName, " ", "_"),
+		time.Now().Unix(),
+	)
+}
+
 // parseCoordinates 文字列から座標を直接解析する
 func parseCoordinates(place string) (*Location, error) {
 	parts := strings.Fields(place)
@@ -304,32 +324,6 @@ func executeAndReadResponse(client *http.Client, req *http.Request) (body []byte
 	}
 
 	return body, nil
-}
-
-// geocodePlace 地名をジオコーディングして位置情報を取得する
-func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Location, error) {
-	place := req.GeocodeRequest.Place
-	if place == "" {
-		place = "東京"
-	}
-
-	requestURL := fmt.Sprintf(
-		"https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json",
-		req.GeocodeRequest.APIKey,
-		url.QueryEscape(place),
-	)
-
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
-	}
-
-	body, err := executeAndReadResponse(req.Client, httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to executeAndReadResponse")
-	}
-
-	return parseGeocodeResponse(body, place)
 }
 
 // parseGeocodeResponse ジオコーディングAPIのレスポンスを解析する
@@ -374,24 +368,30 @@ func parseGeocodeResponse(body []byte, place string) (*Location, error) {
 	}, nil
 }
 
-// ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocation(ctx context.Context, place, apiKey string) (*Location, error) {
-	return ParseLocationWithClient(ctx, &ParseLocationWithClientParams{
-		Client: http.DefaultClient,
-		GeocodeRequest: GeocodeRequest{
-			Place:  place,
-			APIKey: apiKey,
-		},
-	})
-}
+// geocodePlace 地名をジオコーディングして位置情報を取得する
+func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Location, error) {
+	place := req.GeocodeRequest.Place
+	if place == "" {
+		place = "東京"
+	}
 
-// GenerateFileName 位置情報からamesh画像のファイル名を生成する
-func GenerateFileName(location *Location) string {
-	return fmt.Sprintf(
-		"amesh_%s_%d.png",
-		strings.ReplaceAll(location.PlaceName, " ", "_"),
-		time.Now().Unix(),
+	requestURL := fmt.Sprintf(
+		"https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json",
+		req.GeocodeRequest.APIKey,
+		url.QueryEscape(place),
 	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
+	}
+
+	body, err := executeAndReadResponse(req.Client, httpReq)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to executeAndReadResponse")
+	}
+
+	return parseGeocodeResponse(body, place)
 }
 
 // deg2rad 度数をラジアンに変換する
