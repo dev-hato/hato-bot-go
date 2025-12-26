@@ -293,7 +293,7 @@ func tryParseCoordinates(place string) (*Location, error) {
 
 // executeAndReadResponse HTTPリクエストを実行してレスポンスボディを読み込む
 func executeAndReadResponse(client *http.Client, req *http.Request) (body []byte, err error) {
-	resp, err := libHttp.ExecuteHTTPRequest(client, req)
+	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
 	}
