@@ -15,7 +15,7 @@ import (
 
 	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
-	libHttp "hato-bot-go/lib/http"
+	"hato-bot-go/lib/httpclient"
 )
 
 // httpMockConfig モックHTTPクライアントの設定
@@ -396,7 +396,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "成功したジオコーディング",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
 						"Name": "東京都",
@@ -421,7 +421,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "座標文字列の解析",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
 						"Name": "東京都",
@@ -446,7 +446,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "空の場所は東京がデフォルト",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
 						"Name": "東京都",
@@ -471,7 +471,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "座標文字列（整数）",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
 						"Name": "東京都",
@@ -495,7 +495,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "無効な座標文字列（1つの数値のみ）",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
 						"Name": "東京都",
@@ -519,18 +519,18 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "無効な座標文字列",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusBadRequest, `{"Error": "Invalid place"}`),
+				Client: httpclient.NewMockHTTPClient(http.StatusBadRequest, `{"Error": "Invalid place"}`),
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "invalid coordinates",
 					APIKey: "test_key",
 				},
 			},
-			expectError: libHttp.ErrHTTPRequestError,
+			expectError: httpclient.ErrHTTPRequestError,
 		},
 		{
 			name: "無効な座標フォーマット",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
 						"Name": "東京都",
@@ -550,18 +550,18 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "APIがエラーステータスを返す",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusBadRequest, `{"Error": "Invalid API key"}`),
+				Client: httpclient.NewMockHTTPClient(http.StatusBadRequest, `{"Error": "Invalid API key"}`),
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "東京",
 					APIKey: "invalid_key",
 				},
 			},
-			expectError: libHttp.ErrHTTPRequestError,
+			expectError: httpclient.ErrHTTPRequestError,
 		},
 		{
 			name: "結果が見つからない",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{"Feature": []}`),
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{"Feature": []}`),
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "nonexistent place",
 					APIKey: "test_key",
@@ -572,7 +572,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "不正なJSON",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{"Feature": [invalid json}`),
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{"Feature": [invalid json}`),
 				GeocodeRequest: amesh.GeocodeRequest{
 					Place:  "東京",
 					APIKey: "test_key",
@@ -583,7 +583,7 @@ func TestParseLocationWithClient(t *testing.T) {
 		{
 			name: "座標数が足りない場合",
 			params: &amesh.ParseLocationWithClientParams{
-				Client: libHttp.NewMockHTTPClient(http.StatusOK, `{
+				Client: httpclient.NewMockHTTPClient(http.StatusOK, `{
 				"Feature": [
 					{
 						"Name": "東京都",
