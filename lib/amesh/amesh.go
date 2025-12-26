@@ -22,7 +22,7 @@ import (
 	"golang.org/x/exp/constraints"
 
 	"hato-bot-go/lib"
-	libHttp "hato-bot-go/lib/http"
+	"hato-bot-go/lib/httpclient"
 )
 
 const Version = "1.0"
@@ -282,9 +282,9 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := libHttp.ExecuteHTTPRequest(req.Client, httpReq)
+	resp, err := httpclient.ExecuteHTTPRequest(req.Client, httpReq)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
+		return nil, errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
 	}
 
 	body, err := handleHTTPResponse(resp)
@@ -513,7 +513,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	}
 	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
 
-	resp, err := libHttp.ExecuteHTTPRequest(client, req)
+	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
 	}
@@ -536,13 +536,13 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := libHttp.ExecuteHTTPRequest(client, req)
+	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {
-		if errors.Is(err, libHttp.ErrHTTPRequestError) {
+		if errors.Is(err, httpclient.ErrHTTPRequestError) {
 			return &httpRequestResult{Body: nil, IsEmpty: true}, nil
 		}
 
-		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
+		return nil, errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
 	}
 
 	body, err := handleHTTPResponse(resp)

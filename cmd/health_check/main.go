@@ -8,7 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	libHttp "hato-bot-go/lib/http"
+	"hato-bot-go/lib/httpclient"
 )
 
 func main() {
@@ -23,9 +23,9 @@ func main() {
 		panic(errors.Wrap(err, "Failed to http.NewRequestWithContext"))
 	}
 
-	resp, err := libHttp.ExecuteHTTPRequest(http.DefaultClient, req)
+	resp, err := httpclient.ExecuteHTTPRequest(http.DefaultClient, req)
 	if err != nil {
-		panic(errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest"))
+		panic(errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest"))
 	}
 	defer func(Body io.ReadCloser) {
 		if closeErr := Body.Close(); closeErr != nil {

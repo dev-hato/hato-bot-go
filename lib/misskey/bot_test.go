@@ -8,7 +8,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"hato-bot-go/lib"
-	libHttp "hato-bot-go/lib/http"
+	"hato-bot-go/lib/httpclient"
 	"hato-bot-go/lib/misskey"
 )
 
@@ -32,7 +32,7 @@ func TestAddReaction(t *testing.T) {
 			noteID:      "note456",
 			reaction:    "❤️",
 			statusCode:  http.StatusBadRequest,
-			expectError: libHttp.ErrHTTPRequestError,
+			expectError: httpclient.ErrHTTPRequestError,
 		},
 	}
 
@@ -101,7 +101,7 @@ func TestCreateNote(t *testing.T) {
 			},
 			statusCode:   http.StatusBadRequest,
 			responseBody: `{"error":"bad request"}`,
-			expectError:  libHttp.ErrHTTPRequestError,
+			expectError:  httpclient.ErrHTTPRequestError,
 		},
 		// jscpd:ignore-end
 	}
@@ -146,7 +146,7 @@ func TestUploadFile(t *testing.T) {
 			readerData:   "test content",
 			statusCode:   http.StatusBadRequest,
 			responseBody: `{"error":"bad request"}`,
-			expectError:  libHttp.ErrHTTPRequestError,
+			expectError:  httpclient.ErrHTTPRequestError,
 		},
 		// jscpd:ignore-end
 	}
@@ -155,7 +155,7 @@ func TestUploadFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			t.Helper()
-			mockClient := libHttp.NewMockHTTPClient(tt.statusCode, tt.responseBody)
+			mockClient := httpclient.NewMockHTTPClient(tt.statusCode, tt.responseBody)
 			bot := misskey.NewBotWithClient(&misskey.BotSetting{
 				Domain: "example.com",
 				Token:  "token",
