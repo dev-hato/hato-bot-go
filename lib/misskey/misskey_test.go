@@ -6,7 +6,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/google/go-cmp/cmp"
 
-	"hato-bot-go/lib/http"
+	"hato-bot-go/lib/httpclient"
 	"hato-bot-go/lib/misskey"
 )
 
@@ -113,7 +113,7 @@ func runSimpleBotTest(t *testing.T, req *runSimpleBotTestParams) {
 // runBotTest HTTPクライアントのモック付きでボットテストを実行する共通ヘルパー
 func runBotTest(t *testing.T, req *runBotTestParams) {
 	t.Helper()
-	mockClient := http.NewMockHTTPClient(req.StatusCode, req.ResponseBody)
+	mockClient := httpclient.NewMockHTTPClient(req.StatusCode, req.ResponseBody)
 	bot := misskey.NewBotWithClient(&misskey.BotSetting{
 		Domain: "example.com",
 		Token:  "token",
