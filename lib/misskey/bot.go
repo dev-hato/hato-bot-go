@@ -93,8 +93,8 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 	defer func(writer *multipart.Writer) {
-		if err := writer.Close(); err != nil {
-			panic(err)
+		if closeErr := writer.Close(); closeErr != nil {
+			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(writer)
 
