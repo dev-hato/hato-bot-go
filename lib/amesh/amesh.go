@@ -287,6 +287,12 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
 	}
 
+	defer func(Body io.ReadCloser) {
+		if err := Body.Close(); err != nil {
+			panic(err)
+		}
+	}(resp.Body)
+
 	body, err := handleHTTPResponse(resp)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
@@ -544,6 +550,12 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 
 		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
 	}
+
+	defer func(Body io.ReadCloser) {
+		if err := Body.Close(); err != nil {
+			panic(err)
+		}
+	}(resp.Body)
 
 	body, err := handleHTTPResponse(resp)
 	if err != nil {

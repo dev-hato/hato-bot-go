@@ -92,6 +92,11 @@ func (bot *Bot) CreateNote(ctx context.Context, params *CreateNoteParams) (err e
 func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName string) (file *File, err error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
+	defer func(writer *multipart.Writer) {
+		if err := writer.Close(); err != nil {
+			panic(err)
+		}
+	}(writer)
 
 	// トークンフィールドを追加
 	if writeErr := writer.WriteField("i", bot.BotSetting.Token); writeErr != nil {
