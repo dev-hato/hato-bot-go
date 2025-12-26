@@ -17,7 +17,7 @@ import (
 
 	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
-	libHttp "hato-bot-go/lib/http"
+	"hato-bot-go/lib/httpclient"
 )
 
 // エラー定数
@@ -126,7 +126,7 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("User-Agent", bot.UserAgent)
 
-	resp, err := libHttp.ExecuteHTTPRequest(bot.BotSetting.Client, req)
+	resp, err := httpclient.ExecuteHTTPRequest(bot.BotSetting.Client, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to executeHTTPRequest")
 	}
@@ -313,7 +313,7 @@ func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data map[string
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", bot.UserAgent)
 
-	resp, err := libHttp.ExecuteHTTPRequest(bot.BotSetting.Client, req)
+	resp, err := httpclient.ExecuteHTTPRequest(bot.BotSetting.Client, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to executeHTTPRequest")
 	}
