@@ -315,7 +315,7 @@ func parseCoordinates(place string) (*Location, error) {
 func executeAndReadResponse(client *http.Client, req *http.Request) (body []byte, err error) {
 	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to libHttp.ExecuteHTTPRequest")
+		return nil, errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
 	}
 
 	body, err = handleHTTPResponse(resp)
