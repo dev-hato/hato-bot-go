@@ -27,8 +27,8 @@ func main() {
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest"))
 	}
-	defer func(readCloser io.ReadCloser) {
-		if closeErr := readCloser.Close(); closeErr != nil {
+	defer func(body io.ReadCloser) {
+		if closeErr := body.Close(); closeErr != nil {
 			panic(errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
