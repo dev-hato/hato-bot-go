@@ -517,8 +517,8 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
+	defer func(body io.ReadCloser) {
+		if closeErr := body.Close(); closeErr != nil {
 			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
