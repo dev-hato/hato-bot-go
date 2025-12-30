@@ -309,32 +309,6 @@ func parseCoordinates(place string) (*Location, error) {
 	}, nil
 }
 
-// geocodePlace 地名をジオコーディングして位置情報を取得する
-func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Location, error) {
-	place := req.GeocodeRequest.Place
-	if place == "" {
-		place = "東京"
-	}
-
-	requestURL := fmt.Sprintf(
-		"https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json",
-		req.GeocodeRequest.APIKey,
-		url.QueryEscape(place),
-	)
-
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
-	}
-
-	body, err := executeAndReadResponse(req.Client, httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to executeAndReadResponse")
-	}
-
-	return parseGeocodeResponse(body, place)
-}
-
 // executeAndReadResponse HTTPリクエストを実行してレスポンスボディを読み込む
 func executeAndReadResponse(client *http.Client, req *http.Request) ([]byte, error) {
 	resp, err := httpclient.ExecuteHTTPRequest(client, req)
@@ -390,6 +364,32 @@ func parseGeocodeResponse(body []byte, place string) (*Location, error) {
 		Lng:       lng,
 		PlaceName: feature.Name,
 	}, nil
+}
+
+// geocodePlace 地名をジオコーディングして位置情報を取得する
+func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Location, error) {
+	place := req.GeocodeRequest.Place
+	if place == "" {
+		place = "東京"
+	}
+
+	requestURL := fmt.Sprintf(
+		"https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json",
+		req.GeocodeRequest.APIKey,
+		url.QueryEscape(place),
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
+	}
+
+	body, err := executeAndReadResponse(req.Client, httpReq)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to executeAndReadResponse")
+	}
+
+	return parseGeocodeResponse(body, place)
 }
 
 // deg2rad 度数をラジアンに変換する
