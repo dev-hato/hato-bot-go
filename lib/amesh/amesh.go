@@ -316,8 +316,8 @@ func executeAndReadResponse(client *http.Client, req *http.Request) (body []byte
 		return nil, errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
 	}
 
-	defer func(readCloser io.ReadCloser) {
-		if closeErr := readCloser.Close(); closeErr != nil {
+	defer func(body io.ReadCloser) {
+		if closeErr := body.Close(); closeErr != nil {
 			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
