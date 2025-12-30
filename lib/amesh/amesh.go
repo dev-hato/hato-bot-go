@@ -253,20 +253,44 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 		return nil, lib.ErrParamsNil
 	}
 	// 座標が直接提供されているかチェック
-	parts := strings.Fields(req.GeocodeRequest.Place)
-	if len(parts) == 2 {
-		if parsedLat, err1 := parseFloat64(parts[0]); err1 == nil {
-			if parsedLng, err2 := parseFloat64(parts[1]); err2 == nil {
-				return &Location{
-					Lat:       parsedLat,
-					Lng:       parsedLng,
-					PlaceName: fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng),
-				}, nil
-			}
+	location, err := parseCoordinates(req.GeocodeRequest.Place)
+	if err != nil {
+		// 地名をジオコーディング
+		location, err = geocodePlace(ctx, req)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to geocodePlace")
 		}
 	}
 
-	// 地名をジオコーディング
+	return location, nil
+}
+
+// parseCoordinates 文字列から座標を直接解析する
+func parseCoordinates(place string) (*Location, error) {
+	parts := strings.Fields(place)
+	if len(parts) != 2 {
+		return nil, errors.New("not a coordinate pair")
+	}
+
+	parsedLat, err1 := parseFloat64(parts[0])
+	if err1 != nil {
+		return nil, errors.Wrap(err1, "Failed to parseFloat64")
+	}
+
+	parsedLng, err2 := parseFloat64(parts[1])
+	if err2 != nil {
+		return nil, errors.Wrap(err2, "Failed to parseFloat64")
+	}
+
+	return &Location{
+		Lat:       parsedLat,
+		Lng:       parsedLng,
+		PlaceName: fmt.Sprintf("%.2f,%.2f", parsedLat, parsedLng),
+	}, nil
+}
+
+// geocodePlace 地名をジオコーディングして位置情報を取得する
+func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Location, error) {
 	place := req.GeocodeRequest.Place
 	if place == "" {
 		place = "東京"
@@ -282,7 +306,18 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := httpclient.ExecuteHTTPRequest(req.Client, httpReq)
+
+	body, err := executeAndReadResponse(req.Client, httpReq)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to executeAndReadResponse")
+	}
+
+	return parseGeocodeResponse(body, place)
+}
+
+// executeAndReadResponse HTTPリクエストを実行してレスポンスボディを読み込む
+func executeAndReadResponse(client *http.Client, req *http.Request) ([]byte, error) {
+	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
 	}
@@ -292,6 +327,11 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
 	}
 
+	return body, nil
+}
+
+// parseGeocodeResponse ジオコーディングAPIのレスポンスを解析する
+func parseGeocodeResponse(body []byte, place string) (*Location, error) {
 	var result struct {
 		Feature []struct {
 			Name     string `json:"Name"`
@@ -536,18 +576,14 @@ func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*htt
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	resp, err := httpclient.ExecuteHTTPRequest(client, req)
+
+	body, err := executeAndReadResponse(client, req)
 	if err != nil {
 		if errors.Is(err, httpclient.ErrHTTPRequestError) {
 			return &httpRequestResult{Body: nil, IsEmpty: true}, nil
 		}
 
-		return nil, errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
-	}
-
-	body, err := handleHTTPResponse(resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to handleHTTPResponse")
+		return nil, errors.Wrap(err, "Failed to executeAndReadResponse")
 	}
 
 	return &httpRequestResult{Body: body, IsEmpty: false}, nil
