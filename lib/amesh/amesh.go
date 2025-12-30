@@ -265,6 +265,26 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 	return location, nil
 }
 
+// ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
+func ParseLocation(ctx context.Context, place, apiKey string) (*Location, error) {
+	return ParseLocationWithClient(ctx, &ParseLocationWithClientParams{
+		Client: http.DefaultClient,
+		GeocodeRequest: GeocodeRequest{
+			Place:  place,
+			APIKey: apiKey,
+		},
+	})
+}
+
+// GenerateFileName 位置情報からamesh画像のファイル名を生成する
+func GenerateFileName(location *Location) string {
+	return fmt.Sprintf(
+		"amesh_%s_%d.png",
+		strings.ReplaceAll(location.PlaceName, " ", "_"),
+		time.Now().Unix(),
+	)
+}
+
 // parseCoordinates 文字列から座標を直接解析する
 func parseCoordinates(place string) (*Location, error) {
 	parts := strings.Fields(place)
@@ -370,26 +390,6 @@ func parseGeocodeResponse(body []byte, place string) (*Location, error) {
 		Lng:       lng,
 		PlaceName: feature.Name,
 	}, nil
-}
-
-// ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
-func ParseLocation(ctx context.Context, place, apiKey string) (*Location, error) {
-	return ParseLocationWithClient(ctx, &ParseLocationWithClientParams{
-		Client: http.DefaultClient,
-		GeocodeRequest: GeocodeRequest{
-			Place:  place,
-			APIKey: apiKey,
-		},
-	})
-}
-
-// GenerateFileName 位置情報からamesh画像のファイル名を生成する
-func GenerateFileName(location *Location) string {
-	return fmt.Sprintf(
-		"amesh_%s_%d.png",
-		strings.ReplaceAll(location.PlaceName, " ", "_"),
-		time.Now().Unix(),
-	)
 }
 
 // deg2rad 度数をラジアンに変換する
