@@ -293,14 +293,14 @@ func parseCoordinates(place string) (*Location, error) {
 		return nil, errors.New("not a coordinate pair")
 	}
 
-	parsedLat, err1 := parseFloat64(parts[0])
-	if err1 != nil {
-		return nil, errors.Wrap(err1, "Failed to parseFloat64")
+	parsedLat, err := parseFloat64(parts[0])
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to parseFloat64")
 	}
 
-	parsedLng, err2 := parseFloat64(parts[1])
-	if err2 != nil {
-		return nil, errors.Wrap(err2, "Failed to parseFloat64")
+	parsedLng, err := parseFloat64(parts[1])
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to parseFloat64")
 	}
 
 	return &Location{
