@@ -256,9 +256,10 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 	location, err := parseCoordinates(req.GeocodeRequest.Place)
 	if err != nil {
 		// 地名をジオコーディング
-		location, err = geocodePlace(ctx, req)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to geocodePlace")
+		var err2 error
+		location, err2 = geocodePlace(ctx, req)
+		if err2 != nil {
+			return nil, errors.Wrap(errors.Join(err, err2), "Failed to geocodePlace")
 		}
 	}
 
@@ -292,14 +293,14 @@ func parseCoordinates(place string) (*Location, error) {
 		return nil, errors.New("not a coordinate pair")
 	}
 
-	parsedLat, err1 := parseFloat64(parts[0])
-	if err1 != nil {
-		return nil, errors.Wrap(err1, "Failed to parseFloat64")
+	parsedLat, err := parseFloat64(parts[0])
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to parseFloat64")
 	}
 
-	parsedLng, err2 := parseFloat64(parts[1])
-	if err2 != nil {
-		return nil, errors.Wrap(err2, "Failed to parseFloat64")
+	parsedLng, err := parseFloat64(parts[1])
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to parseFloat64")
 	}
 
 	return &Location{
@@ -563,8 +564,8 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
+	defer func(body io.ReadCloser) {
+		if closeErr := body.Close(); closeErr != nil {
 			err = errors.Wrap(closeErr, "Failed to Close")
 		}
 	}(resp.Body)
