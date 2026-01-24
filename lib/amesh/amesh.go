@@ -256,9 +256,10 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 	location, err := parseCoordinates(req.GeocodeRequest.Place)
 	if err != nil {
 		// 地名をジオコーディング
-		location, err = geocodePlace(ctx, req)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to geocodePlace")
+		var err2 error
+		location, err2 = geocodePlace(ctx, req)
+		if err2 != nil {
+			return nil, errors.Wrap(errors.Join(err, err2), "Failed to geocodePlace")
 		}
 	}
 
