@@ -11,7 +11,7 @@ require (
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
-	github.com/air-verse/air v1.64.0 // indirect
+	github.com/air-verse/air v1.64.1 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
@@ -25,6 +25,7 @@ require (
 	github.com/gohugoio/hugo v0.149.1 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
