@@ -678,29 +678,17 @@ func getLatestTimestamps(ctx context.Context, client *http.Client) map[string]st
 		allTimeData = append(allTimeData, timeData...)
 	}
 
-	// 一意な要素を抽出
-	elementMap := make(map[string]bool)
-	for _, td := range allTimeData {
-		for _, element := range td.Elements {
-			elementMap[element] = true
-		}
-	}
-
 	// 各要素の最新タイムスタンプを検索
 	result := make(map[string]string)
-	for element := range elementMap {
-		latestTime := ""
-		for _, td := range allTimeData {
-			if td.BaseTime != td.ValidTime {
-				continue
-			}
-			for _, e := range td.Elements {
-				if e == element && latestTime < td.BaseTime {
-					latestTime = td.BaseTime
-				}
+	for _, td := range allTimeData {
+		if td.BaseTime != td.ValidTime {
+			continue
+		}
+		for _, element := range td.Elements {
+			if result[element] < td.BaseTime {
+				result[element] = td.BaseTime
 			}
 		}
-		result[element] = latestTime
 	}
 
 	return result
