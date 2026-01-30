@@ -20,7 +20,7 @@ import (
 	"hato-bot-go/lib/httpclient"
 )
 
-// エラー定数
+// ErrParamsEmptyString エラー定数
 var (
 	ErrParamsEmptyString = errors.New("params cannot be empty string")
 )
