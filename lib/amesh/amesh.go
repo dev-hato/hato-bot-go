@@ -97,6 +97,27 @@ type drawDistanceCircleParams struct {
 	Col                    color.RGBA
 }
 
+// calcCirclePointParams 円上の点を計算するためのパラメータ
+type calcCirclePointParams struct {
+	Params *drawDistanceCircleParams
+	Angle  float64 // 角度（ラジアン）
+}
+
+// calcCirclePointResult 円上の点の計算結果
+type calcCirclePointResult struct {
+	Lat float64 // 緯度
+	Lng float64 // 経度
+}
+
+// calcCirclePoint 地球の曲率を考慮して円上の点を計算する
+func calcCirclePoint(params *calcCirclePointParams) *calcCirclePointResult {
+	earthRadius := 6371.0 // 地球半径（キロメートル）
+	return &calcCirclePointResult{
+		Lat: params.Params.CreateAmeshImageParams.Lat + (params.Params.RadiusKm/earthRadius)*math.Cos(params.Angle)*180/math.Pi,
+		Lng: params.Params.CreateAmeshImageParams.Lng + (params.Params.RadiusKm/earthRadius)*math.Sin(params.Angle)*180/math.Pi/math.Cos(deg2rad(params.Params.CreateAmeshImageParams.Lat)),
+	}
+}
+
 // httpRequestResult HTTPリクエストの結果を表す構造体
 type httpRequestResult struct {
 	Body    []byte
@@ -506,28 +527,30 @@ func drawLine(params *drawLineParams) {
 func drawDistanceCircle(params *drawDistanceCircleParams) {
 	// 線分で円を近似
 	numSegments := 64
-	earthRadius := 6371.0 // 地球半径（キロメートル）
 
 	for i := range numSegments {
 		angle1 := float64(i) * 2 * math.Pi / float64(numSegments)
 		angle2 := float64(i+1) * 2 * math.Pi / float64(numSegments)
 
 		// 円上の点を計算（地球の曲率を考慮）
-		lat1 := params.CreateAmeshImageParams.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle1)*180/math.Pi
-		lng1 := params.CreateAmeshImageParams.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle1)*180/math.Pi/math.Cos(deg2rad(params.CreateAmeshImageParams.Lat))
-
-		lat2 := params.CreateAmeshImageParams.Lat + (params.RadiusKm/earthRadius)*math.Cos(angle2)*180/math.Pi
-		lng2 := params.CreateAmeshImageParams.Lng + (params.RadiusKm/earthRadius)*math.Sin(angle2)*180/math.Pi/math.Cos(deg2rad(params.CreateAmeshImageParams.Lat))
+		point1 := calcCirclePoint(&calcCirclePointParams{
+			Params: params,
+			Angle:  angle1,
+		})
+		point2 := calcCirclePoint(&calcCirclePointParams{
+			Params: params,
+			Angle:  angle2,
+		})
 
 		// ピクセル座標に変換
 		x1, y1 := getWebMercatorPixel(&CreateAmeshImageParams{
-			Lat:  lat1,
-			Lng:  lng1,
+			Lat:  point1.Lat,
+			Lng:  point1.Lng,
 			Zoom: params.CreateAmeshImageParams.Zoom,
 		})
 		x2, y2 := getWebMercatorPixel(&CreateAmeshImageParams{
-			Lat:  lat2,
-			Lng:  lng2,
+			Lat:  point2.Lat,
+			Lng:  point2.Lng,
 			Zoom: params.CreateAmeshImageParams.Zoom,
 		})
 
