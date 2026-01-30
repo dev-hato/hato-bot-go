@@ -272,12 +272,15 @@ func TestCreateAmeshImage(t *testing.T) {
 				return
 			}
 
-			if tt.checkCenterColor {
-				centerColor := result.RGBAAt(bounds.Dx()/2, bounds.Dy()/2)
-				if centerColor.R != 255 || centerColor.G != 255 || centerColor.B != 255 || centerColor.A != 255 {
-					t.Errorf("Expected white center pixel but got R=%d, G=%d, B=%d, A=%d",
-						centerColor.R, centerColor.G, centerColor.B, centerColor.A)
-				}
+			if !tt.checkCenterColor {
+				return
+			}
+
+			centerColor := result.RGBAAt(bounds.Dx()/2, bounds.Dy()/2)
+
+			if centerColor.R != 255 || centerColor.G != 255 || centerColor.B != 255 || centerColor.A != 255 {
+				t.Errorf("Expected white center pixel but got R=%d, G=%d, B=%d, A=%d",
+					centerColor.R, centerColor.G, centerColor.B, centerColor.A)
 			}
 		})
 	}
@@ -363,23 +366,25 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 				return
 			}
 
-			if tt.expectError == nil {
-				if result == nil {
-					t.Error("CreateImageReaderWithClient() returned nil reader")
-					return
-				}
+			if tt.expectError != nil {
+				return
+			}
 
-				// io.Readerからデータを読み取って、有効なPNGデータかチェック
-				data, err := io.ReadAll(result)
-				if err != nil {
-					t.Error(err)
-					return
-				}
+			if result == nil {
+				t.Error("CreateImageReaderWithClient() returned nil reader")
+				return
+			}
 
-				// PNGデータのデコードを試行
-				if _, _, err = image.Decode(bytes.NewReader(data)); err != nil {
-					t.Error(err)
-				}
+			// io.Readerからデータを読み取って、有効なPNGデータかチェック
+			data, err := io.ReadAll(result)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			// PNGデータのデコードを試行
+			if _, _, err = image.Decode(bytes.NewReader(data)); err != nil {
+				t.Error(err)
 			}
 		})
 	}
