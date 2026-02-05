@@ -15,11 +15,11 @@ import (
 // main スタンドアロンモードで実行
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run main.go <command> <params>")
+		fmt.Println("Usage: go run cli.go <command> <params>")
 		fmt.Println("Commands:")
 		fmt.Println("	amesh: Displays amesh, which is rain cloud information")
-		fmt.Println("	       Usage: go run main.go amesh <place name>")
-		fmt.Println("	       Usage: go run main.go amesh <latitude>,<longitude>")
+		fmt.Println("	       Usage: go run cli.go amesh <place name>")
+		fmt.Println("	       Usage: go run cli.go amesh <latitude>,<longitude>")
 		fmt.Println("Note: YAHOO_API_TOKEN environment variable must be set")
 		os.Exit(1)
 	}
@@ -30,8 +30,8 @@ func main() {
 	case "amesh":
 		if len(os.Args) < 3 {
 			fmt.Println("amesh: Displays amesh, which is rain cloud information")
-			fmt.Println("Usage: go run main.go amesh <place name>")
-			fmt.Println("Usage: go run main.go amesh <latitude>,<longitude>")
+			fmt.Println("Usage: go run cli.go amesh <place name>")
+			fmt.Println("Usage: go run cli.go amesh <latitude>,<longitude>")
 			fmt.Println("Note: YAHOO_API_TOKEN environment variable must be set")
 			os.Exit(1)
 		}

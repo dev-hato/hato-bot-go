@@ -31,11 +31,11 @@ cp .env.example .env
 # .envファイルを編集してAPIトークンを設定
 
 # CLI版のビルドと実行
-go build -o hato-bot-go cmd/cli/main.go
+go build -o hato-bot-go cli.go
 ./hato-bot-go amesh 東京
 
 # Misskeyボットのビルドと実行
-go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
+go build -o hato-bot-go-misskey-bot misskey_bot.go
 ./hato-bot-go-misskey-bot
 
 # Docker Composeで実行（推奨）
@@ -66,17 +66,17 @@ go mod tidy
 gci write -s default -s standard -s "prefix($(go list -m))" .
 
 # 各プラットフォーム向けビルド
-go build -o hato-bot-go cmd/cli/main.go
-go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
+go build -o hato-bot-go cli.go
+go build -o hato-bot-go-misskey-bot misskey_bot.go
 ```
 
 ## アーキテクチャ
 
 ### コアコンポーネント
 
-- **`cmd/cli/main.go`**: スタンドアロンのCLIエントリーポイント
-- **`cmd/misskey_bot/main.go`**: WebSocketストリーミング付きMisskeyボットエントリーポイント
-- **`cmd/health_check/main.go`**: コンテナオーケストレーション用ヘルスチェックサービス
+- **`cli.go`**: スタンドアロンのCLIエントリーポイント
+- **`misskey_bot.go`**: WebSocketストリーミング付きMisskeyボットエントリーポイント
+- **`health_check.go`**: コンテナオーケストレーション用ヘルスチェックサービス
 - **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能
 - **`lib/misskey/misskey.go`**: Misskey APIクライアントとWebSocket処理
 - **Docker設定**: 開発環境と本番環境用のマルチステージビルド

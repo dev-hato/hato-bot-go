@@ -12,15 +12,15 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # ソースコードをコピー
-COPY "cmd/health_check" "cmd/health_check"
-COPY "cmd/misskey_bot" "cmd/misskey_bot"
+COPY "health_check.go" "health_check.go"
+COPY "misskey_bot.go" "misskey_bot.go"
 COPY lib lib
 
 # アプリケーションをビルド
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-RUN go build -a -installsuffix cgo -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go && \
-    go build -a -installsuffix cgo -o health-check cmd/health_check/main.go
+RUN go build -a -installsuffix cgo -o hato-bot-go-misskey-bot misskey_bot.go && \
+    go build -a -installsuffix cgo -o health-check health_check.go
 
 # 開発用イメージ
 FROM builder AS dev

@@ -70,7 +70,7 @@ export MISSKEY_DOMAIN=your-misskey-instance.com
 export YAHOO_API_TOKEN=your_yahoo_api_token
 
 # ソースから実行
-go run cmd/misskey_bot/main.go
+go run misskey_bot.go
 ```
 
 ### スタンドアロンモードで実行
@@ -81,21 +81,21 @@ export YAHOO_API_TOKEN=your_yahoo_api_token
 
 
 # ソースから実行
-go run cmd/cli/main.go amesh 東京
+go run cli.go amesh 東京
 
 # 座標で実行
-go run cmd/cli/main.go amesh "35.6762 139.6503"
+go run cli.go amesh "35.6762 139.6503"
 ```
 
 ### ビルド
 
 ```bash
 # CLI版のビルド
-go build -o hato-bot-go cmd/cli/main.go
+go build -o hato-bot-go cli.go
 ./hato-bot-go amesh 東京
 
 # ボット版のビルド
-go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
+go build -o hato-bot-go-misskey-bot misskey_bot.go
 ./hato-bot-go-misskey-bot
 ```
 
@@ -166,8 +166,8 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 ### アーキテクチャ
 
 - **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能
-- **`cmd/cli/main.go`**: コマンドライン実行のためのCLI実装
-- **`cmd/misskey_bot/main.go`**: MisskeyボットのWebSocket実装
+- **`cli.go`**: コマンドライン実行のためのCLI実装
+- **`misskey_bot.go`**: MisskeyボットのWebSocket実装
 
 ### 技術仕様
 
