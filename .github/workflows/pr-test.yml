@@ -42,6 +42,8 @@ jobs:
         env:
           LINTER_RULES_PATH: .
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ルートディレクトリにGoファイルがないため、go.modの検出によるルートでのgolangci-lint実行を防ぐ
+          FILTER_REGEX_EXCLUDE: "go\\.mod$"
           # Go modulesを使っているため、こちらはfalseにする
           VALIDATE_GO: false
           VALIDATE_BIOME_FORMAT: false
