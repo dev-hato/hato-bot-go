@@ -1,6 +1,6 @@
 module hato-bot-go
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/cockroachdb/errors v1.12.0
@@ -11,7 +11,8 @@ require (
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
-	github.com/air-verse/air v1.64.2 // indirect
+	github.com/air-verse/air v1.64.4 // indirect
+	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
