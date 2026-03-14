@@ -166,6 +166,7 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 ### アーキテクチャ
 
 - **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能
+- **`lib/server.go`**: HTTPステータスサーバーの共通実装
 - **`cmd/cli/main.go`**: コマンドライン実行のためのCLI実装
 - **`cmd/misskey_bot/main.go`**: MisskeyボットのWebSocket実装
 
