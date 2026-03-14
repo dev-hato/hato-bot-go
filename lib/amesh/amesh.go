@@ -25,8 +25,6 @@ import (
 	"hato-bot-go/lib/httpclient"
 )
 
-const Version = "1.0"
-
 // エラー定数
 var (
 	ErrNoResultsFound           = errors.New("no results found for place")
@@ -623,7 +621,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
+	req.Header.Set("User-Agent", "hato-bot-go/"+lib.Version)
 
 	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {

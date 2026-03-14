@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"hato-bot-go/lib/amesh"
+	"hato-bot-go/lib"
 )
 
 // BotSetting Misskeyボットの設定
@@ -59,7 +59,7 @@ func NewBotWithClient(botSetting *BotSetting) *Bot {
 	}
 	return &Bot{
 		BotSetting: botSetting,
-		UserAgent:  "hato-bot-go/" + amesh.Version,
+		UserAgent:  "hato-bot-go/" + lib.Version,
 	}
 }
 

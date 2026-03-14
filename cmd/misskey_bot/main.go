@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
 	"hato-bot-go/lib/misskey"
 )
@@ -93,7 +94,7 @@ func main() {
 func statusHandler(w http.ResponseWriter, _ *http.Request) {
 	response := map[string]string{
 		"message": "hato-bot-go is running",
-		"version": amesh.Version,
+		"version": lib.Version,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
