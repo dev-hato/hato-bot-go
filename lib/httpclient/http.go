@@ -20,7 +20,8 @@ func ExecuteHTTPRequest(client *http.Client, req *http.Request) (*http.Response,
 		return nil, errors.Wrap(err, "Failed to Do")
 	}
 
-	if !slices.Contains([]int{http.StatusOK, http.StatusNoContent}, resp.StatusCode) {
+	// レスポンスステータスを確認
+	if !slices.Contains([]int{http.StatusOK, http.StatusAccepted, http.StatusNoContent}, resp.StatusCode) {
 		if err := resp.Body.Close(); err != nil {
 			return nil, errors.Wrap(err, "Failed to Close")
 		}

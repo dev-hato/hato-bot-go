@@ -14,12 +14,14 @@ RUN go mod download
 # ソースコードをコピー
 COPY "cmd/health_check" "cmd/health_check"
 COPY "cmd/misskey_bot" "cmd/misskey_bot"
+COPY "cmd/mixi2_bot" "cmd/mixi2_bot"
 COPY lib lib
 
 # アプリケーションをビルド
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 RUN go build -a -installsuffix cgo -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go && \
+    go build -a -installsuffix cgo -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go && \
     go build -a -installsuffix cgo -o health-check cmd/health_check/main.go
 
 # 開発用イメージ
@@ -48,7 +50,6 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # ビルドした実行ファイルをコピー
-COPY --from=builder /app/hato-bot-go-misskey-bot /hato-bot-go-misskey-bot
 COPY --from=builder /app/health-check /health-check
 
 # nonrootユーザーで実行（UID 65534）
@@ -57,6 +58,20 @@ USER 65534:65534
 # ポートを公開（必要に応じて）
 EXPOSE 8080
 
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD ./health-check
+
+FROM prod AS prod_misskey
+
+# ビルドした実行ファイルをコピー
+COPY --from=builder /app/hato-bot-go-misskey-bot /hato-bot-go-misskey-bot
+
 # 実行
 CMD ["./hato-bot-go-misskey-bot"]
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD ./health-check
+
+FROM prod AS prod_mixi2
+
+# ビルドした実行ファイルをコピー
+COPY --from=builder /app/hato-bot-go-mixi2-bot /hato-bot-go-mixi2-bot
+
+# 実行
+CMD ["./hato-bot-go-mixi2-bot"]
