@@ -1,7 +1,7 @@
 # hato-bot-go
 
 これは、hato-botのameshコマンドをGo言語で実装したもので、気象庁のデータを使用して気象レーダー画像を生成します。
-スタンドアロンプログラムとして実行するか、MisskeyボットとしてWebSocketストリーミング接続で動作させることができます。
+スタンドアロンプログラムとして実行するか、MisskeyボットとしてWebSocketストリーミング接続で動作させるか、mixi2ボットとしてgRPCストリーミング接続で動作させることができます。
 
 ## 機能
 
@@ -18,6 +18,11 @@
   - WebSocketストリーミング接続
   - 自動的に再接続する機能
   - エラーハンドリングと詳細ログ
+- **mixi2ボット機能**:
+  - メンションイベントに自動応答
+  - gRPCストリーミング接続
+  - OAuth2認証
+  - エラー時のエラーメッセージ投稿
 
 ## セットアップ
 
@@ -30,6 +35,8 @@ go mod download
 **主な依存関係**:
 
 - `github.com/gorilla/websocket`: WebSocket通信（Misskeyボット用）
+- `google.golang.org/grpc`: gRPC通信（mixi2ボット用）
+- `github.com/mixigroup/mixi2-application-sdk-go`: mixi2 API操作（mixi2ボット用）
 - `github.com/cockroachdb/errors`: エラーハンドリング
 
 ### 1.1. 開発環境のセットアップ
@@ -48,7 +55,9 @@ uv tool run pre-commit install
 1. [Yahoo Developer Network](https://developer.yahoo.co.jp/)からYahoo Maps APIキーを取得
 2. 必要な環境変数を設定
 
-### 3. MisskeyAPIトークンの取得（ボット使用時）
+### 3. API・アプリのトークン取得
+
+#### MisskeyAPIトークンの取得（Misskeyボット使用時）
 
 1. Misskeyインスタンスにログイン
 2. 設定 → API → アクセストークンを生成
@@ -57,6 +66,12 @@ uv tool run pre-commit install
    - ノートを作成・削除する
    - ドライブを操作する
    - リアクションを追加・削除する
+
+#### mixi2アプリの登録（mixi2ボット使用時）
+
+1. [mixi2 Developer Platform β](https://developer.mixi.social/)から利用申請
+2. [アプリケーション | mixi2 Developer Platform β](https://developer.mixi.social/applications)を開く
+3. アプリケーションを作成
 
 ## 使用方法
 
@@ -71,6 +86,22 @@ export YAHOO_API_TOKEN=your_yahoo_api_token
 
 # ソースから実行
 go run cmd/misskey_bot/main.go
+```
+
+### mixi2ボットとして実行
+
+```bash
+# mixi2の環境変数設定
+export MIXI2_CLIENT_ID=your_mixi2_client_id
+export MIXI2_CLIENT_SECRET=your_mixi2_client_secret
+export MIXI2_TOKEN_URL=your-mixi2-token-url.com
+export MIXI2_STREAM_ADDRESS=your-mixi2-stream-address.com
+export MIXI2_API_ADDRESS=your-mixi2-api-address.com
+# Yahoo APIの環境変数設定
+export YAHOO_API_TOKEN=your_yahoo_api_token
+
+# ソースから実行
+go run cmd/mixi2_bot/main.go
 ```
 
 ### スタンドアロンモードで実行
@@ -94,9 +125,13 @@ go run cmd/cli/main.go amesh "35.6762 139.6503"
 go build -o hato-bot-go cmd/cli/main.go
 ./hato-bot-go amesh 東京
 
-# ボット版のビルド
+# Misskeyボット版のビルド
 go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 ./hato-bot-go-misskey-bot
+
+# mixi2ボット版のビルド
+go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go
+./hato-bot-go-mixi2-bot
 ```
 
 ### Docker Composeで実行
@@ -108,9 +143,16 @@ cp .env.example .env
 
 # Docker Composeで実行（推奨）
 export TAG_NAME=$(git symbolic-ref --short HEAD | sed -e "s:/:-:g")
-docker compose up -d
+
+# Misskeyボット
+docker compose -f docker-compose.yml -f misskey.docker-compose.yml up -d
+
+# mixi2ボット
+docker compose -f docker-compose.yml -f mixi2.docker-compose.yml up -d
 
 # 自動リロード付き開発モード（airを使用）
+# デフォルトはMisskeyボット。mixi2ボットで起動する場合は
+# .air.toml のL.8をコメントアウトしL.9のコメントアウトを解除する
 docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 ```
 
@@ -169,6 +211,7 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 - **`lib/server.go`**: HTTPステータスサーバーの共通実装
 - **`cmd/cli/main.go`**: コマンドライン実行のためのCLI実装
 - **`cmd/misskey_bot/main.go`**: MisskeyボットのWebSocket実装
+- **`cmd/mixi2_bot/main.go`**: mixi2ボットのgRPCストリーミング実装
 
 ### 技術仕様
 
@@ -177,6 +220,7 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 - 地理座標とピクセル座標間の座標変換を処理
 - API失敗時のエラーハンドリングを含む
 - WebSocketストリーミング接続（Misskeyボット）
+- gRPCストリーミング接続とOAuth2認証（mixi2ボット）
 - 自動的に再接続する機能とエラーハンドリング
 
 ### 描画アルゴリズムの技術的詳細
@@ -300,7 +344,7 @@ for dy := -radius; dy <= radius; dy++ {
 
 ボットは次のログを出力します。
 
-- WebSocket接続状況
+- WebSocket/gRPCストリーミング接続状況
 - メンション受信状況
 - コマンド処理状況
 - エラー情報
@@ -342,8 +386,8 @@ Failed to upload file to Misskey: ...
 ### 新しいコマンドの追加
 
 1. `ParseAmeshCommand`関数を拡張してコマンドを解析
-2. 対応する処理関数を`Bot`に追加
-3. `messageHandler`で新しいコマンドを処理
+2. Misskeyボット: `Bot`に対応する処理関数を追加し`messageHandler`で処理
+3. mixi2ボット: `Handler`に対応する処理関数を追加し`Handle`で処理
 
 ## Python版との違い
 
