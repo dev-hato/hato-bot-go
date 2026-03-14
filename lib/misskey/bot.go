@@ -186,7 +186,7 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCom
 		return errors.Wrap(err, "Failed to amesh.ParseLocation")
 	}
 
-	fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
+	log.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 	// 画像をメモリ上に作成
 	imageReader, err := amesh.CreateImageReader(ctx, location)
