@@ -725,6 +725,80 @@ func TestGenerateFileName(t *testing.T) {
 	}
 }
 
+func TestParseAmeshCommand(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected amesh.ParseAmeshCommandResult
+	}{
+		{
+			name:     "シンプルなameshコマンド",
+			input:    "amesh 東京",
+			expected: amesh.ParseAmeshCommandResult{Place: "東京", IsAmesh: true},
+		},
+		{
+			name:     "場所無しのameshコマンドは東京がデフォルト",
+			input:    "amesh",
+			expected: amesh.ParseAmeshCommandResult{Place: "東京", IsAmesh: true},
+		},
+		{
+			name:     "メンション付きameshコマンド",
+			input:    "@bot amesh 大阪",
+			expected: amesh.ParseAmeshCommandResult{Place: "大阪", IsAmesh: true},
+		},
+		{
+			name:     "複数メンション付きameshコマンド",
+			input:    "@bot @user amesh 名古屋",
+			expected: amesh.ParseAmeshCommandResult{Place: "名古屋", IsAmesh: true},
+		},
+		{
+			name:     "余分な空白付きameshコマンド",
+			input:    "  amesh   福岡  ",
+			expected: amesh.ParseAmeshCommandResult{Place: "福岡", IsAmesh: true},
+		},
+		{
+			name:     "複数単語の場所名を持つameshコマンド",
+			input:    "amesh 新宿 駅",
+			expected: amesh.ParseAmeshCommandResult{Place: "新宿 駅", IsAmesh: true},
+		},
+		{
+			name:     "ameshコマンドではないテキスト",
+			input:    "hello world",
+			expected: amesh.ParseAmeshCommandResult{Place: "", IsAmesh: false},
+		},
+		{
+			name:     "部分的なameshコマンド",
+			input:    "ameshi",
+			expected: amesh.ParseAmeshCommandResult{Place: "", IsAmesh: false},
+		},
+		{
+			name:     "ameshが単語の一部に含まれる場合",
+			input:    "gameshow",
+			expected: amesh.ParseAmeshCommandResult{Place: "", IsAmesh: false},
+		},
+		{
+			name:     "空の入力",
+			input:    "",
+			expected: amesh.ParseAmeshCommandResult{Place: "", IsAmesh: false},
+		},
+		{
+			name:     "メンションのみ",
+			input:    "@bot @user",
+			expected: amesh.ParseAmeshCommandResult{Place: "", IsAmesh: false},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := amesh.ParseAmeshCommand(tt.input)
+			if diff := cmp.Diff(result, tt.expected); diff != "" {
+				t.Errorf("ParseAmeshCommand(%q) diff: %s", tt.input, diff)
+			}
+		})
+	}
+}
+
 // createDummyPNGBytes ダミーのPNG画像バイトを作成する
 func createDummyPNGBytes(width, height int, c color.Color) ([]byte, error) {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))

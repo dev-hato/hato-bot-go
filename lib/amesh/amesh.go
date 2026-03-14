@@ -68,6 +68,12 @@ type ParseLocationWithClientParams struct {
 	GeocodeRequest GeocodeRequest
 }
 
+// ParseAmeshCommandResult ameshコマンドの解析結果を表す構造体
+type ParseAmeshCommandResult struct {
+	Place   string
+	IsAmesh bool
+}
+
 // lightningPoint 落雷データを表す構造体
 type lightningPoint struct {
 	Lat  float64 `json:"lat"`
@@ -305,6 +311,42 @@ func GenerateFileName(location *Location) string {
 		strings.ReplaceAll(location.PlaceName, " ", "_"),
 		time.Now().Unix(),
 	)
+}
+
+// ParseAmeshCommand ameshコマンドを解析
+func ParseAmeshCommand(text string) ParseAmeshCommandResult {
+	// メンションを除去
+	text = strings.TrimSpace(text)
+
+	// @username を削除
+	words := strings.Fields(text)
+	var cleanWords []string
+	for _, word := range words {
+		if !strings.HasPrefix(word, "@") {
+			cleanWords = append(cleanWords, word)
+		}
+	}
+	text = strings.Join(cleanWords, " ")
+
+	// ameshコマンドかチェック
+	if place, ok := strings.CutPrefix(text, "amesh "); ok {
+		return ParseAmeshCommandResult{
+			Place:   strings.TrimSpace(place),
+			IsAmesh: true,
+		}
+	}
+
+	if text == "amesh" {
+		return ParseAmeshCommandResult{
+			Place:   "東京", // デフォルトの場所
+			IsAmesh: true,
+		}
+	}
+
+	return ParseAmeshCommandResult{
+		Place:   "",
+		IsAmesh: false,
+	}
 }
 
 // parseCoordinates 文字列から座標を直接解析する
