@@ -75,13 +75,21 @@ jobs:
           push: true
           files: docker-compose.yml,dev.docker-compose.yml
           source: .
-      - name: Build and push (main)
+      - name: Build and push (prod_misskey)
         uses: docker/bake-action@82490499d2e5613fcead7e128237ef0b0ea210f7 # v7.0.0
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
           push: true
-          files: docker-compose.yml
+          files: docker-compose.yml,misskey.docker-compose.yml
+          source: .
+      - name: Build and push (prod_mixi2)
+        uses: docker/bake-action@82490499d2e5613fcead7e128237ef0b0ea210f7 # v7.0.0
+        env:
+          DOCKER_CONTENT_TRUST: 1
+        with:
+          push: true
+          files: docker-compose.yml,mixi2.docker-compose.yml
           source: .
       - run: echo 'TAG_NAME=latest' >> "$GITHUB_ENV"
         if: ${{ github.event_name == 'release' }}
@@ -94,14 +102,23 @@ jobs:
           push: true
           files: docker-compose.yml,dev.docker-compose.yml
           source: .
-      - name: Build and push (main) (latest)
+      - name: Build and push (prod_misskey) (latest)
         uses: docker/bake-action@82490499d2e5613fcead7e128237ef0b0ea210f7 # v7.0.0
         if: ${{ github.event_name == 'release' }}
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
           push: true
-          files: docker-compose.yml
+          files: docker-compose.yml,misskey.docker-compose.yml
+          source: .
+      - name: Build and push (prod_mixi2) (latest)
+        uses: docker/bake-action@82490499d2e5613fcead7e128237ef0b0ea210f7 # v7.0.0
+        if: ${{ github.event_name == 'release' }}
+        env:
+          DOCKER_CONTENT_TRUST: 1
+        with:
+          push: true
+          files: docker-compose.yml,mixi2.docker-compose.yml
           source: .
   # package.jsonに差分があれば、package.jsonからpackage-lock.jsonを作り出す
   # jscpd:ignore-start
