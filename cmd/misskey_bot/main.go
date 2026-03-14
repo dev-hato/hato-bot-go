@@ -45,7 +45,7 @@ func main() {
 	// メッセージハンドラー
 	messageHandler := func(note *misskey.Note) {
 		// ameshコマンドを解析
-		parseResult := misskey.ParseAmeshCommand(note.Text)
+		parseResult := amesh.ParseAmeshCommand(note.Text)
 
 		if !parseResult.IsAmesh {
 			return

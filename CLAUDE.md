@@ -77,7 +77,7 @@ go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 - **`cmd/cli/main.go`**: スタンドアロンのCLIエントリーポイント
 - **`cmd/misskey_bot/main.go`**: WebSocketストリーミング付きMisskeyボットエントリーポイント
 - **`cmd/health_check/main.go`**: コンテナオーケストレーション用ヘルスチェックサービス
-- **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能
+- **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能（`ParseAmeshCommand`含む）
 - **`lib/misskey/misskey.go`**: Misskey APIクライアントとWebSocket処理
 - **Docker設定**: 開発環境と本番環境用のマルチステージビルド
 
@@ -129,7 +129,7 @@ amesh気象レーダーコマンドを処理。
 
 テストファイルはパッケージ別に整理。
 
-- `lib/amesh/amesh_test.go`: HTTPモッキング付き気象レーダー機能テスト
+- `lib/amesh/amesh_test.go`: HTTPモッキング付き気象レーダー機能テスト（`ParseAmeshCommand`テスト含む）
 - `lib/misskey/misskey_test.go`: Misskey APIクライアントテスト
 - テーブル駆動テストとHTTPクライアントモッキングを使用したGo標準テストパッケージを使用
 
