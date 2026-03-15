@@ -61,12 +61,17 @@ func NewHandler(config *HandlerSetting) *Handler {
 // uploadFile メディアファイルをアップロードし、メディアIDを返す
 func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (mediaID string, err error) {
 	contentType := http.DetectContentType(params.buffer.Bytes())
+	bufLen := params.buffer.Len()
+
+	if bufLen < 0 {
+		return "", errors.New("buffer length is negative")
+	}
 
 	// アップロードの開始
 	initiateResp, err := h.APIClient.InitiatePostMediaUpload(ctx, &application_apiv1.InitiatePostMediaUploadRequest{
 		MediaType:   application_apiv1.InitiatePostMediaUploadRequest_TYPE_IMAGE,
 		ContentType: contentType,
-		DataSize:    uint64(max(0, params.buffer.Len())),
+		DataSize:    uint64(bufLen),
 		Description: &params.description,
 	})
 	if err != nil {
