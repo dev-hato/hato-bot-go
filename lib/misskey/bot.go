@@ -118,7 +118,7 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 	}
 
 	url := fmt.Sprintf("https://%s/api/drive/files/create", bot.BotSetting.Domain)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, &buf)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &buf)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
@@ -305,7 +305,7 @@ func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data map[string
 	}
 
 	url := fmt.Sprintf("https://%s/api/%s", bot.BotSetting.Domain, endpoint)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
