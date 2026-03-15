@@ -286,8 +286,8 @@ func TestCreateAmeshImage(t *testing.T) {
 	}
 }
 
-// TestCreateImageReaderWithClient CreateImageReaderWithClient関数をテストする
-func TestCreateImageReaderWithClient(t *testing.T) {
+// TestCreateImageBufferWithClient CreateImageBufferWithClient関数をテストする
+func TestCreateImageBufferWithClient(t *testing.T) {
 	dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 	if err != nil {
 		t.Fatal(err)
@@ -295,12 +295,12 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		params      *amesh.CreateImageReaderWithClientParams
+		params      *amesh.CreateImageBufferWithClientParams
 		expectError error
 	}{
 		{
-			name: "成功したio.Reader作成",
-			params: &amesh.CreateImageReaderWithClientParams{
+			name: "成功したbytes.Buffer作成",
+			params: &amesh.CreateImageBufferWithClientParams{
 				Client: createConfigurableMockHTTPClient(httpMockConfig{
 					TimestampsResponse: `[
 				{
@@ -327,7 +327,7 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 		},
 		{
 			name: "nilクライアント",
-			params: &amesh.CreateImageReaderWithClientParams{
+			params: &amesh.CreateImageBufferWithClientParams{
 				Client: nil,
 				Location: &amesh.Location{
 					Lat:       35.6895,
@@ -339,7 +339,7 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 		},
 		{
 			name: "nilロケーション",
-			params: &amesh.CreateImageReaderWithClientParams{
+			params: &amesh.CreateImageBufferWithClientParams{
 				Client: createConfigurableMockHTTPClient(httpMockConfig{
 					TimestampsResponse: `[
 				{
@@ -360,9 +360,9 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result, err := amesh.CreateImageReaderWithClient(t.Context(), tt.params)
+			result, err := amesh.CreateImageBufferWithClient(t.Context(), tt.params)
 			if !errors.Is(err, tt.expectError) {
-				t.Errorf("CreateImageReaderWithClient() error = %v, expectError = %v", err, tt.expectError)
+				t.Errorf("CreateImageBufferWithClient() error = %v, expectError = %v", err, tt.expectError)
 				return
 			}
 
@@ -371,11 +371,11 @@ func TestCreateImageReaderWithClient(t *testing.T) {
 			}
 
 			if result == nil {
-				t.Error("CreateImageReaderWithClient() returned nil reader")
+				t.Error("CreateImageBufferWithClient() returned nil buffer")
 				return
 			}
 
-			// io.Readerからデータを読み取って、有効なPNGデータかチェック
+			// bytes.Bufferからデータを読み取って、有効なPNGデータかチェック
 			data, err := io.ReadAll(result)
 			if err != nil {
 				t.Error(err)
