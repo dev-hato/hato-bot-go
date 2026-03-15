@@ -143,13 +143,11 @@ func (h *Handler) processAmeshCommand(ctx context.Context, authCtx context.Conte
 		return errors.Wrap(err, "Failed to APIClient.AddStampToPost")
 	}
 
-	// 位置を解析
-	location, err := amesh.ParseLocation(ctx, params.Place, params.YahooAPIToken)
+	// 位置を解析してログに出力
+	location, err := amesh.ParseLocationWithLog(ctx, params.Place, params.YahooAPIToken)
 	if err != nil {
-		return errors.Wrap(err, "Failed to amesh.ParseLocation")
+		return errors.Wrap(err, "Failed to amesh.ParseLocationWithLog")
 	}
-
-	log.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 	description := fmt.Sprintf("%s (%.4f, %.4f) の雨雲レーダー画像", location.PlaceName, location.Lat, location.Lng)
 
