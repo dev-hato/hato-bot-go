@@ -41,8 +41,8 @@ type CreateAmeshImageParams struct {
 	AroundTiles int          // 周囲のタイル数
 }
 
-// CreateImageReaderWithClientParams amesh画像リーダー作成のリクエスト構造体
-type CreateImageReaderWithClientParams struct {
+// CreateImageBufferWithClientParams amesh画像リーダー作成のリクエスト構造体
+type CreateImageBufferWithClientParams struct {
 	Client   *http.Client // HTTPクライアント
 	Location *Location    // 位置情報
 }
@@ -239,8 +239,8 @@ func CreateAmeshImage(ctx context.Context, params *CreateAmeshImageParams) (*ima
 	return img, nil
 }
 
-// CreateImageReaderWithClient HTTPクライアントを指定してamesh画像をメモリ上に作成してio.Readerを返す
-func CreateImageReaderWithClient(ctx context.Context, params *CreateImageReaderWithClientParams) (io.Reader, error) {
+// CreateImageBufferWithClient HTTPクライアントを指定してamesh画像をメモリ上に作成してbytes.Bufferを返す
+func CreateImageBufferWithClient(ctx context.Context, params *CreateImageBufferWithClientParams) (*bytes.Buffer, error) {
 	if params == nil || params.Client == nil || params.Location == nil {
 		return nil, lib.ErrParamsNil
 	}
@@ -266,7 +266,12 @@ func CreateImageReaderWithClient(ctx context.Context, params *CreateImageReaderW
 
 // CreateImageReader amesh画像をメモリ上に作成してio.Readerを返す
 func CreateImageReader(ctx context.Context, location *Location) (io.Reader, error) {
-	return CreateImageReaderWithClient(ctx, &CreateImageReaderWithClientParams{
+	return CreateImageBuffer(ctx, location)
+}
+
+// CreateImageBuffer amesh画像をメモリ上に作成してbytes.Bufferを返す
+func CreateImageBuffer(ctx context.Context, location *Location) (*bytes.Buffer, error) {
+	return CreateImageBufferWithClient(ctx, &CreateImageBufferWithClientParams{
 		Client:   http.DefaultClient,
 		Location: location,
 	})
