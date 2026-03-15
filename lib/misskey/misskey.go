@@ -2,10 +2,9 @@ package misskey
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
-	"hato-bot-go/lib/amesh"
+	"hato-bot-go/lib"
 )
 
 // BotSetting Misskeyボットの設定
@@ -44,12 +43,6 @@ type File struct {
 	URL  string `json:"url"`
 }
 
-// ParseAmeshCommandResult ameshコマンドの解析結果を表す構造体
-type ParseAmeshCommandResult struct {
-	Place   string
-	IsAmesh bool
-}
-
 type ProcessAmeshCommandParams struct {
 	Note          *Note
 	Place         string
@@ -66,7 +59,7 @@ func NewBotWithClient(botSetting *BotSetting) *Bot {
 	}
 	return &Bot{
 		BotSetting: botSetting,
-		UserAgent:  "hato-bot-go/" + amesh.Version,
+		UserAgent:  "hato-bot-go/" + lib.Version,
 	}
 }
 
@@ -77,40 +70,4 @@ func NewBot(domain, token string) *Bot {
 		Token:  token,
 		Client: &http.Client{Timeout: 30 * time.Second},
 	})
-}
-
-// ParseAmeshCommand ameshコマンドを解析
-func ParseAmeshCommand(text string) ParseAmeshCommandResult {
-	// メンションを除去
-	text = strings.TrimSpace(text)
-
-	// @username を削除
-	words := strings.Fields(text)
-	var cleanWords []string
-	for _, word := range words {
-		if !strings.HasPrefix(word, "@") {
-			cleanWords = append(cleanWords, word)
-		}
-	}
-	text = strings.Join(cleanWords, " ")
-
-	// ameshコマンドかチェック
-	if place, ok := strings.CutPrefix(text, "amesh "); ok {
-		return ParseAmeshCommandResult{
-			Place:   strings.TrimSpace(place),
-			IsAmesh: true,
-		}
-	}
-
-	if text == "amesh" {
-		return ParseAmeshCommandResult{
-			Place:   "東京", // デフォルトの場所
-			IsAmesh: true,
-		}
-	}
-
-	return ParseAmeshCommandResult{
-		Place:   "",
-		IsAmesh: false,
-	}
 }

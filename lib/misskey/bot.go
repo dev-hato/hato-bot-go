@@ -20,11 +20,6 @@ import (
 	"hato-bot-go/lib/httpclient"
 )
 
-// ErrParamsEmptyString エラー定数
-var (
-	ErrParamsEmptyString = errors.New("params cannot be empty string")
-)
-
 // Bot Misskeyボットクライアント
 type Bot struct {
 	BotSetting *BotSetting
@@ -172,7 +167,7 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCom
 		return lib.ErrParamsNil
 	}
 	if params.YahooAPIToken == "" {
-		return ErrParamsEmptyString
+		return lib.ErrParamsEmptyString
 	}
 
 	// 処理中リアクションを追加
@@ -186,7 +181,7 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCom
 		return errors.Wrap(err, "Failed to amesh.ParseLocation")
 	}
 
-	fmt.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
+	log.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 	// 画像をメモリ上に作成
 	imageReader, err := amesh.CreateImageReader(ctx, location)

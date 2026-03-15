@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
+	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
 	"hato-bot-go/lib/misskey"
 )
@@ -30,7 +29,7 @@ func main() {
 	}
 
 	// HTTPサーバーを別ゴルーチンで開始
-	go startHTTPServer()
+	go lib.StartStatusHTTPServer()
 
 	// ボットを初期化
 	bot := misskey.NewBot(domain, token)
@@ -45,7 +44,7 @@ func main() {
 	// メッセージハンドラー
 	messageHandler := func(note *misskey.Note) {
 		// ameshコマンドを解析
-		parseResult := misskey.ParseAmeshCommand(note.Text)
+		parseResult := amesh.ParseAmeshCommand(note.Text)
 
 		if !parseResult.IsAmesh {
 			return
@@ -86,37 +85,5 @@ func main() {
 				time.Sleep(10 * time.Second)
 			}
 		}
-	}
-}
-
-// statusHandler /statusエンドポイントのハンドラー
-func statusHandler(w http.ResponseWriter, _ *http.Request) {
-	response := map[string]string{
-		"message": "hato-bot-go is running",
-		"version": amesh.Version,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Failed to Encode: %v", err)
-	}
-}
-
-// startHTTPServer HTTPサーバーを開始
-func startHTTPServer() {
-	http.HandleFunc("/status", statusHandler)
-
-	port := "8080"
-	log.Printf("Starting HTTP server on port %s", port)
-
-	server := &http.Server{
-		Addr:         ":" + port,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
-	}
-	if err := server.ListenAndServe(); err != nil {
-		log.Printf("HTTP server error: %v", err)
 	}
 }

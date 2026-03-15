@@ -4,9 +4,9 @@
 
 ## 概要
 
-これは「hato-bot」の気象レーダー機能のGo実装で、気象庁のデータを使用して気象レーダー画像を生成するameshコマンドを提供します。スタンドアロンプログラムとして実行するか、WebSocketストリーミング接続を使用したMisskeyボットとして動作させることができます。
+これは「hato-bot」の気象レーダー機能のGo実装で、気象庁のデータを使用して気象レーダー画像を生成するameshコマンドを提供します。スタンドアロンプログラムとして実行するか、WebSocketストリーミング接続を使用したMisskeyボット、またはgRPCストリーミング接続を使用したmixi2ボットとして動作させることができます。
 
-**注意**: これは元のPython版hato-botの一部をGoに移植したもので、気象レーダー画像生成とMisskey統合に焦点を当てています。
+**注意**: これは元のPython版hato-botの一部をGoに移植したもので、気象レーダー画像生成とMisskey/mixi2統合に焦点を当てています。
 
 ## 開発コマンド
 
@@ -38,11 +38,21 @@ go build -o hato-bot-go cmd/cli/main.go
 go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 ./hato-bot-go-misskey-bot
 
+# mixi2ボットのビルドと実行
+go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go
+./hato-bot-go-mixi2-bot
+
 # Docker Composeで実行（推奨）
 export TAG_NAME=$(git symbolic-ref --short HEAD | sed -e "s:/:-:g")
-docker compose up -d --wait
 
-# 自動リロード付き開発モード
+# Misskeyボット
+docker compose -f docker-compose.yml -f misskey.docker-compose.yml up -d --wait
+
+# mixi2ボット
+docker compose -f docker-compose.yml -f mixi2.docker-compose.yml up -d --wait
+
+# 自動リロード付き開発モード（デフォルトはMisskeyボット）
+# mixi2ボットで起動する場合は .air.toml のL.8をコメントアウトしL.9のコメントアウトを解除する
 docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 ```
 
@@ -68,6 +78,7 @@ gci write -s default -s standard -s "prefix($(go list -m))" .
 # 各プラットフォーム向けビルド
 go build -o hato-bot-go cmd/cli/main.go
 go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
+go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go
 ```
 
 ## アーキテクチャ
@@ -76,9 +87,12 @@ go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 
 - **`cmd/cli/main.go`**: スタンドアロンのCLIエントリーポイント
 - **`cmd/misskey_bot/main.go`**: WebSocketストリーミング付きMisskeyボットエントリーポイント
+- **`cmd/mixi2_bot/main.go`**: gRPCストリーミング付きmixi2ボットエントリーポイント
 - **`cmd/health_check/main.go`**: コンテナオーケストレーション用ヘルスチェックサービス
-- **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能
-- **`lib/misskey/misskey.go`**: Misskey APIクライアントとWebSocket処理
+- **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能（`ParseAmeshCommand`含む）
+- **`lib/server.go`**: HTTPステータスサーバーの共通実装（全ボット共通）
+- **`lib/misskey/`**: Misskey APIクライアントとWebSocket処理
+- **`lib/mixi2/handler.go`**: mixi2イベントハンドラーとgRPC API操作
 - **Docker設定**: 開発環境と本番環境用のマルチステージビルド
 
 ### プラットフォームサポート
@@ -86,6 +100,7 @@ go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 このGo実装は以下に焦点を当てています。
 
 - **Misskey**: 自動的に再接続する機能付きWebSocketストリーミング接続
+- **mixi2**: gRPCストリーミング接続とOAuth2認証によるイベント駆動処理
 - **スタンドアロンCLI**: テストと開発用の直接コマンドライン実行
 
 ### 外部API
@@ -99,6 +114,8 @@ go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 ### 主要依存関係
 
 - **WebSocket**: Misskeyストリーミング接続用の`github.com/gorilla/websocket`
+- **gRPC**: mixi2ストリーミング接続用の`google.golang.org/grpc`
+- **mixi2 SDK**: mixi2 API操作用の`github.com/mixigroup/mixi2-application-sdk-go`
 - **エラーハンドリング**: 拡張エラー管理用の`github.com/cockroachdb/errors`
 - **画像処理**: レーダー画像合成用のGoビルトイン`image`パッケージ
 - **HTTPクライアント**: カスタムタイムアウト設定付き標準`net/http`
@@ -108,14 +125,20 @@ go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 amesh気象レーダーコマンドを処理。
 
 1. **Misskeyボット**: WebSocket経由でメンションを監視し`amesh`コマンドを処理
-2. **CLIモード**: 位置引数による直接コマンド実行
-3. **画像生成**: 気象データを取得し、ベースマップにレーダーオーバーレイを合成、距離円と落雷マーカーを追加
+2. **mixi2ボット**: gRPCストリーミング経由でメンションイベントを受信し`amesh`コマンドを処理
+3. **CLIモード**: 位置引数による直接コマンド実行
+4. **画像生成**: 気象データを取得し、ベースマップにレーダーオーバーレイを合成、距離円と落雷マーカーを追加
 
 ### 環境設定
 
 主要な環境変数（`.env`で定義）。
 
 - `MISSKEY_API_TOKEN`, `MISSKEY_DOMAIN`: Misskeyボット統合
+- `MIXI2_STREAM_ADDRESS`: mixi2 Developer Platformで確認したStreamサーバーアドレス
+- `MIXI2_API_ADDRESS`: mixi2 Developer Platformで確認したmixi2 gRPC APIサーバーアドレス
+- `MIXI2_CLIENT_ID`: mixi2 Developer Platformで発行したOAuth2クライアントID
+- `MIXI2_CLIENT_SECRET`: mixi2 Developer Platformで発行したOAuth2クライアントシークレット
+- `MIXI2_TOKEN_URL`: mixi2 Developer Platformで確認したトークンエンドポイントURL
 - `YAHOO_API_TOKEN`: ジオコーディング用Yahoo Maps API
 
 **必要なMisskey API権限**：
@@ -129,8 +152,9 @@ amesh気象レーダーコマンドを処理。
 
 テストファイルはパッケージ別に整理。
 
-- `lib/amesh/amesh_test.go`: HTTPモッキング付き気象レーダー機能テスト
-- `lib/misskey/misskey_test.go`: Misskey APIクライアントテスト
+- `lib/amesh/amesh_test.go`: HTTPモッキング付き気象レーダー機能テスト（`ParseAmeshCommand`テスト含む）
+- `lib/misskey/bot_test.go`: Misskey APIクライアントテスト
+- `lib/mixi2/handler_test.go`: mixi2イベントハンドラーテスト（gRPC APIクライアントモッキング使用）
 - テーブル駆動テストとHTTPクライアントモッキングを使用したGo標準テストパッケージを使用
 
 ## 開発プロセス（t-wada式TDD推奨）

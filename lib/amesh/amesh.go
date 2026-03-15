@@ -25,8 +25,6 @@ import (
 	"hato-bot-go/lib/httpclient"
 )
 
-const Version = "1.0"
-
 // エラー定数
 var (
 	ErrNoResultsFound           = errors.New("no results found for place")
@@ -43,8 +41,8 @@ type CreateAmeshImageParams struct {
 	AroundTiles int          // 周囲のタイル数
 }
 
-// CreateImageReaderWithClientParams amesh画像リーダー作成のリクエスト構造体
-type CreateImageReaderWithClientParams struct {
+// CreateImageBufferWithClientParams amesh画像リーダー作成のリクエスト構造体
+type CreateImageBufferWithClientParams struct {
 	Client   *http.Client // HTTPクライアント
 	Location *Location    // 位置情報
 }
@@ -66,6 +64,12 @@ type GeocodeRequest struct {
 type ParseLocationWithClientParams struct {
 	Client         *http.Client // HTTPクライアント
 	GeocodeRequest GeocodeRequest
+}
+
+// ParseAmeshCommandResult ameshコマンドの解析結果を表す構造体
+type ParseAmeshCommandResult struct {
+	Place   string
+	IsAmesh bool
 }
 
 // lightningPoint 落雷データを表す構造体
@@ -235,8 +239,8 @@ func CreateAmeshImage(ctx context.Context, params *CreateAmeshImageParams) (*ima
 	return img, nil
 }
 
-// CreateImageReaderWithClient HTTPクライアントを指定してamesh画像をメモリ上に作成してio.Readerを返す
-func CreateImageReaderWithClient(ctx context.Context, params *CreateImageReaderWithClientParams) (io.Reader, error) {
+// CreateImageBufferWithClient HTTPクライアントを指定してamesh画像をメモリ上に作成してbytes.Bufferを返す
+func CreateImageBufferWithClient(ctx context.Context, params *CreateImageBufferWithClientParams) (*bytes.Buffer, error) {
 	if params == nil || params.Client == nil || params.Location == nil {
 		return nil, lib.ErrParamsNil
 	}
@@ -262,7 +266,12 @@ func CreateImageReaderWithClient(ctx context.Context, params *CreateImageReaderW
 
 // CreateImageReader amesh画像をメモリ上に作成してio.Readerを返す
 func CreateImageReader(ctx context.Context, location *Location) (io.Reader, error) {
-	return CreateImageReaderWithClient(ctx, &CreateImageReaderWithClientParams{
+	return CreateImageBuffer(ctx, location)
+}
+
+// CreateImageBuffer amesh画像をメモリ上に作成してbytes.Bufferを返す
+func CreateImageBuffer(ctx context.Context, location *Location) (*bytes.Buffer, error) {
+	return CreateImageBufferWithClient(ctx, &CreateImageBufferWithClientParams{
 		Client:   http.DefaultClient,
 		Location: location,
 	})
@@ -305,6 +314,42 @@ func GenerateFileName(location *Location) string {
 		strings.ReplaceAll(location.PlaceName, " ", "_"),
 		time.Now().Unix(),
 	)
+}
+
+// ParseAmeshCommand ameshコマンドを解析
+func ParseAmeshCommand(text string) ParseAmeshCommandResult {
+	// メンションを除去
+	text = strings.TrimSpace(text)
+
+	// @username を削除
+	words := strings.Fields(text)
+	var cleanWords []string
+	for _, word := range words {
+		if !strings.HasPrefix(word, "@") {
+			cleanWords = append(cleanWords, word)
+		}
+	}
+	text = strings.Join(cleanWords, " ")
+
+	// ameshコマンドかチェック
+	if place, ok := strings.CutPrefix(text, "amesh "); ok {
+		return ParseAmeshCommandResult{
+			Place:   strings.TrimSpace(place),
+			IsAmesh: true,
+		}
+	}
+
+	if text == "amesh" {
+		return ParseAmeshCommandResult{
+			Place:   "東京", // デフォルトの場所
+			IsAmesh: true,
+		}
+	}
+
+	return ParseAmeshCommandResult{
+		Place:   "",
+		IsAmesh: false,
+	}
 }
 
 // parseCoordinates 文字列から座標を直接解析する
@@ -581,7 +626,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
-	req.Header.Set("User-Agent", "hato-bot-go/"+Version)
+	req.Header.Set("User-Agent", "hato-bot-go/"+lib.Version)
 
 	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {
