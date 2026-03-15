@@ -141,10 +141,10 @@ func (h *Handler) processAmeshCommand(ctx context.Context, authCtx context.Conte
 	}
 
 	// 処理中リアクションを追加
-	if _, err := h.APIClient.AddStampToPost(
-		authCtx,
-		&application_apiv1.AddStampToPostRequest{PostId: params.PostID, StampId: "o_eye"},
-	); err != nil {
+	if _, err := h.APIClient.AddStampToPost(authCtx, &application_apiv1.AddStampToPostRequest{
+		PostId:  params.PostID,
+		StampId: "o_eye",
+	}); err != nil {
 		return errors.Wrap(err, "Failed to APIClient.AddStampToPost")
 	}
 
@@ -172,15 +172,12 @@ func (h *Handler) processAmeshCommand(ctx context.Context, authCtx context.Conte
 	}
 
 	// 結果をポストとして投稿
-	if _, err := h.APIClient.CreatePost(
-		authCtx,
-		&application_apiv1.CreatePostRequest{
-			Text:            fmt.Sprintf("📡 %sだっぽ", description),
-			MediaIdList:     []string{mediaID},
-			InReplyToPostId: &params.PostID,
-			PostMask:        params.PostMask,
-		},
-	); err != nil {
+	if _, err := h.APIClient.CreatePost(authCtx, &application_apiv1.CreatePostRequest{
+		Text:            fmt.Sprintf("📡 %sだっぽ", description),
+		MediaIdList:     []string{mediaID},
+		InReplyToPostId: &params.PostID,
+		PostMask:        params.PostMask,
+	}); err != nil {
 		return errors.Wrap(err, "Failed to APIClient.CreatePost")
 	}
 
@@ -252,14 +249,11 @@ func (h *Handler) Handle(ctx context.Context, event *modelv1.Event) error {
 		log.Printf("Error processing amesh command: %v", err)
 
 		// エラーメッセージを投稿
-		if _, err := h.APIClient.CreatePost(
-			authCtx,
-			&application_apiv1.CreatePostRequest{
-				Text:            "申し訳ないっぽ。ameshコマンドの処理中にエラーが発生したっぽ",
-				InReplyToPostId: &postID,
-				PostMask:        postMask,
-			},
-		); err != nil {
+		if _, err := h.APIClient.CreatePost(authCtx, &application_apiv1.CreatePostRequest{
+			Text:            "申し訳ないっぽ。ameshコマンドの処理中にエラーが発生したっぽ",
+			InReplyToPostId: &postID,
+			PostMask:        postMask,
+		}); err != nil {
 			return errors.Wrap(err, "Failed to APIClient.CreatePost")
 		}
 	}
