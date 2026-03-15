@@ -66,7 +66,7 @@ func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (med
 	initiateResp, err := h.APIClient.InitiatePostMediaUpload(ctx, &application_apiv1.InitiatePostMediaUploadRequest{
 		MediaType:   application_apiv1.InitiatePostMediaUploadRequest_TYPE_IMAGE,
 		ContentType: contentType,
-		DataSize:    uint64(params.buffer.Len()),
+		DataSize:    uint64(max(0, params.buffer.Len())),
 		Description: &params.description,
 	})
 	if err != nil {
