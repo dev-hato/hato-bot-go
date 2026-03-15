@@ -8,11 +8,11 @@ curl -L -o dockle.deb "https://github.com/goodwithtech/dockle/releases/download/
 sudo dpkg -i dockle.deb
 
 for filename in misskey.docker-compose.yml mixi2.docker-compose.yml; do
-  docker compose -f docker-compose.yml -f "$filename" pull
-  docker compose -f docker-compose.yml -f "$filename" up -d
-  for image_name in $(docker compose -f docker-compose.yml -f "$filename" images | awk 'OFS=":" {print $2,$3}' | tail -n +2); do
-    cmd="dockle --exit-code 1 ${image_name}"
-    echo "> ${cmd}"
-    eval "${cmd}"
-  done
+	docker compose -f docker-compose.yml -f "$filename" pull
+	docker compose -f docker-compose.yml -f "$filename" up -d
+	for image_name in $(docker compose -f docker-compose.yml -f "$filename" images | awk 'OFS=":" {print $2,$3}' | tail -n +2); do
+		cmd="dockle --exit-code 1 ${image_name}"
+		echo "> ${cmd}"
+		eval "${cmd}"
+	done
 done
