@@ -386,8 +386,8 @@ Failed to upload file to Misskey: ...
 ### 新しいコマンドの追加
 
 1. `ParseAmeshCommand`関数を拡張してコマンドを解析
-2. Misskeyボット: `Bot`に対応する処理関数を追加し`messageHandler`で処理
-3. mixi2ボット: `Handler`に対応する処理関数を追加し`Handle`で処理
+2. Misskeyボット：`Bot`に対応する処理関数を追加し`messageHandler`で処理
+3. mixi2ボット：`Handler`に対応する処理関数を追加し`Handle`で処理
 
 ## Python版との違い
 

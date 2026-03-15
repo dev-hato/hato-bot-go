@@ -19,22 +19,8 @@ import (
 	"hato-bot-go/lib/mixi2"
 )
 
-// newGRPCConn gRPC接続を確立し、接続とクローズ関数を返す
-func newGRPCConn(address string) (*grpc.ClientConn, func(), error) {
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "Failed to grpc.NewClient")
-	}
-
-	return conn, func() {
-		if closeErr := conn.Close(); closeErr != nil {
-			log.Fatal(errors.Wrap(closeErr, "Failed to Close"))
-		}
-	}, nil
-}
-
-// main mixi2ボットとして実行
-func main() {
+// run ボットのメイン処理を実行し、エラーを返す
+func run() (err error) {
 	// 環境変数から設定を取得
 	streamAddress := os.Getenv("MIXI2_STREAM_ADDRESS")
 	clientID := os.Getenv("MIXI2_CLIENT_ID")
@@ -43,39 +29,51 @@ func main() {
 	apiAddress := os.Getenv("MIXI2_API_ADDRESS")
 
 	if streamAddress == "" || clientID == "" || clientSecret == "" || tokenURL == "" || apiAddress == "" {
-		log.Fatal("MIXI2_STREAM_ADDRESS, MIXI2_CLIENT_ID, MIXI2_CLIENT_SECRET, MIXI2_TOKEN_URL and MIXI2_API_ADDRESS environment variables must be set")
+		return errors.New("MIXI2_STREAM_ADDRESS, MIXI2_CLIENT_ID, MIXI2_CLIENT_SECRET, MIXI2_TOKEN_URL and MIXI2_API_ADDRESS environment variables must be set")
 	}
 
 	yahooAPIToken := os.Getenv("YAHOO_API_TOKEN")
 
 	// Yahoo APIキーも必要
 	if yahooAPIToken == "" {
-		log.Fatal("YAHOO_API_TOKEN environment variable must be set")
+		return errors.New("YAHOO_API_TOKEN environment variable must be set")
 	}
 
 	// HTTPサーバーを別ゴルーチンで開始
 	go lib.StartStatusHTTPServer()
 
+	withTransportCredentials := grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
+		MinVersion: tls.VersionTLS13,
+	}))
+
 	// gRPCストリーム接続確立
-	streamConn, streamClose, err := newGRPCConn(streamAddress)
+	streamConn, err := grpc.NewClient(streamAddress, withTransportCredentials)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "Failed to grpc.NewClient"))
+		return errors.Wrap(err, "Failed to grpc.NewClient")
 	}
-	defer streamClose()
+	defer func(streamConn *grpc.ClientConn) {
+		if closeErr := streamConn.Close(); closeErr != nil {
+			err = errors.Wrap(err, "Failed to Close")
+		}
+	}(streamConn)
 
 	// gRPC API接続確立
-	apiConn, apiFunc, err := newGRPCConn(apiAddress)
+	apiConn, err := grpc.NewClient(apiAddress, withTransportCredentials)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "Failed to grpc.NewClient"))
+		return errors.Wrap(err, "Failed to grpc.NewClient")
 	}
-	defer apiFunc()
+	defer func(apiConn *grpc.ClientConn) {
+		if closeErr := apiConn.Close(); closeErr != nil {
+			err = errors.Wrap(err, "Failed to Close")
+		}
+	}(apiConn)
 
 	log.Println("hato-bot-go started")
 
 	// 認証クライアント作成
 	authenticator, err := auth.NewAuthenticator(clientID, clientSecret, tokenURL)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "Failed to create authenticator"))
+		return errors.Wrap(err, "Failed to auth.NewAuthenticator")
 	}
 
 	// グレースフルシャットダウン設定
@@ -99,8 +97,16 @@ func main() {
 		Authenticator: authenticator,
 		YahooAPIToken: yahooAPIToken,
 	})); err != nil && !errors.Is(err, context.Canceled) {
-		log.Fatal(errors.Wrap(err, "Failed to Watch"))
+		return errors.Wrap(err, "Failed to Watch")
 	}
 
 	log.Println("stopped")
+	return nil
+}
+
+// main mixi2ボットとして実行
+func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
 }
