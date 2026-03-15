@@ -181,12 +181,10 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCom
 	}
 
 	// 位置を解析
-	location, err := amesh.ParseLocation(ctx, params.Place, params.YahooAPIToken)
+	location, err := amesh.ParseLocationWithLog(ctx, params.Place, params.YahooAPIToken)
 	if err != nil {
-		return errors.Wrap(err, "Failed to amesh.ParseLocation")
+		return errors.Wrap(err, "Failed to amesh.ParseLocationWithLog")
 	}
-
-	log.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 	// 画像をメモリ上に作成
 	imageReader, err := amesh.CreateImageReader(ctx, location)

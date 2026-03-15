@@ -298,6 +298,17 @@ func ParseLocation(ctx context.Context, place, apiKey string) (*Location, error)
 	})
 }
 
+// ParseLocationWithLog 地名文字列から位置を解析してログに出力する
+func ParseLocationWithLog(ctx context.Context, place, apiKey string) (*Location, error) {
+	location, err := ParseLocation(ctx, place, apiKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to ParseLocation")
+	}
+
+	log.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
+	return location, nil
+}
+
 // GenerateFileName 位置情報からamesh画像のファイル名を生成する
 func GenerateFileName(location *Location) string {
 	return fmt.Sprintf(
