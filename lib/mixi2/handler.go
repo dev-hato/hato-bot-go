@@ -86,8 +86,10 @@ func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (med
 
 	// gRPCのアウトゴーイングメタデータからAuthorizationヘッダーを取り出してHTTPリクエストに設定する
 	if md, ok := metadata.FromOutgoingContext(ctx); ok {
-		for _, authorization := range md.Get("authorization") {
-			req.Header.Set("Authorization", authorization)
+		key := "Authorization"
+		authorizations := md.Get(key)
+		if 0 < len(authorizations) {
+			req.Header.Set(key, authorizations[0])
 		}
 	}
 
