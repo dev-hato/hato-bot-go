@@ -58,6 +58,21 @@ func NewHandler(config *HandlerSetting) *Handler {
 	}
 }
 
+// setAuthorizationHeader gRPCのアウトゴーイングメタデータからAuthorizationヘッダーを取り出してHTTPリクエストに設定する
+func (h *Handler) setAuthorizationHeader(ctx context.Context, req *http.Request) {
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		return
+	}
+
+	key := "Authorization"
+	authorizations := md.Get(key)
+
+	if 0 < len(authorizations) {
+		req.Header.Set(key, authorizations[0])
+	}
+}
+
 // uploadFile メディアファイルをアップロードし、メディアIDを返す
 func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (mediaID string, err error) {
 	contentType := http.DetectContentType(params.buffer.Bytes())
@@ -84,15 +99,7 @@ func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (med
 		return "", errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
 
-	// gRPCのアウトゴーイングメタデータからAuthorizationヘッダーを取り出してHTTPリクエストに設定する
-	if md, ok := metadata.FromOutgoingContext(ctx); ok {
-		key := "Authorization"
-		authorizations := md.Get(key)
-		if 0 < len(authorizations) {
-			req.Header.Set(key, authorizations[0])
-		}
-	}
-
+	h.setAuthorizationHeader(ctx, req)
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("User-Agent", "hato-bot-go/"+lib.Version)
 
