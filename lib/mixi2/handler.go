@@ -200,6 +200,7 @@ func (h *Handler) Handle(ctx context.Context, event *modelv1.Event) error {
 		return nil
 	}
 
+	log.Printf("received POST_CREATED event: event_id=%s\n", event.GetEventId())
 	postCreatedEvent := event.GetPostCreatedEvent()
 
 	if postCreatedEvent == nil {

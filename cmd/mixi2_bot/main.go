@@ -88,6 +88,8 @@ func run() (err error) {
 		cancel()
 	}()
 
+	log.Printf("starting stream watcher: address=%s\n", streamAddress)
+
 	// 監視開始
 	if err := stream.NewStreamWatcher(
 		application_streamv1.NewApplicationServiceClient(streamConn),
