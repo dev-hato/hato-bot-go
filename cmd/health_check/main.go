@@ -15,7 +15,7 @@ func main() {
 	// localhost:8080/statusにHTTPリクエストを送信
 	req, err := http.NewRequestWithContext(
 		context.Background(),
-		"GET",
+		http.MethodGet,
 		"http://localhost:8080/status",
 		nil,
 	)

@@ -463,7 +463,7 @@ func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Loc
 		url.QueryEscape(place),
 	)
 
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
@@ -633,7 +633,7 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 
 // downloadTile マップタイルをダウンロードする
 func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img image.Image, err error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", tileURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tileURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
@@ -658,7 +658,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 
 // makeHTTPRequest HTTPリクエストを送信し、非200ステータスコードの場合は空を返す
 func makeHTTPRequest(ctx context.Context, client *http.Client, url string) (*httpRequestResult, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
