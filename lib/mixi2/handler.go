@@ -16,7 +16,6 @@ import (
 	modelv1 "github.com/mixigroup/mixi2-application-sdk-go/gen/go/social/mixi/application/model/v1"
 	application_apiv1 "github.com/mixigroup/mixi2-application-sdk-go/gen/go/social/mixi/application/service/application_api/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 
 	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
@@ -58,24 +57,8 @@ func NewHandler(config *HandlerSetting) *Handler {
 	}
 }
 
-// setAuthorizationHeader gRPCのアウトゴーイングメタデータからAuthorizationヘッダーを取り出してHTTPリクエストに設定する
-func (h *Handler) setAuthorizationHeader(ctx context.Context, req *http.Request) {
-	md, ok := metadata.FromOutgoingContext(ctx)
-	if !ok {
-		return
-	}
-
-	key := "Authorization"
-	authorizations := md.Get(key)
-
-	if 0 < len(authorizations) {
-		req.Header.Set(key, authorizations[0])
-	}
-}
-
 // uploadFile メディアファイルをアップロードし、メディアIDを返す
 func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (mediaID string, err error) {
-	contentType := http.DetectContentType(params.buffer.Bytes())
 	bufLen := params.buffer.Len()
 
 	if bufLen < 0 {
@@ -85,7 +68,7 @@ func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (med
 	// アップロードの開始
 	initiateResp, err := h.APIClient.InitiatePostMediaUpload(ctx, &application_apiv1.InitiatePostMediaUploadRequest{
 		MediaType:   application_apiv1.InitiatePostMediaUploadRequest_TYPE_IMAGE,
-		ContentType: contentType,
+		ContentType: http.DetectContentType(params.buffer.Bytes()),
 		DataSize:    uint64(bufLen),
 		Description: &params.description,
 	})
@@ -93,16 +76,23 @@ func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (med
 		return "", errors.Wrap(err, "Failed to APIClient.InitiatePostMediaUpload")
 	}
 
-	// メディアのアップロード
+	// アクセストークンを取得
+	accessToken, err := h.Authenticator.GetAccessToken(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to Authenticator.GetAccessToken")
+	}
+
+	// アップロードリクエストを作成
 	req, err := http.NewRequest(http.MethodPost, initiateResp.UploadUrl, params.buffer)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
 
-	h.setAuthorizationHeader(ctx, req)
-	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("User-Agent", "hato-bot-go/"+lib.Version)
 
+	// タイムアウト付きでアップロードを実行
 	resp, err := httpclient.ExecuteHTTPRequest(&http.Client{Timeout: 30 * time.Second}, req)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
@@ -116,28 +106,32 @@ func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (med
 	mediaID = initiateResp.GetMediaId()
 
 	// 処理状況の確認
+	pollCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
 	for {
-		statusResp, err := h.APIClient.GetPostMediaStatus(ctx, &application_apiv1.GetPostMediaStatusRequest{
-			MediaId: mediaID,
-		})
-		if err != nil {
-			return "", errors.Wrap(err, "Failed to APIClient.GetPostMediaStatus")
+		select {
+		case <-pollCtx.Done():
+			return "", errors.Wrap(pollCtx.Err(), "timed out waiting for media processing")
+		case <-ticker.C:
+			statusResp, err := h.APIClient.GetPostMediaStatus(pollCtx, &application_apiv1.GetPostMediaStatusRequest{
+				MediaId: mediaID,
+			})
+			if err != nil {
+				return "", errors.Wrap(err, "Failed to APIClient.GetPostMediaStatus")
+			}
+
+			switch statusResp.GetStatus() {
+			case application_apiv1.GetPostMediaStatusResponse_STATUS_FAILED:
+				return "", errors.New("media processing failed")
+			case application_apiv1.GetPostMediaStatusResponse_STATUS_COMPLETED:
+				return mediaID, nil
+			}
 		}
-
-		status := statusResp.GetStatus()
-
-		if status == application_apiv1.GetPostMediaStatusResponse_STATUS_FAILED {
-			return "", errors.New("media processing failed")
-		}
-
-		if status == application_apiv1.GetPostMediaStatusResponse_STATUS_COMPLETED {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
 	}
-
-	return mediaID, nil
 }
 
 // processAmeshCommand ameshコマンドを処理
