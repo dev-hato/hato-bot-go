@@ -90,7 +90,6 @@ func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (med
 
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("User-Agent", "hato-bot-go/"+lib.Version)
 
 	// タイムアウト付きでアップロードを実行
 	resp, err := httpclient.ExecuteHTTPRequest(&http.Client{Timeout: 30 * time.Second}, req)
