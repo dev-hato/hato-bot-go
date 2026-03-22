@@ -5,12 +5,16 @@ import (
 	"slices"
 
 	"github.com/cockroachdb/errors"
+
+	"hato-bot-go/lib"
 )
 
 var ErrHTTPRequestError = errors.New("A http request returned error status")
 
 // ExecuteHTTPRequest HTTPリクエストを実行し、共通のエラーハンドリングを行う
 func ExecuteHTTPRequest(client *http.Client, req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", "hato-bot-go/"+lib.Version)
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Do")
