@@ -119,7 +119,6 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("User-Agent", bot.UserAgent)
 
 	resp, err := httpclient.ExecuteHTTPRequest(bot.BotSetting.Client, req)
 	if err != nil {
@@ -176,12 +175,10 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCom
 	}
 
 	// 位置を解析
-	location, err := amesh.ParseLocation(ctx, params.Place, params.YahooAPIToken)
+	location, err := amesh.ParseLocationWithLog(ctx, params.Place, params.YahooAPIToken)
 	if err != nil {
-		return errors.Wrap(err, "Failed to amesh.ParseLocation")
+		return errors.Wrap(err, "Failed to amesh.ParseLocationWithLog")
 	}
-
-	log.Printf("Generating amesh image for %s (%.4f, %.4f)\n", location.PlaceName, location.Lat, location.Lng)
 
 	// 画像をメモリ上に作成
 	imageReader, err := amesh.CreateImageReader(ctx, location)
@@ -306,7 +303,6 @@ func (bot *Bot) apiRequest(ctx context.Context, endpoint string, data map[string
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", bot.UserAgent)
 
 	resp, err := httpclient.ExecuteHTTPRequest(bot.BotSetting.Client, req)
 	if err != nil {

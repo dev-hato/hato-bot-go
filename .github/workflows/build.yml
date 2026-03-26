@@ -30,7 +30,7 @@ jobs:
         run: bash "${GITHUB_WORKSPACE}/scripts/build/update_go_version/update_go_version.sh"
         env:
           HEAD_REF: ${{github.head_ref || github.event.release.tag_name}}
-      - uses: dev-hato/actions-diff-pr-management@b446497d139ed3eadc62ec1dd90dd27960ad1a0c # v2.2.4
+      - uses: dev-hato/actions-diff-pr-management@5cd3792bc98beed11cda90898bc81af6bfa199af # v2.2.5
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           branch-name-prefix: fix-go-version
@@ -122,7 +122,7 @@ jobs:
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/build/npm_install.sh"
       # jscpd:ignore-end
-      - uses: dev-hato/actions-diff-pr-management@b446497d139ed3eadc62ec1dd90dd27960ad1a0c # v2.2.4
+      - uses: dev-hato/actions-diff-pr-management@5cd3792bc98beed11cda90898bc81af6bfa199af # v2.2.5
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           branch-name-prefix: npm
@@ -136,7 +136,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - uses: dev-hato/actions-update-dockle@d6cb859354f29327d2ba10c5aa61f1d7c83128df # v0.0.134
+      - uses: dev-hato/actions-update-dockle@40e8299e04f55c10ed1ede2ff2dc03a604e90960 # v0.0.135
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
   dockle:
