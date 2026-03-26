@@ -2,7 +2,7 @@ package lib
 
 import "github.com/cockroachdb/errors"
 
-// ErrParamsNil エラー定数
 var (
-	ErrParamsNil = errors.New("params cannot be nil")
+	ErrParamsNil         = errors.New("params cannot be nil")
+	ErrParamsEmptyString = errors.New("params cannot be empty string")
 )

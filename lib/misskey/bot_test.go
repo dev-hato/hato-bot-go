@@ -199,7 +199,7 @@ func TestProcessAmeshCommand(t *testing.T) {
 				},
 				Place: "東京",
 			},
-			expectError: misskey.ErrParamsEmptyString, // Yahoo APIトークンが設定されていないためエラーが発生する
+			expectError: lib.ErrParamsEmptyString, // Yahoo APIトークンが設定されていないためエラーが発生する
 		},
 	}
 
