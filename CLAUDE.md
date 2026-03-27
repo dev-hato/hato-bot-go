@@ -78,6 +78,7 @@ go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
 - **`cmd/misskey_bot/main.go`**: WebSocketストリーミング付きMisskeyボットエントリーポイント
 - **`cmd/health_check/main.go`**: コンテナオーケストレーション用ヘルスチェックサービス
 - **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能（`ParseAmeshCommand`含む）
+- **`lib/server.go`**: HTTPステータスサーバーの共通実装（全ボット共通）
 - **`lib/misskey/misskey.go`**: Misskey APIクライアントとWebSocket処理
 - **Docker設定**: 開発環境と本番環境用のマルチステージビルド
 
