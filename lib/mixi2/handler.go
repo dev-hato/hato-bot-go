@@ -57,8 +57,69 @@ func NewHandler(config *HandlerSetting) *Handler {
 	}
 }
 
+// uploadMedia 取得したuploadURLにメディアデータを送信する
+func (h *Handler) uploadMedia(ctx context.Context, uploadURL string, buffer *bytes.Buffer) (err error) {
+	// アクセストークンを取得
+	accessToken, err := h.Authenticator.GetAccessToken(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Failed to Authenticator.GetAccessToken")
+	}
+
+	// アップロードリクエストを作成
+	req, err := http.NewRequest(http.MethodPost, uploadURL, buffer)
+	if err != nil {
+		return errors.Wrap(err, "Failed to http.NewRequestWithContext")
+	}
+
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Content-Type", "application/octet-stream")
+
+	// タイムアウト付きでアップロードを実行
+	resp, err := httpclient.ExecuteHTTPRequest(&http.Client{Timeout: 30 * time.Second}, req)
+	if err != nil {
+		return errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
+	}
+	defer func(body io.ReadCloser) {
+		if closeErr := body.Close(); closeErr != nil {
+			err = errors.Wrap(closeErr, "Failed to Close")
+		}
+	}(resp.Body)
+
+	return nil
+}
+
+// checkMediaProcessingStatus GetPostMediaStatusでメディアの処理状況を確認し、完了するまでポーリングする
+func (h *Handler) checkMediaProcessingStatus(ctx context.Context, mediaID string) error {
+	pollCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-pollCtx.Done():
+			return errors.Wrap(pollCtx.Err(), "timed out waiting for media processing")
+		case <-ticker.C:
+			statusResp, err := h.APIClient.GetPostMediaStatus(pollCtx, &application_apiv1.GetPostMediaStatusRequest{
+				MediaId: mediaID,
+			})
+			if err != nil {
+				return errors.Wrap(err, "Failed to APIClient.GetPostMediaStatus")
+			}
+
+			switch statusResp.GetStatus() {
+			case application_apiv1.GetPostMediaStatusResponse_STATUS_FAILED:
+				return errors.New("media processing failed")
+			case application_apiv1.GetPostMediaStatusResponse_STATUS_COMPLETED:
+				return nil
+			}
+		}
+	}
+}
+
 // uploadFile メディアファイルをアップロードし、メディアIDを返す
-func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (mediaID string, err error) {
+func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (string, error) {
 	bufLen := params.buffer.Len()
 
 	if bufLen < 0 {
@@ -76,61 +137,19 @@ func (h *Handler) uploadFile(ctx context.Context, params *uploadFileParams) (med
 		return "", errors.Wrap(err, "Failed to APIClient.InitiatePostMediaUpload")
 	}
 
-	// アクセストークンを取得
-	accessToken, err := h.Authenticator.GetAccessToken(ctx)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to Authenticator.GetAccessToken")
+	// メディアのアップロード
+	if err := h.uploadMedia(ctx, initiateResp.UploadUrl, params.buffer); err != nil {
+		return "", errors.Wrap(err, "Failed to uploadMedia")
 	}
 
-	// アップロードリクエストを作成
-	req, err := http.NewRequest(http.MethodPost, initiateResp.UploadUrl, params.buffer)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to http.NewRequestWithContext")
-	}
-
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Content-Type", "application/octet-stream")
-
-	// タイムアウト付きでアップロードを実行
-	resp, err := httpclient.ExecuteHTTPRequest(&http.Client{Timeout: 30 * time.Second}, req)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
-	}
-	defer func(body io.ReadCloser) {
-		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
-		}
-	}(resp.Body)
-
-	mediaID = initiateResp.GetMediaId()
+	mediaID := initiateResp.GetMediaId()
 
 	// 処理状況の確認
-	pollCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
-
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-pollCtx.Done():
-			return "", errors.Wrap(pollCtx.Err(), "timed out waiting for media processing")
-		case <-ticker.C:
-			statusResp, err := h.APIClient.GetPostMediaStatus(pollCtx, &application_apiv1.GetPostMediaStatusRequest{
-				MediaId: mediaID,
-			})
-			if err != nil {
-				return "", errors.Wrap(err, "Failed to APIClient.GetPostMediaStatus")
-			}
-
-			switch statusResp.GetStatus() {
-			case application_apiv1.GetPostMediaStatusResponse_STATUS_FAILED:
-				return "", errors.New("media processing failed")
-			case application_apiv1.GetPostMediaStatusResponse_STATUS_COMPLETED:
-				return mediaID, nil
-			}
-		}
+	if err := h.checkMediaProcessingStatus(ctx, mediaID); err != nil {
+		return "", errors.Wrap(err, "Failed to checkMediaProcessingStatus")
 	}
+
+	return mediaID, nil
 }
 
 // processAmeshCommand ameshコマンドを処理
