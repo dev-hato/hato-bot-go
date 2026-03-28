@@ -1,0 +1,9 @@
+---
+services:
+  hato-bot-go:
+    build:
+      target: prod_mixi2
+      cache_from:
+        - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:mixi2-${TAG_NAME}
+        - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go
+    image: ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:mixi2-${TAG_NAME}
