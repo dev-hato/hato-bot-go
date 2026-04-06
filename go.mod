@@ -6,7 +6,7 @@ require (
 	github.com/cockroachdb/errors v1.12.0
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/mixigroup/mixi2-application-sdk-go v1.0.0
+	github.com/mixigroup/mixi2-application-sdk-go v1.1.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
 	google.golang.org/grpc v1.79.3
 )
