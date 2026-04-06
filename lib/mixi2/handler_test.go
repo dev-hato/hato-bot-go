@@ -19,6 +19,7 @@ type mockAPIClient struct {
 	getUsersFunc                func(ctx context.Context, in *application_apiv1.GetUsersRequest, opts ...grpc.CallOption) (*application_apiv1.GetUsersResponse, error)
 	getPostsFunc                func(ctx context.Context, in *application_apiv1.GetPostsRequest, opts ...grpc.CallOption) (*application_apiv1.GetPostsResponse, error)
 	createPostFunc              func(ctx context.Context, in *application_apiv1.CreatePostRequest, opts ...grpc.CallOption) (*application_apiv1.CreatePostResponse, error)
+	deletePostFunc              func(ctx context.Context, in *application_apiv1.DeletePostRequest, opts ...grpc.CallOption) (*application_apiv1.DeletePostResponse, error)
 	initiatePostMediaUploadFunc func(ctx context.Context, in *application_apiv1.InitiatePostMediaUploadRequest, opts ...grpc.CallOption) (*application_apiv1.InitiatePostMediaUploadResponse, error)
 	getPostMediaStatusFunc      func(ctx context.Context, in *application_apiv1.GetPostMediaStatusRequest, opts ...grpc.CallOption) (*application_apiv1.GetPostMediaStatusResponse, error)
 	sendChatMessageFunc         func(ctx context.Context, in *application_apiv1.SendChatMessageRequest, opts ...grpc.CallOption) (*application_apiv1.SendChatMessageResponse, error)
@@ -43,6 +44,13 @@ func (m *mockAPIClient) GetPosts(ctx context.Context, in *application_apiv1.GetP
 func (m *mockAPIClient) CreatePost(ctx context.Context, in *application_apiv1.CreatePostRequest, opts ...grpc.CallOption) (*application_apiv1.CreatePostResponse, error) {
 	if m.createPostFunc != nil {
 		return m.createPostFunc(ctx, in, opts...)
+	}
+	return nil, nil
+}
+
+func (m *mockAPIClient) DeletePost(ctx context.Context, in *application_apiv1.DeletePostRequest, opts ...grpc.CallOption) (*application_apiv1.DeletePostResponse, error) {
+	if m.deletePostFunc != nil {
+		return m.deletePostFunc(ctx, in, opts...)
 	}
 	return nil, nil
 }
