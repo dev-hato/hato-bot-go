@@ -1,5 +1,5 @@
-//go:generate mockgen -destination mock_authenticator.go -package mixi2 github.com/mixigroup/mixi2-application-sdk-go/auth Authenticator
-//go:generate mockgen -destination mock_api_client.go -package mixi2 github.com/mixigroup/mixi2-application-sdk-go/gen/go/social/mixi/application/service/application_api/v1 ApplicationServiceClient
+//go:generate mockgen -destination mock_authenticator.go -package mixi2 -typed github.com/mixigroup/mixi2-application-sdk-go/auth Authenticator
+//go:generate mockgen -destination mock_api_client.go -package mixi2 -typed github.com/mixigroup/mixi2-application-sdk-go/gen/go/social/mixi/application/service/application_api/v1 ApplicationServiceClient
 
 package mixi2
 
