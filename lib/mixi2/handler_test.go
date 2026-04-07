@@ -1,6 +1,7 @@
 package mixi2
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cockroachdb/errors"
@@ -105,7 +106,7 @@ func TestHandle(t *testing.T) {
 				mockAuth := NewMockAuthenticator(gomock.NewController(t))
 				mockAuth.EXPECT().
 					AuthorizedContext(t.Context()).
-					Return(nil, errAuthFailed)
+					Return(context.TODO(), errAuthFailed)
 				return &Handler{
 					Authenticator: mockAuth,
 				}
