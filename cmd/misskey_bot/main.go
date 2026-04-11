@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"hato-bot-go/lib"
@@ -39,7 +40,7 @@ func main() {
 		log.Fatalf("Failed to connect to Misskey: %v", err)
 	}
 
-	log.Printf("hato-bot-go started on %s", domain) //nolint:gosec //G706
+	log.Printf("hato-bot-go started on %s", strings.NewReplacer("\n", "", "\r", "").Replace(domain)) //nolint:gosec //G706
 
 	// メッセージハンドラー
 	messageHandler := func(note *misskey.Note) {

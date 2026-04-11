@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/cockroachdb/errors"
@@ -88,7 +89,7 @@ func run() (err error) {
 		cancel()
 	}()
 
-	log.Printf("starting stream watcher: address=%s\n", streamAddress) //nolint:gosec //G706
+	log.Printf("starting stream watcher: address=%s\n", strings.NewReplacer("\n", "", "\r", "").Replace(streamAddress)) //nolint:gosec //G706
 
 	// 監視開始
 	if err := stream.NewStreamWatcher(
