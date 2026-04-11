@@ -88,7 +88,7 @@ func run() (err error) {
 		cancel()
 	}()
 
-	log.Printf("starting stream watcher: address=%s\n", streamAddress)
+	log.Printf("starting stream watcher: address=%s\n", streamAddress) //nolint:gosec //G706
 
 	// 監視開始
 	if err := stream.NewStreamWatcher(

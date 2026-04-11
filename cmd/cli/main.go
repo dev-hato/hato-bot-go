@@ -69,7 +69,7 @@ func main() {
 		filePath := filepath.Join(".", fileName)
 
 		// ファイルに保存
-		file, err := os.Create(filePath)
+		file, err := os.Create(filePath) //nolint:gosec // G703: filepath.Base と filepath.Abs でパストラバーサルを防止済み
 		if err != nil {
 			panic(errors.Wrap(err, "Failed to os.Create"))
 		}
