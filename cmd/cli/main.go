@@ -66,7 +66,7 @@ func main() {
 
 		// ファイル名を生成
 		fileName := amesh.GenerateFileName(location)
-		filePath := filepath.Join(".", fileName)
+		filePath := filepath.Clean(filepath.Join(".", fileName))
 
 		// ファイルに保存
 		file, err := os.Create(filePath)
