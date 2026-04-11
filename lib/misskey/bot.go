@@ -67,7 +67,7 @@ func (bot *Bot) CreateNote(ctx context.Context, params *CreateNoteParams) (err e
 	}
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 	// jscpd:ignore-end
@@ -89,7 +89,7 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 	writer := multipart.NewWriter(&buf)
 	defer func(writer *multipart.Writer) {
 		if closeErr := writer.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(writer)
 
@@ -126,7 +126,7 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 	}
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
@@ -152,7 +152,7 @@ func (bot *Bot) AddReaction(ctx context.Context, noteID, reaction string) (err e
 	}
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 	// jscpd:ignore-end

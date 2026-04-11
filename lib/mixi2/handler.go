@@ -84,7 +84,7 @@ func (h *Handler) uploadMedia(ctx context.Context, uploadURL string, buffer *byt
 	}
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
