@@ -53,7 +53,7 @@ func run() (err error) {
 	}
 	defer func(streamConn *grpc.ClientConn) {
 		if closeErr := streamConn.Close(); closeErr != nil {
-			err = errors.Wrap(err, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(streamConn)
 
@@ -64,7 +64,7 @@ func run() (err error) {
 	}
 	defer func(apiConn *grpc.ClientConn) {
 		if closeErr := apiConn.Close(); closeErr != nil {
-			err = errors.Wrap(err, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(apiConn)
 

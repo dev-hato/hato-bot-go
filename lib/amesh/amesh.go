@@ -396,7 +396,7 @@ func executeAndReadResponse(client *http.Client, req *http.Request) (body []byte
 
 	defer func(readCloser io.ReadCloser) {
 		if closeErr := readCloser.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
@@ -644,7 +644,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	}
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
@@ -776,7 +776,7 @@ func getLatestTimestamps(ctx context.Context, client *http.Client) map[string]st
 func handleHTTPResponse(resp *http.Response) (body []byte, err error) {
 	defer func(body io.ReadCloser) {
 		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Wrap(closeErr, "Failed to Close")
+			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
 
