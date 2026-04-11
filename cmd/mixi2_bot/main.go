@@ -32,6 +32,7 @@ func run() (err error) {
 	if streamAddress == "" || clientID == "" || clientSecret == "" || tokenURL == "" || apiAddress == "" {
 		return errors.New("MIXI2_STREAM_ADDRESS, MIXI2_CLIENT_ID, MIXI2_CLIENT_SECRET, MIXI2_TOKEN_URL and MIXI2_API_ADDRESS environment variables must be set")
 	}
+	streamAddress = strings.NewReplacer("\n", "", "\r", "").Replace(streamAddress)
 
 	yahooAPIToken := os.Getenv("YAHOO_API_TOKEN")
 
@@ -89,7 +90,7 @@ func run() (err error) {
 		cancel()
 	}()
 
-	log.Printf("starting stream watcher: address=%s\n", strings.NewReplacer("\n", "", "\r", "").Replace(streamAddress)) //nolint:gosec //G706
+	log.Printf("starting stream watcher: address=%s\n", streamAddress)
 
 	// 監視開始
 	if err := stream.NewStreamWatcher(
