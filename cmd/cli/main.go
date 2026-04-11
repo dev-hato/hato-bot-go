@@ -66,10 +66,10 @@ func main() {
 
 		// ファイル名を生成
 		fileName := amesh.GenerateFileName(location)
-		filePath := filepath.Clean(filepath.Join(".", fileName))
+		cleanedFilePath := filepath.Clean(filepath.Join(".", fileName))
 
 		// ファイルに保存
-		file, err := os.Create(filePath)
+		file, err := os.Create(cleanedFilePath)
 		if err != nil {
 			panic(errors.Wrap(err, "Failed to os.Create"))
 		}
@@ -83,7 +83,7 @@ func main() {
 			panic(errors.Wrap(err, "Failed to io.Copy"))
 		}
 
-		fmt.Printf("Amesh image saved to %s\n", filePath)
+		fmt.Printf("Amesh image saved to %s\n", cleanedFilePath)
 	default:
 		panic(errors.Errorf("Unknown command: %s", command))
 	}
