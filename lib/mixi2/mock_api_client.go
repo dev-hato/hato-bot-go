@@ -174,6 +174,182 @@ func (c *MockApplicationServiceClientDeletePostCall) DoAndReturn(f func(context.
 	return c
 }
 
+// GetCommunities mocks base method.
+func (m *MockApplicationServiceClient) GetCommunities(ctx context.Context, in *application_apiv1.GetCommunitiesRequest, opts ...grpc.CallOption) (*application_apiv1.GetCommunitiesResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetCommunities", varargs...)
+	ret0, _ := ret[0].(*application_apiv1.GetCommunitiesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCommunities indicates an expected call of GetCommunities.
+func (mr *MockApplicationServiceClientMockRecorder) GetCommunities(ctx, in any, opts ...any) *MockApplicationServiceClientGetCommunitiesCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCommunities", reflect.TypeOf((*MockApplicationServiceClient)(nil).GetCommunities), varargs...)
+	return &MockApplicationServiceClientGetCommunitiesCall{Call: call}
+}
+
+// MockApplicationServiceClientGetCommunitiesCall wrap *gomock.Call
+type MockApplicationServiceClientGetCommunitiesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockApplicationServiceClientGetCommunitiesCall) Return(arg0 *application_apiv1.GetCommunitiesResponse, arg1 error) *MockApplicationServiceClientGetCommunitiesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockApplicationServiceClientGetCommunitiesCall) Do(f func(context.Context, *application_apiv1.GetCommunitiesRequest, ...grpc.CallOption) (*application_apiv1.GetCommunitiesResponse, error)) *MockApplicationServiceClientGetCommunitiesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockApplicationServiceClientGetCommunitiesCall) DoAndReturn(f func(context.Context, *application_apiv1.GetCommunitiesRequest, ...grpc.CallOption) (*application_apiv1.GetCommunitiesResponse, error)) *MockApplicationServiceClientGetCommunitiesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetCommunitiesUsingApplication mocks base method.
+func (m *MockApplicationServiceClient) GetCommunitiesUsingApplication(ctx context.Context, in *application_apiv1.GetCommunitiesUsingApplicationRequest, opts ...grpc.CallOption) (*application_apiv1.GetCommunitiesUsingApplicationResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetCommunitiesUsingApplication", varargs...)
+	ret0, _ := ret[0].(*application_apiv1.GetCommunitiesUsingApplicationResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCommunitiesUsingApplication indicates an expected call of GetCommunitiesUsingApplication.
+func (mr *MockApplicationServiceClientMockRecorder) GetCommunitiesUsingApplication(ctx, in any, opts ...any) *MockApplicationServiceClientGetCommunitiesUsingApplicationCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCommunitiesUsingApplication", reflect.TypeOf((*MockApplicationServiceClient)(nil).GetCommunitiesUsingApplication), varargs...)
+	return &MockApplicationServiceClientGetCommunitiesUsingApplicationCall{Call: call}
+}
+
+// MockApplicationServiceClientGetCommunitiesUsingApplicationCall wrap *gomock.Call
+type MockApplicationServiceClientGetCommunitiesUsingApplicationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockApplicationServiceClientGetCommunitiesUsingApplicationCall) Return(arg0 *application_apiv1.GetCommunitiesUsingApplicationResponse, arg1 error) *MockApplicationServiceClientGetCommunitiesUsingApplicationCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockApplicationServiceClientGetCommunitiesUsingApplicationCall) Do(f func(context.Context, *application_apiv1.GetCommunitiesUsingApplicationRequest, ...grpc.CallOption) (*application_apiv1.GetCommunitiesUsingApplicationResponse, error)) *MockApplicationServiceClientGetCommunitiesUsingApplicationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockApplicationServiceClientGetCommunitiesUsingApplicationCall) DoAndReturn(f func(context.Context, *application_apiv1.GetCommunitiesUsingApplicationRequest, ...grpc.CallOption) (*application_apiv1.GetCommunitiesUsingApplicationResponse, error)) *MockApplicationServiceClientGetCommunitiesUsingApplicationCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetCommunityMemberList mocks base method.
+func (m *MockApplicationServiceClient) GetCommunityMemberList(ctx context.Context, in *application_apiv1.GetCommunityMemberListRequest, opts ...grpc.CallOption) (*application_apiv1.GetCommunityMemberListResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetCommunityMemberList", varargs...)
+	ret0, _ := ret[0].(*application_apiv1.GetCommunityMemberListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCommunityMemberList indicates an expected call of GetCommunityMemberList.
+func (mr *MockApplicationServiceClientMockRecorder) GetCommunityMemberList(ctx, in any, opts ...any) *MockApplicationServiceClientGetCommunityMemberListCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCommunityMemberList", reflect.TypeOf((*MockApplicationServiceClient)(nil).GetCommunityMemberList), varargs...)
+	return &MockApplicationServiceClientGetCommunityMemberListCall{Call: call}
+}
+
+// MockApplicationServiceClientGetCommunityMemberListCall wrap *gomock.Call
+type MockApplicationServiceClientGetCommunityMemberListCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockApplicationServiceClientGetCommunityMemberListCall) Return(arg0 *application_apiv1.GetCommunityMemberListResponse, arg1 error) *MockApplicationServiceClientGetCommunityMemberListCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockApplicationServiceClientGetCommunityMemberListCall) Do(f func(context.Context, *application_apiv1.GetCommunityMemberListRequest, ...grpc.CallOption) (*application_apiv1.GetCommunityMemberListResponse, error)) *MockApplicationServiceClientGetCommunityMemberListCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockApplicationServiceClientGetCommunityMemberListCall) DoAndReturn(f func(context.Context, *application_apiv1.GetCommunityMemberListRequest, ...grpc.CallOption) (*application_apiv1.GetCommunityMemberListResponse, error)) *MockApplicationServiceClientGetCommunityMemberListCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetCommunityTimeline mocks base method.
+func (m *MockApplicationServiceClient) GetCommunityTimeline(ctx context.Context, in *application_apiv1.GetCommunityTimelineRequest, opts ...grpc.CallOption) (*application_apiv1.GetCommunityTimelineResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetCommunityTimeline", varargs...)
+	ret0, _ := ret[0].(*application_apiv1.GetCommunityTimelineResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCommunityTimeline indicates an expected call of GetCommunityTimeline.
+func (mr *MockApplicationServiceClientMockRecorder) GetCommunityTimeline(ctx, in any, opts ...any) *MockApplicationServiceClientGetCommunityTimelineCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCommunityTimeline", reflect.TypeOf((*MockApplicationServiceClient)(nil).GetCommunityTimeline), varargs...)
+	return &MockApplicationServiceClientGetCommunityTimelineCall{Call: call}
+}
+
+// MockApplicationServiceClientGetCommunityTimelineCall wrap *gomock.Call
+type MockApplicationServiceClientGetCommunityTimelineCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockApplicationServiceClientGetCommunityTimelineCall) Return(arg0 *application_apiv1.GetCommunityTimelineResponse, arg1 error) *MockApplicationServiceClientGetCommunityTimelineCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockApplicationServiceClientGetCommunityTimelineCall) Do(f func(context.Context, *application_apiv1.GetCommunityTimelineRequest, ...grpc.CallOption) (*application_apiv1.GetCommunityTimelineResponse, error)) *MockApplicationServiceClientGetCommunityTimelineCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockApplicationServiceClientGetCommunityTimelineCall) DoAndReturn(f func(context.Context, *application_apiv1.GetCommunityTimelineRequest, ...grpc.CallOption) (*application_apiv1.GetCommunityTimelineResponse, error)) *MockApplicationServiceClientGetCommunityTimelineCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetPostMediaStatus mocks base method.
 func (m *MockApplicationServiceClient) GetPostMediaStatus(ctx context.Context, in *application_apiv1.GetPostMediaStatusRequest, opts ...grpc.CallOption) (*application_apiv1.GetPostMediaStatusResponse, error) {
 	m.ctrl.T.Helper()
@@ -394,6 +570,50 @@ func (c *MockApplicationServiceClientInitiatePostMediaUploadCall) DoAndReturn(f 
 	return c
 }
 
+// RestrictCommunityPost mocks base method.
+func (m *MockApplicationServiceClient) RestrictCommunityPost(ctx context.Context, in *application_apiv1.RestrictCommunityPostRequest, opts ...grpc.CallOption) (*application_apiv1.RestrictCommunityPostResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RestrictCommunityPost", varargs...)
+	ret0, _ := ret[0].(*application_apiv1.RestrictCommunityPostResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RestrictCommunityPost indicates an expected call of RestrictCommunityPost.
+func (mr *MockApplicationServiceClientMockRecorder) RestrictCommunityPost(ctx, in any, opts ...any) *MockApplicationServiceClientRestrictCommunityPostCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestrictCommunityPost", reflect.TypeOf((*MockApplicationServiceClient)(nil).RestrictCommunityPost), varargs...)
+	return &MockApplicationServiceClientRestrictCommunityPostCall{Call: call}
+}
+
+// MockApplicationServiceClientRestrictCommunityPostCall wrap *gomock.Call
+type MockApplicationServiceClientRestrictCommunityPostCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockApplicationServiceClientRestrictCommunityPostCall) Return(arg0 *application_apiv1.RestrictCommunityPostResponse, arg1 error) *MockApplicationServiceClientRestrictCommunityPostCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockApplicationServiceClientRestrictCommunityPostCall) Do(f func(context.Context, *application_apiv1.RestrictCommunityPostRequest, ...grpc.CallOption) (*application_apiv1.RestrictCommunityPostResponse, error)) *MockApplicationServiceClientRestrictCommunityPostCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockApplicationServiceClientRestrictCommunityPostCall) DoAndReturn(f func(context.Context, *application_apiv1.RestrictCommunityPostRequest, ...grpc.CallOption) (*application_apiv1.RestrictCommunityPostResponse, error)) *MockApplicationServiceClientRestrictCommunityPostCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SendChatMessage mocks base method.
 func (m *MockApplicationServiceClient) SendChatMessage(ctx context.Context, in *application_apiv1.SendChatMessageRequest, opts ...grpc.CallOption) (*application_apiv1.SendChatMessageResponse, error) {
 	m.ctrl.T.Helper()
@@ -434,6 +654,50 @@ func (c *MockApplicationServiceClientSendChatMessageCall) Do(f func(context.Cont
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockApplicationServiceClientSendChatMessageCall) DoAndReturn(f func(context.Context, *application_apiv1.SendChatMessageRequest, ...grpc.CallOption) (*application_apiv1.SendChatMessageResponse, error)) *MockApplicationServiceClientSendChatMessageCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SendDirectMessageToCommunityMember mocks base method.
+func (m *MockApplicationServiceClient) SendDirectMessageToCommunityMember(ctx context.Context, in *application_apiv1.SendDirectMessageToCommunityMemberRequest, opts ...grpc.CallOption) (*application_apiv1.SendDirectMessageToCommunityMemberResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SendDirectMessageToCommunityMember", varargs...)
+	ret0, _ := ret[0].(*application_apiv1.SendDirectMessageToCommunityMemberResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SendDirectMessageToCommunityMember indicates an expected call of SendDirectMessageToCommunityMember.
+func (mr *MockApplicationServiceClientMockRecorder) SendDirectMessageToCommunityMember(ctx, in any, opts ...any) *MockApplicationServiceClientSendDirectMessageToCommunityMemberCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendDirectMessageToCommunityMember", reflect.TypeOf((*MockApplicationServiceClient)(nil).SendDirectMessageToCommunityMember), varargs...)
+	return &MockApplicationServiceClientSendDirectMessageToCommunityMemberCall{Call: call}
+}
+
+// MockApplicationServiceClientSendDirectMessageToCommunityMemberCall wrap *gomock.Call
+type MockApplicationServiceClientSendDirectMessageToCommunityMemberCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockApplicationServiceClientSendDirectMessageToCommunityMemberCall) Return(arg0 *application_apiv1.SendDirectMessageToCommunityMemberResponse, arg1 error) *MockApplicationServiceClientSendDirectMessageToCommunityMemberCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockApplicationServiceClientSendDirectMessageToCommunityMemberCall) Do(f func(context.Context, *application_apiv1.SendDirectMessageToCommunityMemberRequest, ...grpc.CallOption) (*application_apiv1.SendDirectMessageToCommunityMemberResponse, error)) *MockApplicationServiceClientSendDirectMessageToCommunityMemberCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockApplicationServiceClientSendDirectMessageToCommunityMemberCall) DoAndReturn(f func(context.Context, *application_apiv1.SendDirectMessageToCommunityMemberRequest, ...grpc.CallOption) (*application_apiv1.SendDirectMessageToCommunityMemberResponse, error)) *MockApplicationServiceClientSendDirectMessageToCommunityMemberCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
