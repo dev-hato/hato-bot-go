@@ -9,7 +9,7 @@ require (
 	github.com/mixigroup/mixi2-application-sdk-go v1.2.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
-	google.golang.org/grpc v1.81.0
+	google.golang.org/grpc v1.81.1
 )
 
 require (
