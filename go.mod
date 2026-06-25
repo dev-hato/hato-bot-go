@@ -3,7 +3,7 @@ module hato-bot-go
 go 1.26.1
 
 require (
-	github.com/cockroachdb/errors v1.13.0
+	github.com/cockroachdb/errors v1.14.0
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/mixigroup/mixi2-application-sdk-go v1.2.0
