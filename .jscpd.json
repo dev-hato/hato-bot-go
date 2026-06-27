@@ -1,6 +1,6 @@
 {
   "threshold": 0,
   "reporters": ["consoleFull"],
-  "ignore": ["**/__snapshots__/**", "**/node_modules/**", "**/mock_*.go"],
+  "ignore": ["**/__snapshots__/**", "**/node_modules/**", "**/mock_*.go", "**/package.json", "**/package-lock.json"],
   "absolute": true
 }
