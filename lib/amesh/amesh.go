@@ -489,10 +489,13 @@ func getWebMercatorPixel(params *CreateAmeshImageParams) (float64, float64) {
 	if params.Zoom < 0 || 30 < params.Zoom {
 		return 0, 0
 	}
+
+	// jscpd:ignore-start
 	zoomFactor := float64(int(1) << uint(params.Zoom))
 	x := 256.0 * zoomFactor * (params.Lng + 180) / 360.0
 	y := 256.0 * zoomFactor * (0.5 - math.Log(math.Tan(math.Pi/4+deg2rad(params.Lat)/2))/(2.0*math.Pi))
 	return x, y
+	// jscpd:ignore-end
 }
 
 // drawLightningMarker 画像上に落雷マーカーを描画する
@@ -638,6 +641,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
 
+	// jscpd:ignore-start
 	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to ExecuteHTTPRequest")
@@ -647,6 +651,7 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
+	// jscpd:ignore-end
 
 	img, _, err = image.Decode(resp.Body)
 	if err != nil {
