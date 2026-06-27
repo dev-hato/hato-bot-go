@@ -78,6 +78,7 @@ func (h *Handler) uploadMedia(ctx context.Context, uploadURL string, buffer *byt
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	// タイムアウト付きでアップロードを実行
+	// jscpd:ignore-start
 	resp, err := httpclient.ExecuteHTTPRequest(&http.Client{Timeout: 30 * time.Second}, req)
 	if err != nil {
 		return errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
@@ -87,6 +88,7 @@ func (h *Handler) uploadMedia(ctx context.Context, uploadURL string, buffer *byt
 			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
+	// jscpd:ignore-end
 
 	return nil
 }

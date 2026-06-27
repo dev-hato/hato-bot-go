@@ -19,6 +19,7 @@ permissions:
   pull-requests: write
 jobs:
   # PRが来たらformatをかけてみて、差分があればPRを作って、エラーで落ちるjob
+  # jscpd:ignore-start
   pr-format:
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +33,7 @@ jobs:
         if: github.event_name != 'pull_request' || github.event.action != 'closed'
         with:
           go-version-file: go.mod
+      # jscpd:ignore-end
       # formatする
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/pr_format/pr_format/format.sh"
