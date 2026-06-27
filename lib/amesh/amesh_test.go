@@ -103,6 +103,7 @@ func TestCreateAmeshImage(t *testing.T) {
 			expectedImageSize: 768,
 			expectError:       nil,
 		},
+		// jscpd:ignore-start
 		{
 			name: "空のタイムスタンプ結果",
 			params: &amesh.CreateAmeshImageParams{
@@ -188,6 +189,7 @@ func TestCreateAmeshImage(t *testing.T) {
 			expectedImageSize: 768,
 			expectError:       nil,
 		},
+		// jscpd:ignore-end
 		{
 			name: "小さなタイル数でのテスト",
 			params: &amesh.CreateAmeshImageParams{
@@ -323,6 +325,7 @@ func TestCreateImageBufferWithClient(t *testing.T) {
 			},
 			expectError: lib.ErrParamsNil,
 		},
+		// jscpd:ignore-start
 		{
 			name: "nilロケーション",
 			params: &amesh.CreateImageBufferWithClientParams{
@@ -364,6 +367,7 @@ func TestCreateImageBufferWithClient(t *testing.T) {
 			}
 		})
 	}
+	// jscpd:ignore-end
 }
 
 // TestParseLocationWithClient ParseLocationWithClient関数をモックHTTPクライアントでテストする
@@ -586,6 +590,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			params:      nil,
 			expectError: lib.ErrParamsNil,
 		},
+		// jscpd:ignore-start
 		{
 			name: "nilクライアント",
 			params: &amesh.ParseLocationWithClientParams{
@@ -612,6 +617,7 @@ func TestParseLocationWithClient(t *testing.T) {
 			}
 		})
 	}
+	// jscpd:ignore-end
 }
 
 // TestGenerateFileName GenerateFileName関数をテストする
