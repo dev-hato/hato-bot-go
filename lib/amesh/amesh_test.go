@@ -51,6 +51,14 @@ func (f roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // TestCreateAmeshImage CreateAmeshImage関数をテストする
 func TestCreateAmeshImage(t *testing.T) {
+	timestampsResponse := `[
+				{
+					"basetime": "20240101120000",
+					"validtime": "20240101120000", 
+					"elements": ["hrpns_nd", "liden"]
+				}
+			]`
+
 	dummyTileBytes, err := createDummyPNGBytes(
 		256,
 		256,
@@ -71,13 +79,7 @@ func TestCreateAmeshImage(t *testing.T) {
 			name: "成功した画像作成",
 			params: &amesh.CreateAmeshImageParams{
 				Client: createConfigurableMockHTTPClient(httpMockConfig{
-					TimestampsResponse: `[
-				{
-					"basetime": "20240101120000",
-					"validtime": "20240101120000", 
-					"elements": ["hrpns_nd", "liden"]
-				}
-			]`,
+					TimestampsResponse: timestampsResponse,
 					LightningResponse: `{
 				"features": [
 					{
@@ -122,15 +124,9 @@ func TestCreateAmeshImage(t *testing.T) {
 			name: "タイルダウンロード失敗を適切に処理",
 			params: &amesh.CreateAmeshImageParams{
 				Client: createConfigurableMockHTTPClient(httpMockConfig{
-					TimestampsResponse: `[
-				{
-					"basetime": "20240101120000",
-					"validtime": "20240101120000", 
-					"elements": ["hrpns_nd", "liden"]
-				}
-			]`,
-					LightningResponse: `{"features": []}`,
-					DummyTileBytes:    dummyTileBytes,
+					TimestampsResponse: timestampsResponse,
+					LightningResponse:  `{"features": []}`,
+					DummyTileBytes:     dummyTileBytes,
 				}),
 				Lat:         35.6895,
 				Lng:         139.6917,
@@ -179,15 +175,9 @@ func TestCreateAmeshImage(t *testing.T) {
 			name: "落雷データJSONエラー",
 			params: &amesh.CreateAmeshImageParams{
 				Client: createConfigurableMockHTTPClient(httpMockConfig{
-					TimestampsResponse: `[
-				{
-					"basetime": "20240101120000",
-					"validtime": "20240101120000", 
-					"elements": ["hrpns_nd", "liden"]
-				}
-			]`,
-					LightningResponse: `invalid json`,
-					DummyTileBytes:    dummyTileBytes,
+					TimestampsResponse: timestampsResponse,
+					LightningResponse:  `invalid json`,
+					DummyTileBytes:     dummyTileBytes,
 				}),
 				Lat:         35.6895,
 				Lng:         139.6917,
@@ -202,13 +192,7 @@ func TestCreateAmeshImage(t *testing.T) {
 			name: "小さなタイル数でのテスト",
 			params: &amesh.CreateAmeshImageParams{
 				Client: createConfigurableMockHTTPClient(httpMockConfig{
-					TimestampsResponse: `[
-				{
-					"basetime": "20240101120000",
-					"validtime": "20240101120000", 
-					"elements": ["hrpns_nd", "liden"]
-				}
-			]`,
+					TimestampsResponse: timestampsResponse,
 					LightningResponse: `{
 				"features": [
 					{
@@ -293,6 +277,18 @@ func TestCreateImageBufferWithClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	client := createConfigurableMockHTTPClient(httpMockConfig{
+		TimestampsResponse: `[
+				{
+					"basetime": "20240101120000",
+					"validtime": "20240101120000", 
+					"elements": ["hrpns_nd", "liden"]
+				}
+			]`,
+		LightningResponse: `{"features": []}`,
+		DummyTileBytes:    dummyTileBytes,
+	})
+
 	tests := []struct {
 		name        string
 		params      *amesh.CreateImageBufferWithClientParams
@@ -301,17 +297,7 @@ func TestCreateImageBufferWithClient(t *testing.T) {
 		{
 			name: "成功したbytes.Buffer作成",
 			params: &amesh.CreateImageBufferWithClientParams{
-				Client: createConfigurableMockHTTPClient(httpMockConfig{
-					TimestampsResponse: `[
-				{
-					"basetime": "20240101120000",
-					"validtime": "20240101120000", 
-					"elements": ["hrpns_nd", "liden"]
-				}
-			]`,
-					LightningResponse: `{"features": []}`,
-					DummyTileBytes:    dummyTileBytes,
-				}),
+				Client: client,
 				Location: &amesh.Location{
 					Lat:       35.6895,
 					Lng:       139.6917,
@@ -340,17 +326,7 @@ func TestCreateImageBufferWithClient(t *testing.T) {
 		{
 			name: "nilロケーション",
 			params: &amesh.CreateImageBufferWithClientParams{
-				Client: createConfigurableMockHTTPClient(httpMockConfig{
-					TimestampsResponse: `[
-				{
-					"basetime": "20240101120000",
-					"validtime": "20240101120000", 
-					"elements": ["hrpns_nd", "liden"]
-				}
-			]`,
-					LightningResponse: `{"features": []}`,
-					DummyTileBytes:    dummyTileBytes,
-				}),
+				Client:   client,
 				Location: nil,
 			},
 			expectError: lib.ErrParamsNil,
