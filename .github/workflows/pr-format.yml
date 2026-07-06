@@ -34,6 +34,8 @@ jobs:
         with:
           go-version-file: go.mod
       # jscpd:ignore-end
+      - if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        uses: flatt-security/setup-takumi-guard-golang@2e3c7c40b538cd68b2ac483def12982ebc8bc02e # v1
       # formatする
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/pr_format/pr_format/format.sh"
