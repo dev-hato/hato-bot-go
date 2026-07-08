@@ -70,7 +70,7 @@ jobs:
         env:
           GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
       - name: Build and push (dev)
-        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
@@ -78,7 +78,7 @@ jobs:
           files: docker-compose.yml,dev.docker-compose.yml
           source: .
       - name: Build and push (prod_misskey)
-        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
@@ -86,7 +86,7 @@ jobs:
           files: docker-compose.yml,misskey.docker-compose.yml
           source: .
       - name: Build and push (prod_mixi2)
-        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
@@ -96,7 +96,7 @@ jobs:
       - run: echo 'TAG_NAME=latest' >> "$GITHUB_ENV"
         if: ${{ github.event_name == 'release' }}
       - name: Build and push (dev) (latest)
-        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         if: ${{ github.event_name == 'release' }}
         env:
           DOCKER_CONTENT_TRUST: 1
@@ -105,7 +105,7 @@ jobs:
           files: docker-compose.yml,dev.docker-compose.yml
           source: .
       - name: Build and push (prod_misskey) (latest)
-        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         if: ${{ github.event_name == 'release' }}
         env:
           DOCKER_CONTENT_TRUST: 1
@@ -114,7 +114,7 @@ jobs:
           files: docker-compose.yml,misskey.docker-compose.yml
           source: .
       - name: Build and push (prod_mixi2) (latest)
-        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         if: ${{ github.event_name == 'release' }}
         env:
           DOCKER_CONTENT_TRUST: 1
