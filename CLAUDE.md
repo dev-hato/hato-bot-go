@@ -142,4 +142,3 @@ func DrawCircle(ctx context.Context, req *DrawCircleRequest) error {
     // 実装...
 }
 ```
-
