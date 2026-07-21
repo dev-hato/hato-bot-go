@@ -20,9 +20,9 @@ COPY lib lib
 # アプリケーションをビルド
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-RUN go build -a -installsuffix cgo -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go && \
-    go build -a -installsuffix cgo -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go && \
-    go build -a -installsuffix cgo -o health-check cmd/health_check/main.go
+RUN go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go && \
+    go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go && \
+    go build -o health-check cmd/health_check/main.go
 
 # 開発用イメージ
 FROM builder AS dev
