@@ -1,4 +1,7 @@
-FROM golang:1.25.6-bookworm@sha256:f4490d7b261d73af4543c46ac6597d7d101b6e1755bcdd8c5159fda7046b6b3e AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25.6-bookworm@sha256:f4490d7b261d73af4543c46ac6597d7d101b6e1755bcdd8c5159fda7046b6b3e AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -19,17 +22,33 @@ COPY lib lib
 
 # アプリケーションをビルド
 ENV CGO_ENABLED=0
-ENV GOOS=linux
-RUN go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go && \
-    go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go && \
-    go build -o health-check cmd/health_check/main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go && \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go && \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o health-check cmd/health_check/main.go
 
-# 開発用イメージ
-FROM builder AS dev
+# 開発用airを対象アーキテクチャ向けにビルド
+FROM --platform=$BUILDPLATFORM golang:1.25.6-bookworm@sha256:f4490d7b261d73af4543c46ac6597d7d101b6e1755bcdd8c5159fda7046b6b3e AS air-builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /app
+
+ENV GO111MODULE=on
+COPY go.mod go.sum ./
 
 # airをインストール
 # hadolint ignore=DL3062
-RUN go install github.com/air-verse/air
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/air-verse/air && \
+    cp "/go/bin/${TARGETOS}_${TARGETARCH}/air" /air
+
+# 開発用イメージ
+FROM golang:1.25.6-bookworm@sha256:f4490d7b261d73af4543c46ac6597d7d101b6e1755bcdd8c5159fda7046b6b3e AS dev
+
+WORKDIR /app
+
+# ビルド済みの対象アーキテクチャ向けairをコピー
+COPY --from=air-builder /air /go/bin/air
 
 # air設定ファイルをコピー
 COPY .air.toml .
