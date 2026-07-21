@@ -13,7 +13,7 @@ if [[ "$image_tag" == *$'\n'* ]]; then
 	echo "Found multiple golang base images in Dockerfile: $image_tag" >&2
 	exit 1
 fi
-new_image_tag=$(sed -E "s/^golang:[0-9.]+-/golang:${go_version}-/" <<< "$image_tag")
+new_image_tag=$(sed -E "s/^golang:[0-9.]+-/golang:${go_version}-/" <<<"$image_tag")
 
 if [ "$image_tag" = "$new_image_tag" ]; then
 	exit
