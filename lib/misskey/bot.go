@@ -120,6 +120,7 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
+	// jscpd:ignore-start
 	resp, err := httpclient.ExecuteHTTPRequest(bot.BotSetting.Client, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to executeHTTPRequest")
@@ -129,6 +130,7 @@ func (bot *Bot) UploadFile(ctx context.Context, reader io.Reader, fileName strin
 			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 		}
 	}(resp.Body)
+	// jscpd:ignore-end
 
 	var uploadedFile File
 	if err = json.NewDecoder(resp.Body).Decode(&uploadedFile); err != nil {

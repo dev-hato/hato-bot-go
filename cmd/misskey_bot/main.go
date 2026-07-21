@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"hato-bot-go/lib"
@@ -20,6 +21,7 @@ func main() {
 	if domain == "" || token == "" {
 		log.Fatal("MISSKEY_DOMAIN and MISSKEY_API_TOKEN environment variables must be set")
 	}
+	domain = strings.NewReplacer("\n", "", "\r", "").Replace(domain)
 
 	yahooAPIToken := os.Getenv("YAHOO_API_TOKEN")
 
@@ -39,7 +41,7 @@ func main() {
 		log.Fatalf("Failed to connect to Misskey: %v", err)
 	}
 
-	log.Printf("hato-bot-go started on %s", domain)
+	log.Printf("hato-bot-go started on %s", domain) //nolint:gosec //G706
 
 	// メッセージハンドラー
 	messageHandler := func(note *misskey.Note) {

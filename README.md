@@ -231,6 +231,8 @@ docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
 
 **Webメルカトル投影 (`getWebMercatorPixel`)**
 
+<!-- jscpd:ignore-start -->
+
 ```go
 zoomFactor := float64(int(1) << uint(params.Zoom))
 x := 256.0 * zoomFactor * (params.Lng + 180) / 360.0
@@ -258,6 +260,8 @@ draw.DrawMask(img, destRect, radarTile, image.Point{},
     image.NewUniform(color.RGBA{R: 255, G: 255, B: 255, A: 128}),
     image.Point{}, draw.Over)
 ```
+
+<!-- jscpd:ignore-end -->
 
 #### 3. 距離円描画アルゴリズム
 

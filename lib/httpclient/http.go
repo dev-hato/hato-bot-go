@@ -15,7 +15,7 @@ var ErrHTTPRequestError = errors.New("A http request returned error status")
 func ExecuteHTTPRequest(client *http.Client, req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", "hato-bot-go/"+lib.Version)
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint:gosec //G704
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Do")
 	}

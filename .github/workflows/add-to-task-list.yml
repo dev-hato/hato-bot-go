@@ -13,13 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'issues' || github.repository == github.event.pull_request.head.repo.full_name
     steps:
+      # jscpd:ignore-start
       - name: Generate a token
         id: generate_token
-        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.PROJECT_AUTOMATION_APP_ID }}
-          private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }}
-      - uses: dev-hato/actions-add-to-projects@4f20d0bdaeabd4b7728bbea294e2c5264c082611 # v0.0.109
+          client-id: ${{ secrets.PROJECT_AUTOMATION_APP_CLIENT_ID }} # zizmor: ignore[secrets-outside-env]
+          private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }} # zizmor: ignore[secrets-outside-env]
+          permission-organization-projects: write
+          permission-pull-requests: read
+      # jscpd:ignore-end
+      - uses: dev-hato/actions-add-to-projects@19b69be5ecacae2d6f8f09bbec7b74f2257f7426 # v1.0.9
         with:
           github-token: ${{steps.generate_token.outputs.token}}
           project-url: https://github.com/orgs/dev-hato/projects/1

@@ -10,51 +10,7 @@
 
 ## 開発コマンド
 
-### セットアップ
-
-```bash
-# Go依存関係のインストール
-go mod download
-
-# Node.js依存関係のインストール（リンティング用）
-npm install
-
-# pre-commitフックのインストール（gitleaksによるシークレットスキャン）
-uv tool run pre-commit install
-```
-
-### ボットの実行
-
-```bash
-# 環境設定
-cp .env.example .env
-# .envファイルを編集してAPIトークンを設定
-
-# CLI版のビルドと実行
-go build -o hato-bot-go cmd/cli/main.go
-./hato-bot-go amesh 東京
-
-# Misskeyボットのビルドと実行
-go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
-./hato-bot-go-misskey-bot
-
-# mixi2ボットのビルドと実行
-go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go
-./hato-bot-go-mixi2-bot
-
-# Docker Composeで実行（推奨）
-export TAG_NAME=$(git symbolic-ref --short HEAD | sed -e "s:/:-:g")
-
-# Misskeyボット
-docker compose -f docker-compose.yml -f misskey.docker-compose.yml up -d --wait
-
-# mixi2ボット
-docker compose -f docker-compose.yml -f mixi2.docker-compose.yml up -d --wait
-
-# 自動リロード付き開発モード（デフォルトはMisskeyボット）
-# mixi2ボットで起動する場合は .air.toml のL.8をコメントアウトしL.9のコメントアウトを解除する
-docker compose -f docker-compose.yml -f dev.docker-compose.yml up --build
-```
+セットアップ手順とボットの起動方法（Docker Compose・開発モードの切り替えを含む）は`run-locally`スキルを参照。
 
 ### テストとリンティング
 
@@ -65,69 +21,16 @@ go test ./...
 # 包括的なリンティング実行
 npm run lint
 
-# 個別のリントコマンド
-npm run lint:markdown     # Markdownファイル
+# 個別のリントコマンド（package.jsonのscriptsを参照）
 npm run lint:text         # textlintによるテキストリンティング
-npm run lint:dockerfile   # Dockerfileリンティング
 npm run lint:secret       # gitleaksによるシークレットスキャン
 
 # Goコードのフォーマット
 go mod tidy
 gci write -s default -s standard -s "prefix($(go list -m))" .
-
-# 各プラットフォーム向けビルド
-go build -o hato-bot-go cmd/cli/main.go
-go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go
-go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go
 ```
 
 ## アーキテクチャ
-
-### コアコンポーネント
-
-- **`cmd/cli/main.go`**: スタンドアロンのCLIエントリーポイント
-- **`cmd/misskey_bot/main.go`**: WebSocketストリーミング付きMisskeyボットエントリーポイント
-- **`cmd/mixi2_bot/main.go`**: gRPCストリーミング付きmixi2ボットエントリーポイント
-- **`cmd/health_check/main.go`**: コンテナオーケストレーション用ヘルスチェックサービス
-- **`lib/amesh/amesh.go`**: 気象レーダー画像生成のコア機能（`ParseAmeshCommand`含む）
-- **`lib/server.go`**: HTTPステータスサーバーの共通実装（全ボット共通）
-- **`lib/misskey/`**: Misskey APIクライアントとWebSocket処理
-- **`lib/mixi2/handler.go`**: mixi2イベントハンドラーとgRPC API操作
-- **Docker設定**: 開発環境と本番環境用のマルチステージビルド
-
-### プラットフォームサポート
-
-このGo実装は以下に焦点を当てています。
-
-- **Misskey**: 自動的に再接続する機能付きWebSocketストリーミング接続
-- **mixi2**: gRPCストリーミング接続とOAuth2認証によるイベント駆動処理
-- **スタンドアロンCLI**: テストと開発用の直接コマンドライン実行
-
-### 外部API
-
-複数の気象・地図サービスと統合。
-
-- **気象庁**: 気象レーダーデータと落雷情報
-- **Yahoo Maps API**: 位置ベースクエリのジオコーディング
-- **OpenStreetMap**: 画像合成用ベースマップタイル
-
-### 主要依存関係
-
-- **WebSocket**: Misskeyストリーミング接続用の`github.com/gorilla/websocket`
-- **gRPC**: mixi2ストリーミング接続用の`google.golang.org/grpc`
-- **mixi2 SDK**: mixi2 API操作用の`github.com/mixigroup/mixi2-application-sdk-go`
-- **エラーハンドリング**: 拡張エラー管理用の`github.com/cockroachdb/errors`
-- **画像処理**: レーダー画像合成用のGoビルトイン`image`パッケージ
-- **HTTPクライアント**: カスタムタイムアウト設定付き標準`net/http`
-
-### コマンドシステム
-
-amesh気象レーダーコマンドを処理。
-
-1. **Misskeyボット**: WebSocket経由でメンションを監視し`amesh`コマンドを処理
-2. **mixi2ボット**: gRPCストリーミング経由でメンションイベントを受信し`amesh`コマンドを処理
-3. **CLIモード**: 位置引数による直接コマンド実行
-4. **画像生成**: 気象データを取得し、ベースマップにレーダーオーバーレイを合成、距離円と落雷マーカーを追加
 
 ### 環境設定
 
@@ -147,15 +50,6 @@ amesh気象レーダーコマンドを処理。
 - ノートの作成・削除
 - ドライブファイル操作
 - リアクション管理
-
-### テスト
-
-テストファイルはパッケージ別に整理。
-
-- `lib/amesh/amesh_test.go`: HTTPモッキング付き気象レーダー機能テスト（`ParseAmeshCommand`テスト含む）
-- `lib/misskey/bot_test.go`: Misskey APIクライアントテスト
-- `lib/mixi2/handler_test.go`: mixi2イベントハンドラーテスト（gRPC APIクライアントモッキング使用）
-- テーブル駆動テストとHTTPクライアントモッキングを使用したGo標準テストパッケージを使用
 
 ## 開発プロセス（t-wada式TDD推奨）
 
@@ -179,29 +73,6 @@ amesh気象レーダーコマンドを処理。
    - **開発のロードマップ**: テストが正しい道筋を示し、素早い復旧を可能にする
    - **開発の予測可能性**: 人間の不確実性を減らし、反復的な検証を自動化
 
-### 実践原則
-
-- **「作る」よりも先に「使う」**: 使いやすさを念頭に置いた設計
-- **One assertion per test**: 1つのテストに1つのアサーション
-- **テストは動作する仕様書**: コードの振る舞いを文書化
-- **最終目標**: 「動作するきれいなコード」
-
-### Go言語でのTDD実践
-
-```bash
-# 1. TODOリストを作成してからテストを書く
-# 2. テストを実行して失敗を確認
-go test ./...
-
-# 3. 最小限のコードで通す
-# 4. リファクタリング（フォーマット含む）
-go mod tidy
-gci write -s default -s standard -s "prefix($(go list -m))" .
-
-# 5. すべてのテストが通ることを確認
-go test ./...
-```
-
 ### テスト構造
 
 - **Prepare**: テストインスタンスのセットアップ
@@ -217,35 +88,7 @@ go test ./...
 - **データベースアクセスを伴うテスト**: データベースインターフェースを通してモック実装を注入する
 - **外部サービス呼び出しを伴うテスト**: サービスインターフェースを通してモック実装を注入する
 
-#### モックテストの例
-
-```go
-// MockHTTPClient テスト用のHTTPクライアントモック
-type MockHTTPClient struct {
-    GetFunc func(url string) (*http.Response, error)
-}
-
-func (m *MockHTTPClient) Get(url string) (*http.Response, error) {
-    if m.GetFunc != nil {
-        return m.GetFunc(url)
-    }
-    return nil, nil
-}
-
-// MockFileWriter テスト用のファイルライターモック
-type MockFileWriter struct {
-    CreateFunc func(name string) (io.WriteCloser, error)
-}
-
-func (m *MockFileWriter) Create(name string) (io.WriteCloser, error) {
-    if m.CreateFunc != nil {
-        return m.CreateFunc(name)
-    }
-    return &MockWriteCloser{}, nil
-}
-```
-
-この原則により、テストは高速で予測可能になり、外部依存関係の影響を受けずに実行できる。
+この原則により、テストは高速で予測可能になり、外部依存関係の影響を受けずに実行できる。実装例は`lib/amesh/amesh_test.go`などの既存テストファイルを参照。
 
 ## コーディング規約
 
@@ -299,13 +142,3 @@ func DrawCircle(ctx context.Context, req *DrawCircleRequest) error {
     // 実装...
 }
 ```
-
-## 開発ノート
-
-- **Goモジュール**: Go 1.24とモジュール依存関係管理を使用
-- **Dockerコンテナ化**: 開発・本番環境用マルチステージビルド
-- **エラーハンドリング**: 全体を通した包括的なエラーラッピングとログ記録
-- **WebSocket復元力**: 指数バックオフによる自動再接続
-- **画像合成**: 外部依存なしでGoのimageパッケージを使用したカスタム実装
-- **API統合**: レート制限とタイムアウトシナリオを適切に処理
-- **テスト**: 外部API呼び出し用HTTPクライアントモッキング付き広範なユニットテスト

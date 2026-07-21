@@ -16,10 +16,11 @@ permissions:
   contents: write
   pull-requests: write
 jobs:
+  # jscpd:ignore-start
   format-json-yml:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: github.event_name != 'pull_request' || github.event.action != 'closed'
         with:
           fetch-depth: 0
@@ -27,11 +28,15 @@ jobs:
           persist-credentials: false
       - name: Generate a token
         id: generate_token
-        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.PROJECT_AUTOMATION_APP_ID }}
-          private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }}
-      - uses: dev-hato/actions-format-json-yml@e26bb75bab9841682281db76bb3f11b9f29a29f0 # v0.0.100
+          client-id: ${{ secrets.PROJECT_AUTOMATION_APP_CLIENT_ID }} # zizmor: ignore[secrets-outside-env]
+          private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }} # zizmor: ignore[secrets-outside-env]
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+      # jscpd:ignore-end
+      - uses: dev-hato/actions-format-json-yml@6fa1a14b2f9b42d954cd105dabc9f77c4fbce575 # v0.0.105
         with:
           github-token: ${{steps.generate_token.outputs.token}}
 concurrency:
