@@ -39,8 +39,7 @@ COPY go.mod go.sum ./
 
 # airをインストール
 # hadolint ignore=DL3062
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/air-verse/air && \
-    cp "/go/bin/${TARGETOS}_${TARGETARCH}/air" /air
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /air github.com/air-verse/air
 
 # 開発用イメージ
 FROM golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b AS dev
