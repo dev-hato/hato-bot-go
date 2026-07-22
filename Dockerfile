@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b AS base-builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -10,6 +10,8 @@ ENV GO111MODULE=on
 
 # go.modとgo.sumをコピー
 COPY go.mod go.sum ./
+
+FROM base-builder AS builder
 
 # 依存関係をダウンロード
 RUN go mod download
@@ -27,15 +29,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o hato-bot-go-misskey-bot cmd/mi
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o health-check cmd/health_check/main.go
 
 # 開発用airを対象アーキテクチャ向けにビルド
-FROM --platform=$BUILDPLATFORM golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b AS air-builder
-
-ARG TARGETOS
-ARG TARGETARCH
-
-WORKDIR /app
-
-ENV GO111MODULE=on
-COPY go.mod go.sum ./
+FROM base-builder AS air-builder
 
 # airをインストール
 # hadolint ignore=DL3062
