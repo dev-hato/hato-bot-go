@@ -7,6 +7,4 @@ services:
         - type=registry,ref=ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:buildcache
         - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:mixi2-${TAG_NAME}
         - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go
-      cache_to:
-        - type=registry,ref=ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:buildcache,mode=max
     image: ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:mixi2-${TAG_NAME}

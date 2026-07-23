@@ -76,6 +76,8 @@ jobs:
           push: true
           files: docker-compose.yml,dev.docker-compose.yml
           source: .
+          set: |
+            *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - name: Build and push (prod_misskey)
         uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         env:
@@ -84,6 +86,8 @@ jobs:
           push: true
           files: docker-compose.yml,misskey.docker-compose.yml
           source: .
+          set: |
+            *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - name: Build and push (prod_mixi2)
         uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         env:
@@ -92,6 +96,8 @@ jobs:
           push: true
           files: docker-compose.yml,mixi2.docker-compose.yml
           source: .
+          set: |
+            *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - run: echo 'TAG_NAME=latest' >> "$GITHUB_ENV"
         if: ${{ github.event_name == 'release' }}
       - name: Build and push (dev) (latest)
@@ -103,6 +109,8 @@ jobs:
           push: true
           files: docker-compose.yml,dev.docker-compose.yml
           source: .
+          set: |
+            *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - name: Build and push (prod_misskey) (latest)
         uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         if: ${{ github.event_name == 'release' }}
@@ -112,6 +120,8 @@ jobs:
           push: true
           files: docker-compose.yml,misskey.docker-compose.yml
           source: .
+          set: |
+            *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - name: Build and push (prod_mixi2) (latest)
         uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         if: ${{ github.event_name == 'release' }}
@@ -121,6 +131,8 @@ jobs:
           push: true
           files: docker-compose.yml,mixi2.docker-compose.yml
           source: .
+          set: |
+            *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
   # package.jsonに差分があれば、package.jsonからpackage-lock.jsonを作り出す
   # jscpd:ignore-start
   pr-check-npm:

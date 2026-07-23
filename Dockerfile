@@ -7,6 +7,9 @@ WORKDIR /app
 
 # Go modulesを有効にする
 ENV GO111MODULE=on
+ENV CGO_ENABLED=0
+ENV GOOS=$TARGETOS
+ENV GOARCH=$TARGETARCH
 
 # go.modとgo.sumをコピー
 COPY go.mod go.sum ./
@@ -23,17 +26,16 @@ COPY "cmd/mixi2_bot" "cmd/mixi2_bot"
 COPY lib lib
 
 # アプリケーションをビルド
-ENV CGO_ENABLED=0
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go && \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go && \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o health-check cmd/health_check/main.go
+RUN go build -o hato-bot-go-misskey-bot cmd/misskey_bot/main.go && \
+    go build -o hato-bot-go-mixi2-bot cmd/mixi2_bot/main.go && \
+    go build -o health-check cmd/health_check/main.go
 
 # 開発用airを対象アーキテクチャ向けにビルド
 FROM base-builder AS air-builder
 
 # airをインストール
 # hadolint ignore=DL3062
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /air github.com/air-verse/air
+RUN go build -o /air github.com/air-verse/air
 
 # 開発用イメージ
 FROM golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b AS dev
