@@ -4,6 +4,7 @@ services:
     build:
       target: prod_misskey
       cache_from:
+        - type=registry,ref=ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:buildcache
         - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:misskey-${TAG_NAME}
         - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go
     image: ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:misskey-${TAG_NAME}
