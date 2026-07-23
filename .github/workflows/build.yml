@@ -37,6 +37,7 @@ jobs:
           branch-name-prefix: fix-go-version
           pr-title-prefix: Goのバージョンを直してあげたよ！
           # jscpd:ignore-end
+  # jscpd:ignore-start
   build_docker_image:
     runs-on: ubuntu-latest
     env:
@@ -133,6 +134,7 @@ jobs:
           source: .
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
+  # jscpd:ignore-end
   # package.jsonに差分があれば、package.jsonからpackage-lock.jsonを作り出す
   # jscpd:ignore-start
   pr-check-npm:
