@@ -33,11 +33,13 @@ func main() {
 	// HTTPサーバーを別ゴルーチンで開始
 	go lib.StartStatusHTTPServer()
 
+	ctx := context.Background()
+
 	// ボットを初期化
 	bot := misskey.NewBot(domain, token)
 
 	// WebSocket接続を確立
-	if err := bot.Connect(); err != nil {
+	if err := bot.Connect(ctx); err != nil {
 		log.Fatalf("Failed to connect to Misskey: %v", err)
 	}
 
@@ -53,7 +55,6 @@ func main() {
 		}
 
 		log.Printf("Processing amesh command for place: %s", parseResult.Place)
-		ctx := context.Background()
 
 		// ameshコマンドを処理
 		if err := bot.ProcessAmeshCommand(ctx, &misskey.ProcessAmeshCommandParams{
@@ -76,13 +77,13 @@ func main() {
 
 	// WebSocketメッセージを監視
 	for {
-		if err := bot.Listen(messageHandler); err != nil {
+		if err := bot.Listen(ctx, messageHandler); err != nil {
 			log.Printf("WebSocket connection lost: %v", err)
 			log.Println("Attempting to reconnect...")
 
 			// 再接続を試行
 			time.Sleep(5 * time.Second)
-			if err = bot.Connect(); err != nil {
+			if err = bot.Connect(ctx); err != nil {
 				log.Printf("Failed to reconnect: %v", err)
 				time.Sleep(10 * time.Second)
 			}

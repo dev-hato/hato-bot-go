@@ -13,7 +13,8 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/gorilla/websocket"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 
 	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
@@ -217,18 +218,55 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCom
 }
 
 // Connect WebSocket接続を確立
-func (bot *Bot) Connect() error {
+func (bot *Bot) Connect(ctx context.Context) error {
 	wsURL := fmt.Sprintf("wss://%s/streaming?i=%s", bot.BotSetting.Domain, bot.BotSetting.Token)
+	return errors.Wrap(bot.connect(ctx, wsURL), "Failed to connect")
+}
 
-	dialer := websocket.DefaultDialer
-	dialer.HandshakeTimeout = 10 * time.Second
+// connect 指定したURLへWebSocket接続を確立する
+// テストから平文WebSocketサーバーへ接続できるようURLを引数で受け取る内部メソッド
+func (bot *Bot) connect(ctx context.Context, wsURL string) (err error) {
+	// 古い接続が残っている場合はリソースを解放する
+	if bot.WSConn != nil {
+		if closeErr := bot.WSConn.CloseNow(); closeErr != nil {
+			log.Printf("Failed to WSConn.CloseNow(): %v", closeErr)
+		}
 
-	conn, _, err := dialer.Dial(wsURL, http.Header{
-		"User-Agent": []string{bot.UserAgent},
+		bot.WSConn = nil
+	}
+
+	// ハンドシェイクのタイムアウトを10秒に設定する
+	// このコンテキストはDialの間だけ使い、接続確立後の読み書きには影響しない
+	dialCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	conn, resp, err := websocket.Dial(dialCtx, wsURL, &websocket.DialOptions{
+		HTTPHeader: http.Header{
+			"User-Agent": []string{bot.UserAgent},
+		},
 	})
+	// Dialの成否に関わらず、ハンドシェイク応答のBodyが存在すれば必ずCloseする。
+	// ただしClose失敗を戻り値へ合成するのはconnectが既にエラーの場合のみとし、
+	// 接続に成功しているのにClose失敗で戻り値を汚染しないようにする。
+	if resp != nil && resp.Body != nil {
+		defer func(body io.ReadCloser) {
+			closeErr := body.Close()
+			switch {
+			case closeErr == nil:
+				return
+			case err != nil:
+				err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
+			default:
+				log.Printf("Failed to Close: %v", closeErr)
+			}
+		}(resp.Body)
+	}
 	if err != nil {
 		return errors.Wrap(err, "Failed to Dial")
 	}
+
+	// Misskeyのストリーミングメッセージは大きくなり得るため、読み取りサイズの上限を撤廃する
+	conn.SetReadLimit(-1)
 
 	bot.WSConn = conn
 
@@ -244,8 +282,8 @@ func (bot *Bot) Connect() error {
 		},
 	}
 
-	if err := bot.WSConn.WriteJSON(connectMsg); err != nil {
-		return errors.Wrap(err, "Failed to WriteJSON")
+	if err := wsjson.Write(ctx, bot.WSConn, connectMsg); err != nil {
+		return errors.Wrap(err, "Failed to wsjson.Write")
 	}
 
 	log.Printf("Connected to Misskey WebSocket: %s", bot.BotSetting.Domain)
@@ -253,7 +291,7 @@ func (bot *Bot) Connect() error {
 }
 
 // Listen WebSocketメッセージを監視
-func (bot *Bot) Listen(messageHandler func(note *Note)) error {
+func (bot *Bot) Listen(ctx context.Context, messageHandler func(note *Note)) error {
 	if messageHandler == nil {
 		return errors.New("messageHandler cannot be nil")
 	}
@@ -267,8 +305,8 @@ func (bot *Bot) Listen(messageHandler func(note *Note)) error {
 				Body Note   `json:"body"`
 			} `json:"body"`
 		}
-		if err := bot.WSConn.ReadJSON(&msg); err != nil {
-			return errors.Wrap(err, "Failed to ReadJSON")
+		if err := wsjson.Read(ctx, bot.WSConn, &msg); err != nil {
+			return errors.Wrap(err, "Failed to wsjson.Read")
 		}
 
 		// メンションイベントの処理
