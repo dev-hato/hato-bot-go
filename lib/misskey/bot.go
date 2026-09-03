@@ -245,18 +245,17 @@ func (bot *Bot) connect(ctx context.Context, wsURL string) (err error) {
 			"User-Agent": []string{bot.UserAgent},
 		},
 	})
+	// Dial失敗時はresp.Bodyにハンドシェイク応答が残り得るため、resp.Bodyがあれば必ずCloseする
+	if resp != nil && resp.Body != nil {
+		defer func(body io.ReadCloser) {
+			if closeErr := body.Close(); closeErr != nil {
+				err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
+			}
+		}(resp.Body)
+	}
 	if err != nil {
 		return errors.Wrap(err, "Failed to Dial")
 	}
-	// websocket.Dialは成功時にresp.Bodyをnilにする（失敗時のみハンドシェイク応答のボディが残る）
-	defer func(body io.ReadCloser) {
-		if body == nil {
-			return
-		}
-		if closeErr := body.Close(); closeErr != nil {
-			err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
-		}
-	}(resp.Body)
 
 	// Misskeyのストリーミングメッセージは大きくなり得るため、読み取りサイズの上限を撤廃する
 	conn.SetReadLimit(-1)
