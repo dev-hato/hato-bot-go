@@ -42,6 +42,7 @@ func startConnectTestServer(t *testing.T) (wsURL string, received <-chan connect
 		var frame connectFrame
 
 		if readErr := wsjson.Read(r.Context(), conn, &frame); readErr != nil {
+			t.Errorf("wsjson.Read() error = %v", readErr)
 			return
 		}
 
