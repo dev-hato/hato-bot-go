@@ -229,7 +229,7 @@ func (bot *Bot) connect(ctx context.Context, wsURL string) (err error) {
 	// 古い接続が残っている場合はリソースを解放する
 	if bot.WSConn != nil {
 		if closeErr := bot.WSConn.CloseNow(); closeErr != nil {
-			log.Printf("Failed to WSConn.CloseNow: %v", closeErr)
+			log.Printf("Failed to WSConn.CloseNow(): %v", closeErr)
 		}
 
 		bot.WSConn = nil
