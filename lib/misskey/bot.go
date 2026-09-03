@@ -245,11 +245,19 @@ func (bot *Bot) connect(ctx context.Context, wsURL string) (err error) {
 			"User-Agent": []string{bot.UserAgent},
 		},
 	})
-	// Dial失敗時はresp.Bodyにハンドシェイク応答が残り得るため、resp.Bodyがあれば必ずCloseする
+	// Dialの成否に関わらず、ハンドシェイク応答のBodyが存在すれば必ずCloseする。
+	// ただしClose失敗を戻り値へ合成するのはconnectが既にエラーの場合のみとし、
+	// 接続に成功しているのにClose失敗で戻り値を汚染しないようにする。
 	if resp != nil && resp.Body != nil {
 		defer func(body io.ReadCloser) {
-			if closeErr := body.Close(); closeErr != nil {
+			closeErr := body.Close()
+			switch {
+			case closeErr == nil:
+				return
+			case err != nil:
 				err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
+			default:
+				log.Printf("Failed to Close: %v", closeErr)
 			}
 		}(resp.Body)
 	}
