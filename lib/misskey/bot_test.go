@@ -3,7 +3,6 @@ package misskey_test
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
@@ -181,21 +180,7 @@ func TestUploadFile(t *testing.T) {
 func newTestWSBot(t *testing.T, serverFn func(ctx context.Context, conn *websocket.Conn)) *misskey.Bot {
 	t.Helper()
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		conn, err := websocket.Accept(w, r, nil)
-		if err != nil {
-			t.Errorf("websocket.Accept() error = %v", err)
-			return
-		}
-		defer func() {
-			if closeErr := conn.CloseNow(); closeErr != nil {
-				t.Logf("server conn.CloseNow() error = %v", closeErr)
-			}
-		}()
-
-		serverFn(r.Context(), conn)
-	}))
-	t.Cleanup(srv.Close)
+	wsURL := misskey.StartWSTestServer(t, serverFn)
 
 	bot := misskey.NewBotWithClient(&misskey.BotSetting{
 		Domain: "example.com",
@@ -203,9 +188,7 @@ func newTestWSBot(t *testing.T, serverFn func(ctx context.Context, conn *websock
 		Client: httpclient.NewMockHTTPClient(http.StatusOK, ""),
 	})
 
-	// httptestサーバーは平文HTTPのため、ws://スキームで直接ダイヤルしてWSConnへ注入する
-	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/streaming"
-
+	// ws://スキームで直接ダイヤルしてWSConnへ注入する
 	conn, resp, err := websocket.Dial(t.Context(), wsURL, nil)
 	if resp != nil && resp.Body != nil {
 		if closeErr := resp.Body.Close(); closeErr != nil {

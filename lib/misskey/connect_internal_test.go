@@ -1,9 +1,8 @@
 package misskey
 
 import (
+	"context"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -27,32 +26,19 @@ func startConnectTestServer(t *testing.T) (wsURL string, received <-chan connect
 	t.Helper()
 
 	got := make(chan connectFrame, 1)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		conn, err := websocket.Accept(w, r, nil)
-		if err != nil {
-			t.Errorf("websocket.Accept() error = %v", err)
-			return
-		}
-		defer func() {
-			if closeErr := conn.CloseNow(); closeErr != nil {
-				t.Logf("server conn.CloseNow() error = %v", closeErr)
-			}
-		}()
-
+	wsURL = StartWSTestServer(t, func(ctx context.Context, conn *websocket.Conn) {
 		var frame connectFrame
 
-		if readErr := wsjson.Read(r.Context(), conn, &frame); readErr != nil {
+		if readErr := wsjson.Read(ctx, conn, &frame); readErr != nil {
 			t.Errorf("wsjson.Read() error = %v", readErr)
 			return
 		}
 
 		got <- frame
-		<-r.Context().Done()
-	}))
-	t.Cleanup(srv.Close)
+		<-ctx.Done()
+	})
 
-	// httptestサーバーは平文HTTPのため、ws://スキームで接続する
-	return "ws" + strings.TrimPrefix(srv.URL, "http") + "/streaming", got
+	return wsURL, got
 }
 
 // newConnectTestBot HTTPクライアントをモックしたテスト用Botを返す
