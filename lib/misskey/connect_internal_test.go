@@ -3,6 +3,8 @@ package misskey
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -133,5 +135,48 @@ func TestConnect(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestListenAfterFailedReconnect 接続成功後に再接続へ失敗し、WSConnがnilのままListenを呼んでもpanicせずエラーを返すことを検証する。
+// cmd/misskey_bot の再接続ループはConnect失敗後もループ先頭でListenを呼び直すため、
+// nil接続を参照してwsjson.Readがpanicする異常系を再現する。
+func TestListenAfterFailedReconnect(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	// まず一度は接続に成功させる
+	wsURL, _ := startConnectTestServer(t)
+	bot := newConnectTestBot()
+
+	if err := bot.connect(ctx, wsURL); err != nil {
+		t.Fatalf("初回のconnect() error = %v", err)
+	}
+
+	if bot.WSConn == nil {
+		t.Fatal("初回connect()後にWSConnがnil")
+	}
+
+	// WebSocketへアップグレードせず400を返すサーバーを相手に、再接続を確実に失敗させる
+	httpOnly := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	t.Cleanup(httpOnly.Close)
+
+	badURL := "ws" + strings.TrimPrefix(httpOnly.URL, "http")
+
+	if err := bot.connect(ctx, badURL); err == nil {
+		t.Fatal("再接続が成功してしまった（失敗を期待）")
+	}
+
+	// 再接続失敗後、WSConnはnilへ戻っている（この異常系が今回の再現条件）
+	if bot.WSConn != nil {
+		t.Fatal("再接続失敗後にWSConnがnilになっていない")
+	}
+
+	// nil接続のままListenを呼んでもpanicせず、エラーを返すこと
+	if err := bot.Listen(ctx, func(*Note) {}); err == nil {
+		t.Error("Listen() error = nil, want non-nil（nil接続）")
 	}
 }

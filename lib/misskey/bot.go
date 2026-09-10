@@ -296,6 +296,11 @@ func (bot *Bot) Listen(ctx context.Context, messageHandler func(note *Note)) err
 		return errors.New("messageHandler cannot be nil")
 	}
 
+	// 再接続に失敗した直後などWSConnがnilのまま呼ばれた場合は、wsjson.Readへnilを渡してpanicする前にエラーとして返す
+	if bot.WSConn == nil {
+		return errors.New("WSConn is nil")
+	}
+
 	for {
 		var msg struct {
 			Type string `json:"type"`
