@@ -268,7 +268,7 @@ func (bot *Bot) connect(ctx context.Context, params *connectParams) (err error) 
 	// これによりDial失敗時のエラーへトークン入りURLが漏れない。
 	if params.Token != "" {
 		dialOpts.HTTPClient = &http.Client{
-			Transport: &tokenInjector{
+			Transport: &tokenInjectingTransport{
 				base:  http.DefaultTransport,
 				host:  params.WSURL.Host,
 				token: params.Token,

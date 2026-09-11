@@ -14,9 +14,9 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
 
-// TestTokenInjectorRoundTrip 送信リクエストの複製にだけトークンが付与され、
+// TestTokenInjectingTransportRoundTrip 送信リクエストの複製にだけトークンが付与され、
 // 呼び出し元のリクエストURLは書き換わらないことを検証する。
-func TestTokenInjectorRoundTrip(t *testing.T) {
+func TestTokenInjectingTransportRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	const token = "secret-token-value"
@@ -56,14 +56,14 @@ func TestTokenInjectorRoundTrip(t *testing.T) {
 				}, nil
 			})
 
-			injector := &tokenInjector{base: stub, host: tt.injectHost, token: token}
+			transport := &tokenInjectingTransport{base: stub, host: tt.injectHost, token: token}
 
 			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, tt.reqURL, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			resp, err := injector.RoundTrip(req)
+			resp, err := transport.RoundTrip(req)
 			if err != nil {
 				t.Fatalf("RoundTrip() error = %v", err)
 			}
