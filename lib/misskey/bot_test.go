@@ -189,7 +189,7 @@ func newTestWSBot(t *testing.T, serverFn func(ctx context.Context, conn *websock
 	})
 
 	// ws://スキームで直接ダイヤルしてWSConnへ注入する
-	conn, resp, err := websocket.Dial(t.Context(), wsURL, nil)
+	conn, resp, err := websocket.Dial(t.Context(), wsURL.String(), nil)
 	if resp != nil && resp.Body != nil {
 		if closeErr := resp.Body.Close(); closeErr != nil {
 			t.Logf("handshake response body Close() error = %v", closeErr)

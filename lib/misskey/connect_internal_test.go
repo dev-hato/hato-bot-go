@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -24,7 +25,7 @@ type connectFrame struct {
 }
 
 // startConnectTestServer connectフレームを1つ受け取ってチャネルへ流すテスト用WebSocketサーバーを起動する
-func startConnectTestServer(t *testing.T) (wsURL string, received <-chan connectFrame) {
+func startConnectTestServer(t *testing.T) (wsURL *url.URL, received <-chan connectFrame) {
 	t.Helper()
 
 	got := make(chan connectFrame, 1)
@@ -75,14 +76,14 @@ func TestConnect(t *testing.T) {
 			if tt.withStaleConn {
 				staleURL, _ := startConnectTestServer(t)
 
-				if err := bot.connect(ctx, staleURL); err != nil {
+				if err := bot.connect(ctx, &connectParams{WSURL: staleURL}); err != nil {
 					t.Fatalf("事前のconnect() error = %v", err)
 				}
 
 				staleConn = bot.WSConn
 			}
 
-			if err := bot.connect(ctx, wsURL); err != nil {
+			if err := bot.connect(ctx, &connectParams{WSURL: wsURL}); err != nil {
 				t.Fatalf("connect() error = %v", err)
 			}
 
@@ -150,7 +151,7 @@ func TestListenAfterFailedReconnect(t *testing.T) {
 	wsURL, _ := startConnectTestServer(t)
 	bot := newConnectTestBot()
 
-	if err := bot.connect(ctx, wsURL); err != nil {
+	if err := bot.connect(ctx, &connectParams{WSURL: wsURL}); err != nil {
 		t.Fatalf("初回のconnect() error = %v", err)
 	}
 
@@ -164,9 +165,9 @@ func TestListenAfterFailedReconnect(t *testing.T) {
 	}))
 	t.Cleanup(httpOnly.Close)
 
-	badURL := "ws" + strings.TrimPrefix(httpOnly.URL, "http")
+	badURL := &url.URL{Scheme: "ws", Host: httpOnly.Listener.Addr().String()}
 
-	if err := bot.connect(ctx, badURL); err == nil {
+	if err := bot.connect(ctx, &connectParams{WSURL: badURL}); err == nil {
 		t.Fatal("再接続が成功してしまった（失敗を期待）")
 	}
 
@@ -178,5 +179,122 @@ func TestListenAfterFailedReconnect(t *testing.T) {
 	// nil接続のままListenを呼んでもpanicせず、エラーを返すこと
 	if err := bot.Listen(ctx, func(*Note) {}); err == nil {
 		t.Error("Listen() error = nil, want non-nil（nil接続）")
+	}
+}
+
+// startTokenCapturingWSServer ハンドシェイクを受理し、リクエストの i クエリをチャネルへ流すテスト用サーバーを起動する
+func startTokenCapturingWSServer(t *testing.T) (wsURL *url.URL, gotToken <-chan string) {
+	t.Helper()
+
+	tokenCh := make(chan string, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenCh <- r.URL.Query().Get("i")
+
+		conn, err := websocket.Accept(w, r, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		defer func() {
+			if err := conn.CloseNow(); err != nil {
+				t.Fatal(err)
+			}
+		}()
+
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	return &url.URL{Scheme: "ws", Host: srv.Listener.Addr().String(), Path: streamingPath}, tokenCh
+}
+
+// tokenSecret 全テストで使うダミーのAPIトークン
+const tokenSecret = "review-dummy-secret-token"
+
+// TestConnectSendsTokenOnlyOnWire connectがトークンを接続先URLへ載せず、
+// カスタムTransport経由で送信リクエストにだけ i クエリとして付与し、
+// かつハンドシェイクが成立することを検証する（正常系）。
+func TestConnectSendsTokenOnlyOnWire(t *testing.T) {
+	t.Parallel()
+
+	wsURL, gotToken := startTokenCapturingWSServer(t)
+	bot := newConnectTestBot()
+
+	if err := bot.connect(t.Context(), &connectParams{WSURL: wsURL, Token: tokenSecret}); err != nil {
+		t.Fatalf("connect() error = %v", err)
+	}
+
+	t.Cleanup(func() {
+		if bot.WSConn == nil {
+			return
+		}
+
+		if err := bot.WSConn.CloseNow(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	if bot.WSConn == nil {
+		t.Fatal("connect() 後に WSConn が nil")
+	}
+
+	select {
+	case got := <-gotToken:
+		if got != tokenSecret {
+			t.Errorf("サーバーが受け取った i = %q, want %q", got, tokenSecret)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("サーバーが i クエリを受け取らなかった")
+	}
+}
+
+// TestConnectDialErrorHasNoToken Dial失敗時のエラー文字列にAPIトークンが残らないことを、
+// connect / Connect の両経路について検証する（異常系。main の起動時・再接続時ログへ漏れない）。
+func TestConnectDialErrorHasNoToken(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// dial はキャンセル済みcontextを受け取り、Dialを失敗させて返ったエラーを返す
+		dial func(ctx context.Context) error
+	}{
+		{
+			name: "connect経由",
+			dial: func(ctx context.Context) error {
+				return newConnectTestBot().connect(ctx, &connectParams{
+					WSURL: &url.URL{Scheme: "wss", Host: "example.com", Path: streamingPath},
+					Token: tokenSecret,
+				})
+			},
+		},
+		{
+			name: "Connect経由",
+			dial: func(ctx context.Context) error {
+				return NewBotWithClient(&BotSetting{
+					Domain: "example.com",
+					Token:  tokenSecret,
+					Client: httpclient.NewMockHTTPClient(http.StatusOK, ""),
+				}).Connect(ctx)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// キャンセル済みcontextでDialを即座に失敗させる
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			err := tt.dial(ctx)
+			if err == nil {
+				t.Fatal("error = nil, want non-nil")
+			}
+
+			if strings.Contains(err.Error(), tokenSecret) {
+				t.Errorf("エラーにトークンが露出している: %v", err)
+			}
+		})
 	}
 }

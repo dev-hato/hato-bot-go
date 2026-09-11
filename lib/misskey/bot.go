@@ -10,6 +10,7 @@ import (
 	"maps"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -217,15 +218,32 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCom
 	return nil
 }
 
+// streamingPath MisskeyストリーミングAPIのパス
+const streamingPath = "/streaming"
+
 // Connect WebSocket接続を確立
 func (bot *Bot) Connect(ctx context.Context) error {
-	wsURL := fmt.Sprintf("wss://%s/streaming?i=%s", bot.BotSetting.Domain, bot.BotSetting.Token)
-	return errors.Wrap(bot.connect(ctx, wsURL), "Failed to connect")
+	return errors.Wrap(bot.connect(ctx, &connectParams{
+		// APIトークンはURLへ載せず、connect内で送信リクエストにだけ付与する
+		WSURL: &url.URL{Scheme: "wss", Host: bot.BotSetting.Domain, Path: streamingPath},
+		Token: bot.BotSetting.Token,
+	}), "Failed to connect")
 }
 
-// connect 指定したURLへWebSocket接続を確立する
-// テストから平文WebSocketサーバーへ接続できるようURLを引数で受け取る内部メソッド
-func (bot *Bot) connect(ctx context.Context, wsURL string) (err error) {
+// connectParams connect のリクエストパラメータ
+type connectParams struct {
+	// WSURL 接続先のWebSocket URL
+	WSURL *url.URL
+	// Token Misskey APIトークン。空でなければ接続先URLへは含めず送信リクエストにだけ i クエリとして付与する
+	Token string
+}
+
+// connect 指定したURLへWebSocket接続を確立する内部メソッド
+func (bot *Bot) connect(ctx context.Context, params *connectParams) (err error) {
+	if params == nil || params.WSURL == nil {
+		return lib.ErrParamsNil
+	}
+
 	// 古い接続が残っている場合はリソースを解放する
 	if bot.WSConn != nil {
 		if closeErr := bot.WSConn.CloseNow(); closeErr != nil {
@@ -240,11 +258,25 @@ func (bot *Bot) connect(ctx context.Context, wsURL string) (err error) {
 	dialCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	conn, resp, err := websocket.Dial(dialCtx, wsURL, &websocket.DialOptions{
+	dialOpts := &websocket.DialOptions{
 		HTTPHeader: http.Header{
 			"User-Agent": []string{bot.UserAgent},
 		},
-	})
+	}
+
+	// トークンがある場合は、URLへ残さないよう送信リクエストへだけ付与するHTTPClientを使う。
+	// これによりDial失敗時のエラーへトークン入りURLが漏れない。
+	if params.Token != "" {
+		dialOpts.HTTPClient = &http.Client{
+			Transport: &tokenInjector{
+				base:  http.DefaultTransport,
+				host:  params.WSURL.Host,
+				token: params.Token,
+			},
+		}
+	}
+
+	conn, resp, err := websocket.Dial(dialCtx, params.WSURL.String(), dialOpts)
 	// Dialの成否に関わらず、ハンドシェイク応答のBodyが存在すれば必ずCloseする。
 	// ただしClose失敗を戻り値へ合成するのはconnectが既にエラーの場合のみとし、
 	// 接続に成功しているのにClose失敗で戻り値を汚染しないようにする。

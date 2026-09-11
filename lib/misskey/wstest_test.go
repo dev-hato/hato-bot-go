@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	"net/url"
 	"testing"
 
 	"github.com/coder/websocket"
@@ -13,7 +13,7 @@ import (
 // StartWSTestServer websocket.Acceptで接続を受け付けるテスト用サーバーを起動し、ws://スキームの接続先URLを返す。
 // handle は接続ごとに呼ばれ、リクエストのコンテキストとWebSocket接続を受け取る。
 // package misskey 内・外の双方のテストから使えるようエクスポートしている。
-func StartWSTestServer(t *testing.T, handle func(ctx context.Context, conn *websocket.Conn)) string {
+func StartWSTestServer(t *testing.T, handle func(ctx context.Context, conn *websocket.Conn)) *url.URL {
 	t.Helper()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -33,5 +33,5 @@ func StartWSTestServer(t *testing.T, handle func(ctx context.Context, conn *webs
 	t.Cleanup(srv.Close)
 
 	// httptestサーバーは平文HTTPのため、ws://スキームで接続する
-	return "ws" + strings.TrimPrefix(srv.URL, "http") + "/streaming"
+	return &url.URL{Scheme: "ws", Host: srv.Listener.Addr().String(), Path: streamingPath}
 }
