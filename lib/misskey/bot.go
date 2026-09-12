@@ -289,13 +289,14 @@ func (bot *Bot) connect(ctx context.Context, params *connectParams) (err error) 
 	if resp != nil && resp.Body != nil {
 		defer func(body io.ReadCloser) {
 			closeErr := body.Close()
-			switch {
-			case closeErr == nil:
+			if closeErr == nil {
 				return
-			case err != nil:
-				err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
-			default:
+			}
+
+			if err == nil {
 				log.Printf("Failed to Close: %v", closeErr)
+			} else {
+				err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
 			}
 		}(resp.Body)
 	}
