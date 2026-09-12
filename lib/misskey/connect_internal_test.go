@@ -29,7 +29,7 @@ func startConnectTestServer(t *testing.T) (wsURL *url.URL, received <-chan conne
 	t.Helper()
 
 	got := make(chan connectFrame, 1)
-	wsURL = StartWSTestServer(t, func(ctx context.Context, conn *websocket.Conn) {
+	wsURL = StartWSTestServer(t, func(ctx context.Context, _ *http.Request, conn *websocket.Conn) {
 		var frame connectFrame
 
 		if readErr := wsjson.Read(ctx, conn, &frame); readErr != nil {
@@ -186,32 +186,13 @@ func TestListenAfterFailedReconnect(t *testing.T) {
 func startTokenCapturingWSServer(t *testing.T) (wsURL *url.URL, gotToken <-chan string) {
 	t.Helper()
 
-	// Hijack後の r.Context() はハンドラーが戻るまでキャンセルされないため、
-	// テスト終了時にハンドラーと接続を解放できるよう専用contextで待つ
-	ctx, cancel := context.WithCancel(context.Background())
-
 	tokenCh := make(chan string, 1)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	wsURL = StartWSTestServer(t, func(ctx context.Context, r *http.Request, _ *websocket.Conn) {
 		tokenCh <- r.URL.Query().Get("i")
-
-		conn, err := websocket.Accept(w, r, nil)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		defer func() {
-			if err := conn.CloseNow(); err != nil {
-				t.Error(err)
-			}
-		}()
-
 		<-ctx.Done()
-	}))
-	t.Cleanup(srv.Close)
-	t.Cleanup(cancel) // テスト終了時にキャンセルし、<-ctx.Done() で待つハンドラーを解放する
+	})
 
-	return &url.URL{Scheme: "ws", Host: srv.Listener.Addr().String(), Path: streamingPath}, tokenCh
+	return wsURL, tokenCh
 }
 
 // tokenSecret 全テストで使うダミーのAPIトークン

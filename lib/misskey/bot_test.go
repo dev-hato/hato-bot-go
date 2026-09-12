@@ -177,7 +177,7 @@ func TestUploadFile(t *testing.T) {
 
 // newTestWSBot テスト用WebSocketサーバーへ接続済みのBotを返す
 // serverFn はサーバー側の接続ハンドラーで、受け取ったconnとリクエストコンテキストを使ってメッセージを送受信する
-func newTestWSBot(t *testing.T, serverFn func(ctx context.Context, conn *websocket.Conn)) *misskey.Bot {
+func newTestWSBot(t *testing.T, serverFn func(ctx context.Context, r *http.Request, conn *websocket.Conn)) *misskey.Bot {
 	t.Helper()
 
 	wsURL := misskey.StartWSTestServer(t, serverFn)
@@ -284,7 +284,7 @@ func TestListen(t *testing.T) {
 			t.Parallel()
 
 			frames := tt.frames
-			bot := newTestWSBot(t, func(ctx context.Context, conn *websocket.Conn) {
+			bot := newTestWSBot(t, func(ctx context.Context, _ *http.Request, conn *websocket.Conn) {
 				for _, f := range frames {
 					if err := wsjson.Write(ctx, conn, f); err != nil {
 						return
@@ -331,7 +331,7 @@ func TestListen(t *testing.T) {
 func TestListenMentionContent(t *testing.T) {
 	t.Parallel()
 
-	bot := newTestWSBot(t, func(ctx context.Context, conn *websocket.Conn) {
+	bot := newTestWSBot(t, func(ctx context.Context, _ *http.Request, conn *websocket.Conn) {
 		if err := wsjson.Write(ctx, conn, wsChannelMention("note123", "amesh 東京", "alice")); err != nil {
 			return
 		}
