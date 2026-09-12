@@ -273,6 +273,12 @@ func (bot *Bot) connect(ctx context.Context, params *connectParams) (err error) 
 				host:  params.WSURL.Host,
 				token: params.Token,
 			},
+			// リダイレクトを追従しない。Locationヘッダーがクエリを引き継ぐ実装だとリダイレクト先のURLにトークンが乗り、
+			// その後段の失敗時に http.Client が生成する*url.ErrorへそのままURLとして載ってしまう。
+			// tokenInjectingTransportのホスト照合では防げないため、ここでリダイレクト自体を拒否し、最後のレスポンスをそのまま返させる。
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		}
 	}
 

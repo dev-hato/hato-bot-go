@@ -13,7 +13,9 @@ type tokenInjectingTransport struct {
 
 // RoundTrip 送信リクエストの複製にだけトークンを付与して送信する
 func (t *tokenInjectingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// リダイレクト等で別ホストへ飛んだ場合はトークンを付与しない
+	// 別ホスト宛にはトークンを付与しない。
+	// 呼び出し側のhttp.ClientはCheckRedirectでリダイレクト自体を拒否しているため、本来ここには来ない想定だが、
+	// 設定変更時の保険として残している
 	if req.URL.Host != t.host {
 		return t.base.RoundTrip(req)
 	}
