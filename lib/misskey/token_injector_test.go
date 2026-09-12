@@ -15,7 +15,7 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 // TestTokenInjectingTransportRoundTrip 送信リクエストの複製にだけトークンが付与され、
-// 呼び出し元のリクエストURLは書き換わらないことを検証する。
+// 呼び出し元のリクエストURLは書き換わらず、Response.Requestもトークン抜きの元リクエストへ差し戻されることを検証する。
 func TestTokenInjectingTransportRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -79,6 +79,14 @@ func TestTokenInjectingTransportRoundTrip(t *testing.T) {
 			// 呼び出し元のリクエストURLへトークンが混入していないこと
 			if got := req.URL.Query().Get("i"); got != "" {
 				t.Errorf("元リクエストのURLにトークンが混入した: i = %q", got)
+			}
+
+			// net/httpの実装ではResponse.Requestに実際に送信したリクエスト（トークン付き）が残るため、
+			// 元リクエストへ差し戻されトークンが残っていないことも検証する
+			if resp.Request != nil {
+				if got := resp.Request.URL.Query().Get("i"); got != "" {
+					t.Errorf("Response.Requestのトークンが差し戻っていない: i = %q", got)
+				}
 			}
 		})
 	}

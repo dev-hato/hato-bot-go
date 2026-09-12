@@ -1,6 +1,10 @@
 package misskey
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/cockroachdb/errors"
+)
 
 // tokenInjectingTransport Misskey APIトークンを接続先URLへ残さないための http.RoundTripper 実装。
 // coder/websocket の Dial へはトークン抜きのURLを渡し、実際に送信するリクエストの複製にだけ i クエリを付与する。
@@ -27,5 +31,14 @@ func (t *tokenInjectingTransport) RoundTrip(req *http.Request) (*http.Response, 
 	query.Set("i", t.token)
 	forwarded.URL.RawQuery = query.Encode()
 
-	return t.base.RoundTrip(forwarded)
+	resp, err := t.base.RoundTrip(forwarded)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to RoundTrip")
+	}
+
+	// 実際に送信したforwardedをRoundTripperがResponse.Requestへそのまま残すため、トークン抜きの元リクエストへ戻す。
+	// net/httpはリダイレクト先URL解析の失敗時などresp.Request.URLをエラーへ転用することがあり、そこからのトークン漏れを防ぐ
+	resp.Request = req
+
+	return resp, nil
 }
