@@ -10,10 +10,12 @@ import (
 	"maps"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/gorilla/websocket"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 
 	"hato-bot-go/lib"
 	"hato-bot-go/lib/amesh"
@@ -216,19 +218,94 @@ func (bot *Bot) ProcessAmeshCommand(ctx context.Context, params *ProcessAmeshCom
 	return nil
 }
 
+// streamingPath MisskeyストリーミングAPIのパス
+const streamingPath = "/streaming"
+
 // Connect WebSocket接続を確立
-func (bot *Bot) Connect() error {
-	wsURL := fmt.Sprintf("wss://%s/streaming?i=%s", bot.BotSetting.Domain, bot.BotSetting.Token)
+func (bot *Bot) Connect(ctx context.Context) error {
+	return errors.Wrap(bot.connect(ctx, &connectParams{
+		// APIトークンはURLへ載せず、connect内で送信リクエストにだけ付与する
+		WSURL: &url.URL{Scheme: "wss", Host: bot.BotSetting.Domain, Path: streamingPath},
+		Token: bot.BotSetting.Token,
+	}), "Failed to connect")
+}
 
-	dialer := websocket.DefaultDialer
-	dialer.HandshakeTimeout = 10 * time.Second
+// connectParams connect のリクエストパラメータ
+type connectParams struct {
+	// WSURL 接続先のWebSocket URL
+	WSURL *url.URL
+	// Token Misskey APIトークン。空でなければ接続先URLへは含めず送信リクエストにだけ i クエリとして付与する
+	Token string
+}
 
-	conn, _, err := dialer.Dial(wsURL, http.Header{
-		"User-Agent": []string{bot.UserAgent},
-	})
+// connect 指定したURLへWebSocket接続を確立する内部メソッド
+func (bot *Bot) connect(ctx context.Context, params *connectParams) (err error) {
+	if params == nil || params.WSURL == nil {
+		return lib.ErrParamsNil
+	}
+
+	// 古い接続が残っている場合はリソースを解放する
+	if bot.WSConn != nil {
+		if closeErr := bot.WSConn.CloseNow(); closeErr != nil {
+			log.Printf("Failed to WSConn.CloseNow(): %v", closeErr)
+		}
+
+		bot.WSConn = nil
+	}
+
+	// ハンドシェイクのタイムアウトを10秒に設定する
+	// このコンテキストはDialの間だけ使い、接続確立後の読み書きには影響しない
+	dialCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	dialOpts := &websocket.DialOptions{
+		HTTPHeader: http.Header{
+			"User-Agent": []string{bot.UserAgent},
+		},
+	}
+
+	// トークンがある場合は、URLへ残さないよう送信リクエストへだけ付与するHTTPClientを使う。
+	// これによりDial失敗時のエラーへトークン入りURLが漏れない。
+	if params.Token != "" {
+		dialOpts.HTTPClient = &http.Client{
+			Transport: &tokenInjectingTransport{
+				base:  http.DefaultTransport,
+				host:  params.WSURL.Host,
+				token: params.Token,
+			},
+			// リダイレクトを追従しない。Locationヘッダーがクエリを引き継ぐ実装だとリダイレクト先のURLにトークンが乗り、
+			// その後段の失敗時に http.Client が生成する*url.ErrorへそのままURLとして載ってしまう。
+			// tokenInjectingTransportのホスト照合では防げないため、ここでリダイレクト自体を拒否し、最後のレスポンスをそのまま返させる。
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+	}
+
+	conn, resp, err := websocket.Dial(dialCtx, params.WSURL.String(), dialOpts)
+	// Dialの成否に関わらず、ハンドシェイク応答のBodyが存在すれば必ずCloseする。
+	// ただしClose失敗を戻り値へ合成するのはconnectが既にエラーの場合のみとし、
+	// 接続に成功しているのにClose失敗で戻り値を汚染しないようにする。
+	if resp != nil && resp.Body != nil {
+		defer func(body io.ReadCloser) {
+			closeErr := body.Close()
+			if closeErr == nil {
+				return
+			}
+
+			if err == nil {
+				log.Printf("Failed to Close: %v", closeErr)
+			} else {
+				err = errors.Join(err, errors.Wrap(closeErr, "Failed to Close"))
+			}
+		}(resp.Body)
+	}
 	if err != nil {
 		return errors.Wrap(err, "Failed to Dial")
 	}
+
+	// Misskeyのストリーミングメッセージは大きくなり得るため、読み取りサイズの上限を撤廃する
+	conn.SetReadLimit(-1)
 
 	bot.WSConn = conn
 
@@ -244,8 +321,8 @@ func (bot *Bot) Connect() error {
 		},
 	}
 
-	if err := bot.WSConn.WriteJSON(connectMsg); err != nil {
-		return errors.Wrap(err, "Failed to WriteJSON")
+	if err := wsjson.Write(ctx, bot.WSConn, connectMsg); err != nil {
+		return errors.Wrap(err, "Failed to wsjson.Write")
 	}
 
 	log.Printf("Connected to Misskey WebSocket: %s", bot.BotSetting.Domain)
@@ -253,9 +330,14 @@ func (bot *Bot) Connect() error {
 }
 
 // Listen WebSocketメッセージを監視
-func (bot *Bot) Listen(messageHandler func(note *Note)) error {
+func (bot *Bot) Listen(ctx context.Context, messageHandler func(note *Note)) error {
 	if messageHandler == nil {
 		return errors.New("messageHandler cannot be nil")
+	}
+
+	// 再接続に失敗した直後などWSConnがnilのまま呼ばれた場合は、wsjson.Readへnilを渡してpanicする前にエラーとして返す
+	if bot.WSConn == nil {
+		return errors.New("WSConn is nil")
 	}
 
 	for {
@@ -267,8 +349,8 @@ func (bot *Bot) Listen(messageHandler func(note *Note)) error {
 				Body Note   `json:"body"`
 			} `json:"body"`
 		}
-		if err := bot.WSConn.ReadJSON(&msg); err != nil {
-			return errors.Wrap(err, "Failed to ReadJSON")
+		if err := wsjson.Read(ctx, bot.WSConn, &msg); err != nil {
+			return errors.Wrap(err, "Failed to wsjson.Read")
 		}
 
 		// メンションイベントの処理

@@ -4,8 +4,8 @@ go 1.26.4
 
 require (
 	github.com/cockroachdb/errors v1.14.0
+	github.com/coder/websocket v1.8.15
 	github.com/google/go-cmp v0.7.0
-	github.com/gorilla/websocket v1.5.3
 	github.com/mixigroup/mixi2-application-sdk-go v1.2.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
