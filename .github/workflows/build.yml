@@ -70,7 +70,7 @@ jobs:
         env:
           GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
       - name: Build and push (dev)
-        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
@@ -80,7 +80,7 @@ jobs:
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - name: Build and push (prod_misskey)
-        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
@@ -90,7 +90,7 @@ jobs:
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - name: Build and push (prod_mixi2)
-        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
@@ -102,7 +102,7 @@ jobs:
       - run: echo 'TAG_NAME=latest' >> "$GITHUB_ENV"
         if: ${{ github.event_name == 'release' }}
       - name: Build and push (dev) (latest)
-        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
         if: ${{ github.event_name == 'release' }}
         env:
           DOCKER_CONTENT_TRUST: 1
@@ -113,7 +113,7 @@ jobs:
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - name: Build and push (prod_misskey) (latest)
-        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
         if: ${{ github.event_name == 'release' }}
         env:
           DOCKER_CONTENT_TRUST: 1
@@ -124,7 +124,7 @@ jobs:
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
       - name: Build and push (prod_mixi2) (latest)
-        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
         if: ${{ github.event_name == 'release' }}
         env:
           DOCKER_CONTENT_TRUST: 1
