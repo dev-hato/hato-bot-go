@@ -72,7 +72,7 @@ USER 65534:65534
 # ポートを公開（必要に応じて）
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD ./health-check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD ["./health-check"]
 
 FROM prod AS prod_misskey
 
