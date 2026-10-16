@@ -43,16 +43,9 @@ jobs:
         uses: flatt-security/setup-takumi-guard-golang@02545d3425218766aac4dca114dcc3f6eaa0df4a # v1.3.0
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         uses: flatt-security/setup-takumi-guard-npm@14f07d0cbc739b42a1b7c70a04c2b84cd1318ddd # v1.4.0
-      - if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        run: |
-          bash "${GITHUB_WORKSPACE}/scripts/install_npm.sh"
-          npm install
       # formatする
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/pr_format/pr_format/format.sh"
-      # .rulesync/ のルールから、各AIエージェント向けのファイルを生成する
-      - run: npx --no-install rulesync generate
-        if: github.event_name != 'pull_request' || github.event.action != 'closed'
       - uses: dev-hato/actions-diff-pr-management@ac5ddb8fbc4e36f31ef0f90ded9488c0305055e6 # v2.3.0
         if: success() || failure()
         with:
