@@ -2,7 +2,7 @@
 name = "hato-bot-go"
 version = "1.0"
 description = "愛嬌のあるBot"
-requires-python = "==3.14.8"
+requires-python = "==3.15.0"
 dependencies = []
 
 [dependency-groups]
