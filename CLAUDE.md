@@ -15,15 +15,8 @@
 ### テストとリンティング
 
 ```bash
-# Goテストの実行
-go test ./...
-
 # 包括的なリンティング実行
 npm run lint
-
-# 個別のリントコマンド（package.jsonのscriptsを参照）
-npm run lint:text         # textlintによるテキストリンティング
-npm run lint:secret       # gitleaksによるシークレットスキャン
 
 # Goコードのフォーマット
 go mod tidy
