@@ -1,0 +1,140 @@
+# 本リポジトリで作業する際のガイド
+
+このファイルは、AIエージェントがこのリポジトリでコードを扱う際のガイダンスを提供します。
+
+`CLAUDE.md`、`AGENTS.md`、`.github/copilot-instructions.md`はrulesyncで生成しています。
+直接編集せず、`.rulesync/rules/`を編集してから`npx rulesync generate`を実行してください。
+
+## 概要
+
+これは「hato-bot」の気象レーダー機能のGo実装で、気象庁のデータを使用して気象レーダー画像を生成するameshコマンドを提供します。スタンドアロンプログラムとして実行するか、WebSocketストリーミング接続を使用したMisskeyボット、またはgRPCストリーミング接続を使用したmixi2ボットとして動作させることができます。
+
+**注意**: これは元のPython版hato-botの一部をGoに移植したもので、気象レーダー画像生成とMisskey/mixi2統合に焦点を当てています。
+
+## 開発コマンド
+
+セットアップ手順とボットの起動方法（Docker Compose・開発モードの切り替えを含む）は`run-locally`スキルを参照。
+
+### テストとリンティング
+
+```bash
+# 包括的なリンティング実行
+npm run lint
+
+# Goコードのフォーマット
+go mod tidy
+gci write -s default -s standard -s "prefix($(go list -m))" .
+```
+
+## アーキテクチャ
+
+### 環境設定
+
+主要な環境変数（`.env`で定義）。
+
+- `MISSKEY_API_TOKEN`, `MISSKEY_DOMAIN`: Misskeyボット統合
+- `MIXI2_STREAM_ADDRESS`: mixi2 Developer Platformで確認したStreamサーバーアドレス
+- `MIXI2_API_ADDRESS`: mixi2 Developer Platformで確認したmixi2 gRPC APIサーバーアドレス
+- `MIXI2_CLIENT_ID`: mixi2 Developer Platformで発行したOAuth2クライアントID
+- `MIXI2_CLIENT_SECRET`: mixi2 Developer Platformで発行したOAuth2クライアントシークレット
+- `MIXI2_TOKEN_URL`: mixi2 Developer Platformで確認したトークンエンドポイントURL
+- `YAHOO_API_TOKEN`: ジオコーディング用Yahoo Maps API
+
+**必要なMisskey API権限**：
+
+- アカウント情報へのアクセス
+- ノートの作成・削除
+- ドライブファイル操作
+- リアクション管理
+
+## 開発プロセス（t-wada式TDD推奨）
+
+このプロジェクトでは、和田卓人氏（t-wada）が推奨するテスト駆動開発（TDD）の実践に従います。
+
+### TDDの基本サイクル
+
+1. **TODOリストの作成**
+   - 実装したい機能要件を小さなタスクに分割してリストアップ
+   - テストしやすく、優先度の高い要件から選択
+   - 不安を取り除き、開発のロードマップとして活用
+
+2. **Red-Green-Refactorサイクル**
+   1. Red: 失敗するテストを書く
+   2. Green: テストを通す最小限のコードを書く
+   3. Refactor: テストを保ったままコードを改善
+   4. 繰り返し
+
+3. **TDDの3つの本質**
+   - **心の状態の制御**: 大きな機能を小さなTODOに分割し、不安を取り除く
+   - **開発のロードマップ**: テストが正しい道筋を示し、素早い復旧を可能にする
+   - **開発の予測可能性**: 人間の不確実性を減らし、反復的な検証を自動化
+
+### テスト構造
+
+- **Prepare**: テストインスタンスのセットアップ
+- **Execute**: テスト値の作成・実行
+- **Verify**: assertEqualなどでの検証
+
+### テストでのモック使用原則
+
+外部依存関係を持つ機能をテストする際は、実際の外部リソースにアクセスしないよう**依存関係注入とモック**を使用する。
+
+- **HTTPリクエストを伴うテスト**: `HTTPClient`インターフェースを通してモックHTTPクライアントを注入し、実際のAPIコールを回避する
+- **ファイル書き込みを伴うテスト**: `FileWriter`インターフェースを通してモックファイルライターを注入し、実際のファイル操作を回避する
+- **データベースアクセスを伴うテスト**: データベースインターフェースを通してモック実装を注入する
+- **外部サービス呼び出しを伴うテスト**: サービスインターフェースを通してモック実装を注入する
+
+この原則により、テストは高速で予測可能になり、外部依存関係の影響を受けずに実行できる。実装例は`lib/amesh/amesh_test.go`などの既存テストファイルを参照。
+
+## コーディング規約
+
+### コメント記述
+
+- **ソースコード内のコメントは日本語で記述すること**
+- 関数の説明、変数の説明、処理の説明はすべて日本語を使用
+- 英語のコメントは避け、日本語で分かりやすく記述する
+- パッケージレベルのドキュメントコメントも日本語で記述
+
+#### コメント記述の例
+
+```go
+// CreateAmeshImage 気象レーダー画像を作成する
+func CreateAmeshImage(lat, lng float64, zoom, aroundTiles int) (*image.RGBA, error) {
+    // 最新のタイムスタンプを取得
+    timestamps, err := getLatestTimestamps()
+    if err != nil {
+        return nil, errors.Wrap(err, "Failed to getLatestTimestamps")
+    }
+    // ...
+}
+```
+
+### 関数設計の原則
+
+- **context.Context型の引数を除いたメソッドの引数が3つ以上ある場合はそれらを構造体としてまとめる**
+  - 引数の数を減らし、可読性を向上させる
+  - 引数の順序に依存しないよう設計する
+  - 構造体のフィールドには適切な日本語コメントを付ける
+
+- **errorを除いたメソッドの返り値が2つ以上ある場合はそれらを構造体としてまとめる**
+  - 返り値の意味を明確にする
+  - 将来の拡張に対して柔軟性を保つ
+  - 構造体のフィールドには適切な日本語コメントを付ける
+
+#### 関数設計の原則の例
+
+```go
+// DrawCircleRequest 円の描画リクエスト構造体
+type DrawCircleRequest struct {
+    Img      *image.RGBA // 描画対象の画像
+    CenterX  int         // 中心のX座標
+    CenterY  int         // 中心のY座標
+    Radius   int         // 半径
+    Color    color.RGBA  // 描画色
+}
+
+// DrawCircle 円を描画する
+func DrawCircle(ctx context.Context, req *DrawCircleRequest) error {
+    // 実装...
+}
+```
