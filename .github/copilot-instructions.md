@@ -3,7 +3,7 @@
 このファイルは、AIエージェントがこのリポジトリでコードを扱う際のガイダンスを提供します。
 
 `CLAUDE.md`、`AGENTS.md`、`.github/copilot-instructions.md`はrulesyncで生成しています。
-直接編集せず、`.rulesync/rules/`を編集してから`npx rulesync generate`を実行してください。
+直接編集せず、`.rulesync/rules/`を編集してから`npx --no-install rulesync generate`を実行してください。
 
 ## 概要
 
