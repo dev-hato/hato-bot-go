@@ -46,7 +46,7 @@ jobs:
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: |
           bash "${GITHUB_WORKSPACE}/scripts/install_npm.sh"
-          npm ci
+          npm install
       # formatする
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/pr_format/pr_format/format.sh"
