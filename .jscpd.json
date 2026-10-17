@@ -6,7 +6,10 @@
     "**/node_modules/**",
     "**/mock_*.go",
     "**/package.json",
-    "**/package-lock.json"
+    "**/package-lock.json",
+    "**/CLAUDE.md",
+    "**/AGENTS.md",
+    "**/.github/copilot-instructions.md"
   ],
   "absolute": true
 }
