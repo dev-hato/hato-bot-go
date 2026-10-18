@@ -18,6 +18,28 @@ import (
 // validGeocodeResponse 正常なジオコーディングのレスポンス
 const validGeocodeResponse = `{"Feature": [{"Name": "東京都", "Geometry": {"Coordinates": "139.6917,35.6895"}}]}`
 
+// parseLocationWithMock 指定したレスポンスを返すモックを使ってParseLocationWithClientを呼び出す
+func parseLocationWithMock(t *testing.T, place, response string) (*amesh.Location, error) {
+	t.Helper()
+
+	return amesh.ParseLocationWithClient(t.Context(), &amesh.ParseLocationWithClientParams{
+		Client:         httpclient.NewMockHTTPClient(http.StatusOK, response),
+		GeocodeRequest: amesh.GeocodeRequest{Place: place, APIKey: "test_key"},
+	})
+}
+
+// createWhiteDummyTile 想定どおりの大きさの白いタイル画像を作成する
+func createWhiteDummyTile(t *testing.T) []byte {
+	t.Helper()
+
+	dummyTile, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return dummyTile
+}
+
 // TestParseLocationWithClientRejectsInvalidCoordinates 範囲外や非数の座標を拒否することをテストする
 func TestParseLocationWithClientRejectsInvalidCoordinates(t *testing.T) {
 	t.Parallel()
@@ -49,13 +71,7 @@ func TestParseLocationWithClientRejectsInvalidCoordinates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := amesh.ParseLocationWithClient(t.Context(), &amesh.ParseLocationWithClientParams{
-				Client: httpclient.NewMockHTTPClient(http.StatusOK, tt.geocodeResponse),
-				GeocodeRequest: amesh.GeocodeRequest{
-					Place:  tt.place,
-					APIKey: "test_key",
-				},
-			})
+			result, err := parseLocationWithMock(t, tt.place, tt.geocodeResponse)
 			if !errors.Is(err, amesh.ErrCoordinatesOutOfRange) {
 				t.Errorf("ParseLocationWithClient() error = %v, want %v", err, amesh.ErrCoordinatesOutOfRange)
 			}
@@ -70,15 +86,12 @@ func TestParseLocationWithClientRejectsInvalidCoordinates(t *testing.T) {
 func TestParseLocationWithClientRejectsTooLargeResponse(t *testing.T) {
 	t.Parallel()
 
-	result, err := amesh.ParseLocationWithClient(t.Context(), &amesh.ParseLocationWithClientParams{
-		// 上限を超える大きさのレスポンスを返す
-		Client: httpclient.NewMockHTTPClient(
-			http.StatusOK,
-			`{"Feature": [], "Padding": "`+strings.Repeat("a", 11*1024*1024)+`"}`,
-		),
-
-		GeocodeRequest: amesh.GeocodeRequest{Place: "東京", APIKey: "test_key"},
-	})
+	// 上限を超える大きさのレスポンスを返す
+	result, err := parseLocationWithMock(
+		t,
+		"東京",
+		`{"Feature": [], "Padding": "`+strings.Repeat("a", 11*1024*1024)+`"}`,
+	)
 	if !errors.Is(err, amesh.ErrResponseTooLarge) {
 		t.Errorf("ParseLocationWithClient() error = %v, want %v", err, amesh.ErrResponseTooLarge)
 	}
@@ -172,11 +185,6 @@ func (r recordingRoundTrip) RoundTrip(req *http.Request) (*http.Response, error)
 func TestCreateAmeshImageIgnoresInvalidTimestamp(t *testing.T) {
 	t.Parallel()
 
-	dummyTile, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	timestampsResponse := `[{"basetime": "../../evil", "validtime": "../../evil", "elements": ["hrpns_nd", "liden"]}]`
 	var urls []string
 
@@ -184,7 +192,10 @@ func TestCreateAmeshImageIgnoresInvalidTimestamp(t *testing.T) {
 		Client: &http.Client{Transport: recordingRoundTrip{
 			mu:   &sync.Mutex{},
 			urls: &urls,
-			base: roundTrip{Config: httpMockConfig{TimestampsResponse: timestampsResponse, DummyTileBytes: dummyTile}},
+			base: roundTrip{Config: httpMockConfig{
+				TimestampsResponse: timestampsResponse,
+				DummyTileBytes:     createWhiteDummyTile(t),
+			}},
 		}},
 		Lat:  35.6895,
 		Lng:  139.6917,
@@ -249,10 +260,7 @@ func TestParseLocationWithClientAcceptsBoundaryCoordinates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := amesh.ParseLocationWithClient(t.Context(), &amesh.ParseLocationWithClientParams{
-				Client:         httpclient.NewMockHTTPClient(http.StatusOK, tt.geocodeResponse),
-				GeocodeRequest: amesh.GeocodeRequest{Place: tt.place, APIKey: "test_key"},
-			})
+			result, err := parseLocationWithMock(t, tt.place, tt.geocodeResponse)
 			if err != nil {
 				t.Fatalf("ParseLocationWithClient() error = %v", err)
 			}
@@ -299,10 +307,7 @@ func TestParseLocationWithClientResponseSizeBoundary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := amesh.ParseLocationWithClient(t.Context(), &amesh.ParseLocationWithClientParams{
-				Client:         httpclient.NewMockHTTPClient(http.StatusOK, geocodeResponseOfSize(tt.size)),
-				GeocodeRequest: amesh.GeocodeRequest{Place: "東京", APIKey: "test_key"},
-			})
+			_, err := parseLocationWithMock(t, "東京", geocodeResponseOfSize(tt.size))
 			if tt.wantErr == nil && err != nil {
 				t.Errorf("ParseLocationWithClient() error = %v, want nil", err)
 			}
@@ -341,11 +346,6 @@ func (d deadlineRoundTrip) RoundTrip(req *http.Request) (*http.Response, error) 
 func TestCreateImageBufferWithClientSetsTimeout(t *testing.T) {
 	t.Parallel()
 
-	dummyTile, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	var deadlines []time.Time
 
 	// 期限のないcontextを渡して正常に画像を作成し、その間のリクエストに期限が付いていることを確認する
@@ -355,7 +355,7 @@ func TestCreateImageBufferWithClientSetsTimeout(t *testing.T) {
 			deadlines: &deadlines,
 			base: roundTrip{Config: httpMockConfig{
 				TimestampsResponse: `[{"basetime": "20240101120000", "validtime": "20240101120000", "elements": ["hrpns_nd", "liden"]}]`,
-				DummyTileBytes:     dummyTile,
+				DummyTileBytes:     createWhiteDummyTile(t),
 			}},
 		}},
 		Location: &amesh.Location{Lat: 35.6895, Lng: 139.6917, PlaceName: "東京都"},
