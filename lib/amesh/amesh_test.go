@@ -274,10 +274,7 @@ func TestCreateAmeshImage(t *testing.T) {
 
 // TestCreateImageBufferWithClient CreateImageBufferWithClient関数をテストする
 func TestCreateImageBufferWithClient(t *testing.T) {
-	dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
-	if err != nil {
-		t.Fatal(err)
-	}
+	dummyTileBytes := createWhiteDummyTile(t)
 
 	client := createConfigurableMockHTTPClient(httpMockConfig{
 		TimestampsResponse: `[

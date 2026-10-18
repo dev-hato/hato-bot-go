@@ -40,30 +40,44 @@ func createWhiteDummyTile(t *testing.T) []byte {
 	return dummyTile
 }
 
-// TestParseLocationWithClientRejectsInvalidCoordinates 範囲外や非数の座標を拒否することをテストする
-func TestParseLocationWithClientRejectsInvalidCoordinates(t *testing.T) {
+// TestParseLocationWithClientCoordinateRange 範囲の境界ちょうどの座標は受け付け、範囲外や非数の座標は拒否することをテストする
+func TestParseLocationWithClientCoordinateRange(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name            string
 		place           string
 		geocodeResponse string
+		wantErr         error
+		wantLat         float64
+		wantLng         float64
 	}{
-		{name: "北極点", place: "90 139", geocodeResponse: validGeocodeResponse},
-		{name: "北極点の近く", place: "89.9999999 139", geocodeResponse: validGeocodeResponse},
-		{name: "南極点", place: "-90 139", geocodeResponse: validGeocodeResponse},
-		{name: "緯度がNaN", place: "NaN 139", geocodeResponse: validGeocodeResponse},
-		{name: "緯度が無限大", place: "Inf 0", geocodeResponse: validGeocodeResponse},
-		{name: "経度が巨大", place: "0 1e300", geocodeResponse: validGeocodeResponse},
+		{name: "北東の境界", place: "85.05112878 180", geocodeResponse: validGeocodeResponse, wantLat: 85.05112878, wantLng: 180},
+		{name: "南西の境界", place: "-85.05112878 -180", geocodeResponse: validGeocodeResponse, wantLat: -85.05112878, wantLng: -180},
+		{
+			name:            "ジオコーディング結果が境界",
+			place:           "どこか",
+			geocodeResponse: `{"Feature": [{"Name": "どこか", "Geometry": {"Coordinates": "180,85.05112878"}}]}`,
+			wantLat:         85.05112878,
+			wantLng:         180,
+		},
+		{name: "北極点", place: "90 139", geocodeResponse: validGeocodeResponse, wantErr: amesh.ErrCoordinatesOutOfRange},
+		{name: "北極点の近く", place: "89.9999999 139", geocodeResponse: validGeocodeResponse, wantErr: amesh.ErrCoordinatesOutOfRange},
+		{name: "南極点", place: "-90 139", geocodeResponse: validGeocodeResponse, wantErr: amesh.ErrCoordinatesOutOfRange},
+		{name: "緯度がNaN", place: "NaN 139", geocodeResponse: validGeocodeResponse, wantErr: amesh.ErrCoordinatesOutOfRange},
+		{name: "緯度が無限大", place: "Inf 0", geocodeResponse: validGeocodeResponse, wantErr: amesh.ErrCoordinatesOutOfRange},
+		{name: "経度が巨大", place: "0 1e300", geocodeResponse: validGeocodeResponse, wantErr: amesh.ErrCoordinatesOutOfRange},
 		{
 			name:            "ジオコーディング結果の緯度が範囲外",
 			place:           "どこか",
 			geocodeResponse: `{"Feature": [{"Name": "どこか", "Geometry": {"Coordinates": "139,90"}}]}`,
+			wantErr:         amesh.ErrCoordinatesOutOfRange,
 		},
 		{
 			name:            "ジオコーディング結果の緯度がNaN",
 			place:           "どこか",
 			geocodeResponse: `{"Feature": [{"Name": "どこか", "Geometry": {"Coordinates": "139,NaN"}}]}`,
+			wantErr:         amesh.ErrCoordinatesOutOfRange,
 		},
 	}
 
@@ -72,11 +86,23 @@ func TestParseLocationWithClientRejectsInvalidCoordinates(t *testing.T) {
 			t.Parallel()
 
 			result, err := parseLocationWithMock(t, tt.place, tt.geocodeResponse)
-			if !errors.Is(err, amesh.ErrCoordinatesOutOfRange) {
-				t.Errorf("ParseLocationWithClient() error = %v, want %v", err, amesh.ErrCoordinatesOutOfRange)
+
+			// 拒否する座標では、エラーを返して結果を返さないことを確認する
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) {
+					t.Errorf("ParseLocationWithClient() error = %v, want %v", err, tt.wantErr)
+				}
+				if result != nil {
+					t.Errorf("ParseLocationWithClient() result = %+v, want nil", result)
+				}
+				return
 			}
-			if result != nil {
-				t.Errorf("ParseLocationWithClient() result = %+v, want nil", result)
+
+			if err != nil {
+				t.Fatalf("ParseLocationWithClient() error = %v", err)
+			}
+			if result.Lat != tt.wantLat || result.Lng != tt.wantLng {
+				t.Errorf("ParseLocationWithClient() = (%v, %v), want (%v, %v)", result.Lat, result.Lng, tt.wantLat, tt.wantLng)
 			}
 		})
 	}
@@ -219,62 +245,6 @@ func TestGenerateFileNameRemovesPathSeparators(t *testing.T) {
 
 	if strings.ContainsAny(fileName, `/\`) {
 		t.Errorf("GenerateFileName() = %q, パス区切り文字を含む", fileName)
-	}
-}
-
-// TestParseLocationWithClientAcceptsBoundaryCoordinates 範囲の境界ちょうどの座標は受け付けることをテストする
-func TestParseLocationWithClientAcceptsBoundaryCoordinates(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name            string
-		place           string
-		geocodeResponse string
-		wantLat         float64
-		wantLng         float64
-	}{
-		{
-			name:            "北東の境界",
-			place:           "85.05112878 180",
-			geocodeResponse: validGeocodeResponse,
-			wantLat:         85.05112878,
-			wantLng:         180,
-		},
-		{
-			name:            "南西の境界",
-			place:           "-85.05112878 -180",
-			geocodeResponse: validGeocodeResponse,
-			wantLat:         -85.05112878,
-			wantLng:         -180,
-		},
-		{
-			name:            "ジオコーディング結果が境界",
-			place:           "どこか",
-			geocodeResponse: `{"Feature": [{"Name": "どこか", "Geometry": {"Coordinates": "180,85.05112878"}}]}`,
-			wantLat:         85.05112878,
-			wantLng:         180,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			result, err := parseLocationWithMock(t, tt.place, tt.geocodeResponse)
-			if err != nil {
-				t.Fatalf("ParseLocationWithClient() error = %v", err)
-			}
-
-			if result.Lat != tt.wantLat || result.Lng != tt.wantLng {
-				t.Errorf(
-					"ParseLocationWithClient() = (%v, %v), want (%v, %v)",
-					result.Lat,
-					result.Lng,
-					tt.wantLat,
-					tt.wantLng,
-				)
-			}
-		})
 	}
 }
 
