@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"slices"
 	"time"
 
@@ -24,6 +25,9 @@ import (
 	"hato-bot-go/lib/amesh"
 	"hato-bot-go/lib/httpclient"
 )
+
+// ErrInsecureUploadURL アップロード先のURLがHTTPSではない
+var ErrInsecureUploadURL = errors.New("upload url is not https")
 
 type HandlerSetting struct {
 	Conn          *grpc.ClientConn
@@ -49,6 +53,7 @@ type Handler struct {
 	APIClient     application_apiv1.ApplicationServiceClient
 	Authenticator auth.Authenticator
 	YahooAPIToken string
+	HTTPClient    *http.Client // メディアのアップロードに使うHTTPクライアント（nilの場合はタイムアウト付きの既定のクライアントを使う）
 }
 
 // NewHandler 新しいHandlerを作成する
@@ -62,6 +67,12 @@ func NewHandler(config *HandlerSetting) *Handler {
 
 // uploadMedia 取得したuploadURLにメディアデータを送信する
 func (h *Handler) uploadMedia(ctx context.Context, uploadURL string, buffer *bytes.Buffer) (err error) {
+	// アクセストークンを平文で送ったり意図しない宛先へ送ったりしないよう、HTTPSのURL以外は拒否する
+	parsedURL, err := url.Parse(uploadURL)
+	if err != nil || parsedURL.Scheme != "https" || parsedURL.Host == "" {
+		return ErrInsecureUploadURL
+	}
+
 	// アクセストークンを取得
 	accessToken, err := h.Authenticator.GetAccessToken(ctx)
 	if err != nil {
@@ -69,7 +80,7 @@ func (h *Handler) uploadMedia(ctx context.Context, uploadURL string, buffer *byt
 	}
 
 	// アップロードリクエストを作成
-	req, err := http.NewRequest(http.MethodPost, uploadURL, buffer)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, parsedURL.String(), buffer)
 	if err != nil {
 		return errors.Wrap(err, "Failed to http.NewRequestWithContext")
 	}
@@ -77,9 +88,15 @@ func (h *Handler) uploadMedia(ctx context.Context, uploadURL string, buffer *byt
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Content-Type", "application/octet-stream")
 
+	client := h.HTTPClient
+
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+
 	// タイムアウト付きでアップロードを実行
 	// jscpd:ignore-start
-	resp, err := httpclient.ExecuteHTTPRequest(&http.Client{Timeout: 30 * time.Second}, req)
+	resp, err := httpclient.ExecuteHTTPRequest(client, req)
 	if err != nil {
 		return errors.Wrap(err, "Failed to httpclient.ExecuteHTTPRequest")
 	}

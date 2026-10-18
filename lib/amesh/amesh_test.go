@@ -682,8 +682,9 @@ func TestGenerateFileName(t *testing.T) {
 				t.Errorf("GenerateFileName() result = %v, expected to end with '.png'", result)
 			}
 
-			// 地名がファイル名に含まれているかチェック（スペースはアンダースコアに変換）
-			expectedPlaceName := strings.ReplaceAll(tt.location.PlaceName, " ", "_")
+			expectedPlaceName := strings.NewReplacer(" ", "_", "/", "_", `\`, "_").Replace(tt.location.PlaceName)
+
+			// 地名がファイル名に含まれているかチェック（スペースとパス区切り文字はアンダースコアに変換）
 			if !strings.Contains(result, expectedPlaceName) {
 				t.Errorf(
 					"GenerateFileName() result = %v, expected to contain place name %v",
