@@ -21,14 +21,26 @@ func TestRedactURLError(t *testing.T) {
 		{
 			name:       "ユーザー情報・クエリ文字列・フラグメントを取り除く",
 			rawURL:     "https://user:dummy-password@example.com/path?appid=dummy-app-id#dummy-fragment",
-			wantURL:    "https://example.com/path?[REDACTED]",
+			wantURL:    "https://example.com/[REDACTED]?[REDACTED]",
 			notContain: []string{"user", "dummy-password", "dummy-app-id", "dummy-fragment"},
 		},
 		{
-			name:       "クエリ文字列がなければそのまま",
-			rawURL:     "https://example.com/path",
-			wantURL:    "https://example.com/path",
+			name:       "パスに含まれる署名を取り除く",
+			rawURL:     "https://example.com/upload/dummy-path-token",
+			wantURL:    "https://example.com/[REDACTED]",
+			notContain: []string{"dummy-path-token"},
+		},
+		{
+			name:       "ルートのパスはそのまま",
+			rawURL:     "https://example.com/",
+			wantURL:    "https://example.com/",
 			notContain: nil,
+		},
+		{
+			name:       "スキームの後ろを直接書いたURLを伏せる",
+			rawURL:     "mailto:dummy-opaque-token",
+			wantURL:    "mailto:[REDACTED]",
+			notContain: []string{"dummy-opaque-token"},
 		},
 		{
 			name:       "解析できないURLは全体を伏せる",
