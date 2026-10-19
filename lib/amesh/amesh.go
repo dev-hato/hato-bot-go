@@ -189,7 +189,10 @@ func CreateAmeshImage(ctx context.Context, params *CreateAmeshImageParams) (*ima
 
 			baseTile, err := downloadTile(ctx, params.Client, baseURL)
 			if err != nil {
-				log.Printf("Failed to downloadTile: %v", err)
+				if ctxErr := handleTileDownloadError(ctx, err); ctxErr != nil {
+					return nil, ctxErr
+				}
+
 				continue
 			}
 
@@ -213,7 +216,10 @@ func CreateAmeshImage(ctx context.Context, params *CreateAmeshImageParams) (*ima
 			)
 			radarTile, err := downloadTile(ctx, params.Client, radarURL)
 			if err != nil {
-				log.Printf("Failed to downloadTile: %v", err)
+				if ctxErr := handleTileDownloadError(ctx, err); ctxErr != nil {
+					return nil, ctxErr
+				}
+
 				continue
 			}
 
@@ -705,6 +711,18 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 			Col: params.Col,
 		})
 	}
+}
+
+// handleTileDownloadError タイルの取得に失敗した場合の処理を行う
+// 期限切れやキャンセルで失敗した場合は、不完全な画像を成功として返さないようエラーを返す
+// それ以外の失敗はログに出し、そのタイルを読み飛ばせるようnilを返す
+func handleTileDownloadError(ctx context.Context, err error) error {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return errors.Join(err, errors.Wrap(ctxErr, "context done while downloading tile"))
+	}
+
+	log.Printf("Failed to downloadTile: %v", err)
+	return nil
 }
 
 // downloadTile マップタイルをダウンロードする

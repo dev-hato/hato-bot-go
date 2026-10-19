@@ -351,3 +351,62 @@ func TestCreateImageBufferWithClientSetsTimeout(t *testing.T) {
 		}
 	}
 }
+
+// blockingRoundTrip リクエストのcontextが終わるまで待ち、そのエラーを返すモック
+type blockingRoundTrip struct{}
+
+func (blockingRoundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
+	<-req.Context().Done()
+
+	return nil, req.Context().Err()
+}
+
+// TestCreateImageBufferWithClientReturnsContextError 期限切れやキャンセルの後に不完全な画像を返さないことをテストする
+// 不完全な画像を成功として返すと、呼び出し元がそのまま投稿してしまう
+func TestCreateImageBufferWithClientReturnsContextError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		makeCtx func(t *testing.T) context.Context
+		wantErr error
+	}{
+		{
+			name: "期限切れ",
+			makeCtx: func(t *testing.T) context.Context {
+				ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+				t.Cleanup(cancel)
+
+				return ctx
+			},
+			wantErr: context.DeadlineExceeded,
+		},
+		{
+			name: "キャンセル",
+			makeCtx: func(t *testing.T) context.Context {
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
+
+				return ctx
+			},
+			wantErr: context.Canceled,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			buf, err := amesh.CreateImageBufferWithClient(tt.makeCtx(t), &amesh.CreateImageBufferWithClientParams{
+				Client:   &http.Client{Transport: blockingRoundTrip{}},
+				Location: &amesh.Location{Lat: 35.6895, Lng: 139.6917, PlaceName: "東京都"},
+			})
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("CreateImageBufferWithClient() error = %v, want %v", err, tt.wantErr)
+			}
+			if buf != nil {
+				t.Errorf("CreateImageBufferWithClient() buf.Len() = %d, want nil", buf.Len())
+			}
+		})
+	}
+}
