@@ -14,6 +14,9 @@ import (
 
 var ErrHTTPRequestError = errors.New("A http request returned error status")
 
+// redacted 秘密情報を取り除いた箇所に置く文字列
+const redacted = "[REDACTED]"
+
 // ExecuteHTTPRequest HTTPリクエストを実行し、共通のエラーハンドリングを行う
 func ExecuteHTTPRequest(client *http.Client, req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", "hato-bot-go/"+lib.Version)
@@ -58,21 +61,21 @@ func redactURLError(err error) error {
 func redactURL(rawURL string) string {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
-		return "[REDACTED]"
+		return redacted
 	}
 
 	if parsed.Opaque != "" {
-		parsed.Opaque = "[REDACTED]"
+		parsed.Opaque = redacted
 	}
 
 	if parsed.Path != "" && parsed.Path != "/" {
 		// RawPathも設定し、角括弧がエスケープされずにそのまま表示されるようにする
-		parsed.Path = "/[REDACTED]"
-		parsed.RawPath = "/[REDACTED]"
+		parsed.Path = "/" + redacted
+		parsed.RawPath = "/" + redacted
 	}
 
 	if parsed.RawQuery != "" {
-		parsed.RawQuery = "[REDACTED]"
+		parsed.RawQuery = redacted
 	}
 
 	parsed.User = nil
@@ -111,9 +114,9 @@ func (e *redactedCauseError) Unwrap() error {
 // 元のエラーを保持すると%+vなどで元のメッセージが表示されるため、メッセージを書き換えた別のエラーに置き換える
 // 取り除くものがない場合は、呼び出し元がエラーの種類を判定できるよう元のエラーをそのまま返す
 func redactCauseError(err error) error {
-	msg := quotedInTextPattern.ReplaceAllString(err.Error(), `"[REDACTED]"`)
+	msg := quotedInTextPattern.ReplaceAllString(err.Error(), `"`+redacted+`"`)
 	msg = urlInTextPattern.ReplaceAllStringFunc(msg, redactURL)
-	msg = queryInTextPattern.ReplaceAllString(msg, "?[REDACTED]")
+	msg = queryInTextPattern.ReplaceAllString(msg, "?"+redacted)
 
 	if msg == err.Error() {
 		return err
