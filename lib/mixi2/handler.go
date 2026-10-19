@@ -29,6 +29,23 @@ import (
 // ErrInsecureUploadURL アップロード先のURLがHTTPSではない
 var ErrInsecureUploadURL = errors.New("upload url is not https")
 
+// maxUploadRedirects アップロード時に追従する転送の回数の上限（net/httpの既定と同じ）
+const maxUploadRedirects = 10
+
+// rejectInsecureRedirect HTTPS以外への転送を拒否する
+// 転送時にはAuthorizationヘッダーとボディが再送されるため、転送先も検証しないとアクセストークンが平文で送られる
+func rejectInsecureRedirect(req *http.Request, via []*http.Request) error {
+	if req.URL.Scheme != "https" || req.URL.Host == "" {
+		return ErrInsecureUploadURL
+	}
+
+	if maxUploadRedirects <= len(via) {
+		return errors.Newf("stopped after %d redirects", maxUploadRedirects)
+	}
+
+	return nil
+}
+
 type HandlerSetting struct {
 	Conn          *grpc.ClientConn
 	Authenticator auth.Authenticator
@@ -88,11 +105,15 @@ func (h *Handler) uploadMedia(ctx context.Context, uploadURL string, buffer *byt
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Content-Type", "application/octet-stream")
 
-	client := h.HTTPClient
+	client := &http.Client{Timeout: 30 * time.Second}
 
-	if client == nil {
-		client = &http.Client{Timeout: 30 * time.Second}
+	if h.HTTPClient != nil {
+		// 呼び出し元のクライアントを書き換えないよう、コピーしてから転送の検証を設定する
+		copied := *h.HTTPClient
+		client = &copied
 	}
+
+	client.CheckRedirect = rejectInsecureRedirect
 
 	// タイムアウト付きでアップロードを実行
 	// jscpd:ignore-start
