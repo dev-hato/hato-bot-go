@@ -14,6 +14,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -30,7 +31,15 @@ var (
 	ErrNoResultsFound           = errors.New("no results found for place")
 	ErrInvalidCoordinatesFormat = errors.New("invalid coordinates format")
 	ErrJSONUnmarshal            = errors.New("failed to json.Unmarshal")
+	ErrCoordinatesOutOfRange    = errors.New("coordinates out of range")
+	ErrResponseTooLarge         = errors.New("response too large")
 )
+
+// timestampPattern 気象庁のタイムスタンプの形式（YYYYMMDDhhmmss）
+var timestampPattern = regexp.MustCompile(`^\d{14}$`)
+
+// defaultClient タイムアウトを設定したHTTPクライアント
+var defaultClient = &http.Client{Timeout: 10 * time.Second}
 
 // CreateAmeshImageParams レーダー画像作成のリクエスト構造体
 type CreateAmeshImageParams struct {
@@ -140,6 +149,11 @@ func CreateAmeshImage(ctx context.Context, params *CreateAmeshImageParams) (*ima
 	if params == nil || params.Client == nil {
 		return nil, lib.ErrParamsNil
 	}
+
+	if err := validateCoordinates(params.Lat, params.Lng); err != nil {
+		return nil, errors.Wrap(err, "Failed to validateCoordinates")
+	}
+
 	// 最新のタイムスタンプを取得
 	timestamps := getLatestTimestamps(ctx, params.Client)
 
@@ -175,7 +189,10 @@ func CreateAmeshImage(ctx context.Context, params *CreateAmeshImageParams) (*ima
 
 			baseTile, err := downloadTile(ctx, params.Client, baseURL)
 			if err != nil {
-				log.Printf("Failed to downloadTile: %v", err)
+				if ctxErr := handleTileDownloadError(ctx, err); ctxErr != nil {
+					return nil, ctxErr
+				}
+
 				continue
 			}
 
@@ -199,7 +216,10 @@ func CreateAmeshImage(ctx context.Context, params *CreateAmeshImageParams) (*ima
 			)
 			radarTile, err := downloadTile(ctx, params.Client, radarURL)
 			if err != nil {
-				log.Printf("Failed to downloadTile: %v", err)
+				if ctxErr := handleTileDownloadError(ctx, err); ctxErr != nil {
+					return nil, ctxErr
+				}
+
 				continue
 			}
 
@@ -244,6 +264,11 @@ func CreateImageBufferWithClient(ctx context.Context, params *CreateImageBufferW
 	if params == nil || params.Client == nil || params.Location == nil {
 		return nil, lib.ErrParamsNil
 	}
+
+	// 外部APIが応答しない場合に処理が終わらなくならないよう、画像作成全体にタイムアウトを設定する
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
 	img, err := CreateAmeshImage(ctx, &CreateAmeshImageParams{
 		Client:      params.Client,
 		Lat:         params.Location.Lat,
@@ -272,7 +297,7 @@ func CreateImageReader(ctx context.Context, location *Location) (io.Reader, erro
 // CreateImageBuffer amesh画像をメモリ上に作成してbytes.Bufferを返す
 func CreateImageBuffer(ctx context.Context, location *Location) (*bytes.Buffer, error) {
 	return CreateImageBufferWithClient(ctx, &CreateImageBufferWithClientParams{
-		Client:   http.DefaultClient,
+		Client:   defaultClient,
 		Location: location,
 	})
 }
@@ -284,6 +309,10 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 	}
 	// 座標が直接提供されているかチェック
 	location, err := parseCoordinates(req.GeocodeRequest.Place)
+	if errors.Is(err, ErrCoordinatesOutOfRange) {
+		// 座標として解釈できたが範囲外の場合は、地名として扱わずに拒否する
+		return nil, errors.Wrap(err, "Failed to parseCoordinates")
+	}
 	if err != nil {
 		// 地名をジオコーディング
 		var err2 error
@@ -299,7 +328,7 @@ func ParseLocationWithClient(ctx context.Context, req *ParseLocationWithClientPa
 // ParseLocation 地名文字列から位置を解析し、Location構造体とエラーを返す
 func ParseLocation(ctx context.Context, place, apiKey string) (*Location, error) {
 	return ParseLocationWithClient(ctx, &ParseLocationWithClientParams{
-		Client: http.DefaultClient,
+		Client: defaultClient,
 		GeocodeRequest: GeocodeRequest{
 			Place:  place,
 			APIKey: apiKey,
@@ -320,9 +349,13 @@ func ParseLocationWithLog(ctx context.Context, place, apiKey string) (*Location,
 
 // GenerateFileName 位置情報からamesh画像のファイル名を生成する
 func GenerateFileName(location *Location) string {
+	replacedString := "_"
 	return fmt.Sprintf(
 		"amesh_%s_%d.png",
-		strings.ReplaceAll(location.PlaceName, " ", "_"),
+
+		// 地名にパス区切り文字が含まれていても、別のディレクトリを指さないようにする
+		strings.NewReplacer(" ", replacedString, "/", replacedString, `\`, replacedString).Replace(location.PlaceName),
+
 		time.Now().Unix(),
 	)
 }
@@ -378,6 +411,10 @@ func parseCoordinates(place string) (*Location, error) {
 	parsedLng, err := parseFloat64(parts[1])
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to parseFloat64")
+	}
+
+	if err := validateCoordinates(parsedLat, parsedLng); err != nil {
+		return nil, errors.Wrap(err, "Failed to validateCoordinates")
 	}
 
 	return &Location{
@@ -443,6 +480,10 @@ func parseGeocodeResponse(body []byte, place string) (*Location, error) {
 		return nil, errors.Wrap(err, "Failed to strconv.ParseFloat")
 	}
 
+	if err := validateCoordinates(lat, lng); err != nil {
+		return nil, errors.Wrap(err, "Failed to validateCoordinates")
+	}
+
 	return &Location{
 		Lat:       lat,
 		Lng:       lng,
@@ -457,11 +498,11 @@ func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Loc
 		place = "東京"
 	}
 
-	requestURL := fmt.Sprintf(
-		"https://map.yahooapis.jp/geocode/V1/geoCoder?appid=%s&query=%s&output=json",
-		req.GeocodeRequest.APIKey,
-		url.QueryEscape(place),
-	)
+	query := url.Values{}
+	query.Set("appid", req.GeocodeRequest.APIKey)
+	query.Set("query", place)
+	query.Set("output", "json")
+	requestURL := "https://map.yahooapis.jp/geocode/V1/geoCoder?" + query.Encode()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
@@ -474,6 +515,44 @@ func geocodePlace(ctx context.Context, req *ParseLocationWithClientParams) (*Loc
 	}
 
 	return parseGeocodeResponse(body, place)
+}
+
+// validateCoordinates 緯度・経度が描画できる範囲内かを検証する
+// NaNは大小比較が常にfalseになり範囲外と判定できないため、明示的に拒否する
+func validateCoordinates(lat, lng float64) error {
+	const (
+		// maxLatitude Webメルカトル図法で描画できる緯度の上限
+		// これを超える緯度では距離円の描画が極端に重くなる
+		maxLatitude = 85.05112878
+
+		// maxLongitude 経度の上限
+		maxLongitude = 180.0
+	)
+
+	if math.IsNaN(lat) || math.IsNaN(lng) ||
+		lat < -maxLatitude || maxLatitude < lat || lng < -maxLongitude || maxLongitude < lng {
+		return errors.Wrapf(ErrCoordinatesOutOfRange, "lat=%v, lng=%v", lat, lng)
+	}
+
+	return nil
+}
+
+// readLimited 上限を超えない範囲で読み込み、上限を超える場合はエラーを返す
+func readLimited(r io.Reader) ([]byte, error) {
+	// maxResponseBytes 外部APIから読み込むレスポンスの大きさの上限
+	const maxResponseBytes = 10 * 1024 * 1024
+
+	// 上限を1バイト超えて読めた場合は、上限を超えていると判定する
+	body, err := io.ReadAll(io.LimitReader(r, maxResponseBytes+1))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to io.ReadAll")
+	}
+
+	if maxResponseBytes < len(body) {
+		return nil, ErrResponseTooLarge
+	}
+
+	return body, nil
 }
 
 // deg2rad 度数をラジアンに変換する
@@ -634,8 +713,23 @@ func drawDistanceCircle(params *drawDistanceCircleParams) {
 	}
 }
 
+// handleTileDownloadError タイルの取得に失敗した場合の処理を行う
+// 期限切れやキャンセルで失敗した場合は、不完全な画像を成功として返さないようエラーを返す
+// それ以外の失敗はログに出し、そのタイルを読み飛ばせるようnilを返す
+func handleTileDownloadError(ctx context.Context, err error) error {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return errors.Join(err, errors.Wrap(ctxErr, "context done while downloading tile"))
+	}
+
+	log.Printf("Failed to downloadTile: %v", err)
+	return nil
+}
+
 // downloadTile マップタイルをダウンロードする
 func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img image.Image, err error) {
+	// tileSize 地図タイルの一辺のピクセル数
+	const tileSize = 256
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tileURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to http.NewRequestWithContext")
@@ -653,7 +747,22 @@ func downloadTile(ctx context.Context, client *http.Client, tileURL string) (img
 	}(resp.Body)
 	// jscpd:ignore-end
 
-	img, _, err = image.Decode(resp.Body)
+	body, err := readLimited(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to readLimited")
+	}
+
+	// 展開すると巨大になる画像でメモリを使い切らないよう、展開前に画像の大きさを確認する
+	config, _, err := image.DecodeConfig(bytes.NewReader(body))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to image.DecodeConfig")
+	}
+
+	if tileSize < config.Width || tileSize < config.Height {
+		return nil, errors.Wrapf(errors.New("invalid tile size"), "%dx%d", config.Width, config.Height)
+	}
+
+	img, _, err = image.Decode(bytes.NewReader(body))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to image.Decode")
 	}
@@ -767,6 +876,12 @@ func getLatestTimestamps(ctx context.Context, client *http.Client) map[string]st
 		if td.BaseTime != td.ValidTime {
 			continue
 		}
+
+		// タイムスタンプはURLのパスに埋め込むため、想定外の形式のものは使わない
+		if !timestampPattern.MatchString(td.BaseTime) {
+			continue
+		}
+
 		for _, element := range td.Elements {
 			if result[element] < td.BaseTime {
 				result[element] = td.BaseTime
@@ -785,9 +900,9 @@ func handleHTTPResponse(resp *http.Response) (body []byte, err error) {
 		}
 	}(resp.Body)
 
-	body, err = io.ReadAll(resp.Body)
+	body, err = readLimited(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to io.ReadAll")
+		return nil, errors.Wrap(err, "Failed to readLimited")
 	}
 	return body, nil
 }

@@ -274,10 +274,7 @@ func TestCreateAmeshImage(t *testing.T) {
 
 // TestCreateImageBufferWithClient CreateImageBufferWithClient関数をテストする
 func TestCreateImageBufferWithClient(t *testing.T) {
-	dummyTileBytes, err := createDummyPNGBytes(256, 256, color.RGBA{R: 255, G: 255, B: 255, A: 255})
-	if err != nil {
-		t.Fatal(err)
-	}
+	dummyTileBytes := createWhiteDummyTile(t)
 
 	client := createConfigurableMockHTTPClient(httpMockConfig{
 		TimestampsResponse: `[
@@ -682,8 +679,9 @@ func TestGenerateFileName(t *testing.T) {
 				t.Errorf("GenerateFileName() result = %v, expected to end with '.png'", result)
 			}
 
-			// 地名がファイル名に含まれているかチェック（スペースはアンダースコアに変換）
-			expectedPlaceName := strings.ReplaceAll(tt.location.PlaceName, " ", "_")
+			expectedPlaceName := strings.NewReplacer(" ", "_", "/", "_", `\`, "_").Replace(tt.location.PlaceName)
+
+			// 地名がファイル名に含まれているかチェック（スペースとパス区切り文字はアンダースコアに変換）
 			if !strings.Contains(result, expectedPlaceName) {
 				t.Errorf(
 					"GenerateFileName() result = %v, expected to contain place name %v",
