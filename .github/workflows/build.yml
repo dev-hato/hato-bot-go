@@ -14,29 +14,6 @@ on:
       - main
 permissions: {}
 jobs:
-  update-go-version:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    # jscpd:ignore-start
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-      - if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        run: bash "${GITHUB_WORKSPACE}/scripts/build/update_go_version/update_go_version.sh"
-        env:
-          HEAD_REF: ${{github.head_ref || github.event.release.tag_name}}
-      - uses: dev-hato/actions-diff-pr-management@a3c6f1d6cb3f46d2f48ac3856ef603ef2e508061 # v2.4.0
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          branch-name-prefix: fix-go-version
-          pr-title-prefix: Goのバージョンを直してあげたよ！
-          # jscpd:ignore-end
   # jscpd:ignore-start
   build_docker_image:
     runs-on: ubuntu-latest
@@ -48,7 +25,6 @@ jobs:
       contents: read
       packages: write
     if: github.event_name == 'release' || (github.event_name == 'pull_request' && github.event.action != 'closed' && github.repository == github.event.pull_request.head.repo.full_name)
-    needs: update-go-version
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
