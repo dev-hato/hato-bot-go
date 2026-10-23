@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/cockroachdb/errors"
 
@@ -66,12 +65,22 @@ func main() {
 
 		// ファイル名を生成
 		fileName := amesh.GenerateFileName(location)
-		cleanedFilePath := filepath.Clean(filepath.Join(".", fileName))
+
+		// 地名から作ったファイル名でカレントディレクトリの外へ書き込まないよう、os.Rootで書き込み先を制限する
+		root, err := os.OpenRoot(".")
+		if err != nil {
+			panic(errors.Wrap(err, "Failed to os.OpenRoot"))
+		}
+		defer func() {
+			if closeErr := root.Close(); closeErr != nil {
+				panic(errors.Wrap(closeErr, "Failed to Close"))
+			}
+		}()
 
 		// ファイルに保存
-		file, err := os.Create(cleanedFilePath)
+		file, err := root.Create(fileName)
 		if err != nil {
-			panic(errors.Wrap(err, "Failed to os.Create"))
+			panic(errors.Wrap(err, "Failed to root.Create"))
 		}
 		defer func(file *os.File) {
 			if closeErr := file.Close(); closeErr != nil {
@@ -83,7 +92,7 @@ func main() {
 			panic(errors.Wrap(err, "Failed to io.Copy"))
 		}
 
-		fmt.Printf("Amesh image saved to %s\n", cleanedFilePath)
+		fmt.Printf("Amesh image saved to %s\n", fileName)
 	default:
 		panic(errors.Errorf("Unknown command: %s", command))
 	}
