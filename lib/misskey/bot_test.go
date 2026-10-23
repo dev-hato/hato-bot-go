@@ -314,8 +314,12 @@ func TestListen(t *testing.T) {
 				})
 			}()
 
+			// コンテキストキャンセル後、Listenはエラーを返して終了する
 			select {
-			case <-done:
+			case err := <-done:
+				if err == nil {
+					t.Error("Listen() error = nil, want non-nil after context cancel")
+				}
 			case <-time.After(5 * time.Second):
 				t.Fatal("Listenが終了しなかった")
 			}
