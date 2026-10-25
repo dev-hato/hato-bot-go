@@ -33,3 +33,25 @@ fi
 echo "Detected uv version in Dependabot: $uv_version" >&2
 
 sed -i -e "s/required-version = .*/required-version = \"$uv_version\"/g" pyproject.toml
+
+dependabot_python_dockerfile_path=python/Dockerfile
+
+echo "Getting Python version from dependabot/dependabot-core/$dependabot_python_dockerfile_path" >&2
+python_version="$(
+	gh api "/repos/dependabot/dependabot-core/contents/$dependabot_python_dockerfile_path" --jq '.content' |
+		base64 -d |
+		sed -nE 's/^ARG PY_3_[0-9]+=([0-9]+\.[0-9]+\.[0-9]+)$/\1/p' |
+		sort -V |
+		tail -n 1
+)"
+
+if [ -z "$python_version" ]; then
+	echo "Error: failed to parse Python version from dependabot/dependabot-core/$dependabot_python_dockerfile_path" >&2
+	exit 1
+fi
+
+echo "Detected Python version in Dependabot: $python_version" >&2
+
+# Dependabotが対応しているPythonのうち、最新のバージョンに揃える
+sed -i -e "s/requires-python = .*/requires-python = \"==$python_version\"/g" pyproject.toml
+uv lock
