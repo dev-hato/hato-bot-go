@@ -54,4 +54,6 @@ echo "Detected Python version in Dependabot: $python_version" >&2
 
 # Dependabotが対応しているPythonのうち、最新のバージョンに揃える
 sed -i -e "s/requires-python = .*/requires-python = \"==$python_version\"/g" pyproject.toml
-uv lock
+
+# setup-uvが入れたuvは更新前のrequired-versionのものなので、Dependabotのuvでロックファイルを生成する
+uvx --from "uv==$uv_version" uv lock
