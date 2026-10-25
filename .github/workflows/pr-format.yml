@@ -40,6 +40,8 @@ jobs:
           node-version-file: package.json
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        with:
+          enable-cache: true
       # jscpd:ignore-end
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         uses: flatt-security/setup-takumi-guard-golang@02545d3425218766aac4dca114dcc3f6eaa0df4a # v1.3.0
