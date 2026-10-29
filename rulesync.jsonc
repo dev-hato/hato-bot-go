@@ -1,7 +1,7 @@
 {
   // .rulesync/ のルールから、各AIエージェント向けのファイルを生成する
   "targets": ["claudecode", "codexcli", "copilot"],
-  "features": ["rules"],
+  "features": ["rules", "skills"],
   "baseDirs": ["."],
   "delete": true,
 }
