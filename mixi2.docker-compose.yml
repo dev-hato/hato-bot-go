@@ -1,4 +1,4 @@
 ---
 services:
   hato-bot-go:
-    command: [ "./hato-bot-go-mixi2-bot" ]
+    command: ["./hato-bot-go-mixi2-bot"]

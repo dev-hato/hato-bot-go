@@ -1,4 +1,4 @@
 ---
 services:
   hato-bot-go:
-    command: [ "./hato-bot-go-misskey-bot" ]
+    command: ["./hato-bot-go-misskey-bot"]
