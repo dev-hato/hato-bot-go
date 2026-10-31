@@ -10,6 +10,11 @@ services:
         platforms:
           - linux/amd64
           - linux/arm64
+      cache_from:
+        - type=registry,ref=ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:buildcache
+        - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:${TAG_NAME}
+        - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go
+    image: ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:${TAG_NAME}
     environment:
       - MISSKEY_DOMAIN=${MISSKEY_DOMAIN}
       - MISSKEY_API_TOKEN=${MISSKEY_API_TOKEN}
@@ -20,6 +25,9 @@ services:
       - MIXI2_STREAM_ADDRESS=${MIXI2_STREAM_ADDRESS}
       - YAHOO_API_TOKEN=${YAHOO_API_TOKEN}
     restart: unless-stopped
+    # ポートを公開（必要に応じて）
+    expose:
+      - 8080
     volumes:
       - type: bind
         source: /tmp

@@ -55,23 +55,13 @@ jobs:
           source: .
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
-      - name: Build and push (prod_misskey)
+      - name: Build and push
         uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
           push: true
-          files: docker-compose.yml,misskey.docker-compose.yml
-          source: .
-          set: |
-            *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
-      - name: Build and push (prod_mixi2)
-        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
-        env:
-          DOCKER_CONTENT_TRUST: 1
-        with:
-          push: true
-          files: docker-compose.yml,mixi2.docker-compose.yml
+          files: docker-compose.yml
           source: .
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
@@ -88,25 +78,14 @@ jobs:
           source: .
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
-      - name: Build and push (prod_misskey) (latest)
+      - name: Build and push (latest)
         uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
         if: ${{ github.event_name == 'release' }}
         env:
           DOCKER_CONTENT_TRUST: 1
         with:
           push: true
-          files: docker-compose.yml,misskey.docker-compose.yml
-          source: .
-          set: |
-            *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
-      - name: Build and push (prod_mixi2) (latest)
-        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
-        if: ${{ github.event_name == 'release' }}
-        env:
-          DOCKER_CONTENT_TRUST: 1
-        with:
-          push: true
-          files: docker-compose.yml,mixi2.docker-compose.yml
+          files: docker-compose.yml
           source: .
           set: |
             *.cache-to=type=registry,ref=ghcr.io/${{github.repository}}/hato-bot-go:buildcache,mode=max
