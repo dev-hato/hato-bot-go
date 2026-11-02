@@ -9,7 +9,10 @@
     "**/package-lock.json",
     "**/CLAUDE.md",
     "**/AGENTS.md",
-    "**/.github/copilot-instructions.md"
+    "**/.github/copilot-instructions.md",
+    "**/.claude/skills/**",
+    "**/.agents/skills/**",
+    "**/.github/skills/**"
   ],
   "absolute": true
 }
