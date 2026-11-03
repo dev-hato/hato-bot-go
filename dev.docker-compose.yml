@@ -4,10 +4,13 @@ services:
     build:
       target: dev
       cache_from:
-        - type=registry,ref=ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go:buildcache
+        - type=registry,ref=ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go-dev:buildcache
         - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go-dev:${TAG_NAME}
         - ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go-dev
     image: ghcr.io/${REPOSITORY:-dev-hato/hato-bot-go}/hato-bot-go-dev:${TAG_NAME}
+    working_dir: /app
+    # airで実行
+    command: ["air", "-c", ".air.toml"]
     volumes:
       - type: bind
         source: .
