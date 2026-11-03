@@ -40,22 +40,11 @@ RUN go build -o /air github.com/air-verse/air
 # 開発用イメージ
 FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS dev
 
-WORKDIR /app
-
 # ビルド済みの対象アーキテクチャ向けairをコピー
 COPY --from=air-builder /air /go/bin/air
 
-# air設定ファイルをコピー
-COPY .air.toml .
-
-# ポートを公開（必要に応じて）
-EXPOSE 8080
-
-# airで実行
-CMD ["air", "-c", ".air.toml"]
-
 # 実行用の最小イメージ
-FROM scratch AS prod
+FROM scratch
 
 # CA証明書をコピー（HTTPS接続用）
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
@@ -65,27 +54,10 @@ COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # ビルドした実行ファイルをコピー
 COPY --from=builder /app/health-check /health-check
+COPY --from=builder /app/hato-bot-go-misskey-bot /hato-bot-go-misskey-bot
+COPY --from=builder /app/hato-bot-go-mixi2-bot /hato-bot-go-mixi2-bot
 
 # nonrootユーザーで実行（UID 65534）
 USER 65534:65534
 
-# ポートを公開（必要に応じて）
-EXPOSE 8080
-
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD ["./health-check"]
-
-FROM prod AS prod_misskey
-
-# ビルドした実行ファイルをコピー
-COPY --from=builder /app/hato-bot-go-misskey-bot /hato-bot-go-misskey-bot
-
-# 実行
-CMD ["./hato-bot-go-misskey-bot"]
-
-FROM prod AS prod_mixi2
-
-# ビルドした実行ファイルをコピー
-COPY --from=builder /app/hato-bot-go-mixi2-bot /hato-bot-go-mixi2-bot
-
-# 実行
-CMD ["./hato-bot-go-mixi2-bot"]
