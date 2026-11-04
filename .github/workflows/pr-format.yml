@@ -49,11 +49,24 @@ jobs:
         uses: flatt-security/setup-takumi-guard-npm@14f07d0cbc739b42a1b7c70a04c2b84cd1318ddd # v1.4.0
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         uses: flatt-security/setup-takumi-guard-pypi@bc8eb92eda08d7941ae58d8c27e1fe58aff7d7d9 # v1.4.0
+      # Dependabotが対応しているPythonのうち、最新のバージョンを取得する
+      - name: Get Python version
+        id: get_python_version
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: bash "${GITHUB_WORKSPACE}/scripts/pr_format/pr_format/get_python_version.sh"
+        env:
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      # uvが配布物を持たないバージョンもあるため、uv lockの前にPythonを入れておく
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        with:
+          python-version: ${{ steps.get_python_version.outputs.python_version }}
       # formatする
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/pr_format/pr_format/format.sh"
         env:
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          PYTHON_VERSION: ${{ steps.get_python_version.outputs.python_version }}
       - uses: dev-hato/actions-diff-pr-management@a3c6f1d6cb3f46d2f48ac3856ef603ef2e508061 # v2.4.0
         if: success() || failure()
         with:
