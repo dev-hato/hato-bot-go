@@ -11,9 +11,10 @@ permissions:
   actions: write
 jobs:
   github-actions-cache-cleaner:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: dev-hato/github-actions-cache-cleaner@7573e531014f39613c05b8e26cc22a975094d104 # v0.0.94
