@@ -12,6 +12,7 @@ jobs:
   # unittestを行う
   # testが落ちたらチェックが落ちる
   pr-test:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,6 +26,7 @@ jobs:
         uses: flatt-security/setup-takumi-guard-golang@02545d3425218766aac4dca114dcc3f6eaa0df4a # v1.3.0
       - run: bash "${GITHUB_WORKSPACE}/scripts/pr_test/pr_test/test.sh"
   pr-super-lint:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     permissions:
       statuses: write
@@ -66,6 +68,7 @@ jobs:
         with:
           version-file: .tool-versions
   pr-dotenv-linter:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
