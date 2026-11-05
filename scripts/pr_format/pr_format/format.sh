@@ -40,5 +40,11 @@ python_version="${PYTHON_VERSION:?PYTHON_VERSION is not set}"
 # Dependabotが対応しているPythonのうち、最新のバージョンに揃える
 sed -i -e "s/requires-python = .*/requires-python = \"==$python_version\"/g" pyproject.toml
 
-# setup-uvが入れたuvは更新前のrequired-versionのものなので、Dependabotのuvでロックファイルを生成する
-uvx --from "uv==$uv_version" uv lock
+if [ "$(uv --version | awk '{print $2}')" = "$uv_version" ]; then
+	# setup-uvが入れたuvがDependabotのuvと同じバージョンであれば、そのまま使う
+	# Takumi Guardにより公開から日が浅いuvはPyPIから取得できないため、uvxを使わずに済ませる
+	uv lock
+else
+	# setup-uvが入れたuvは更新前のrequired-versionのものなので、Dependabotのuvでロックファイルを生成する
+	uvx --from "uv==$uv_version" uv lock
+fi
