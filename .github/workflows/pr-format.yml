@@ -76,6 +76,7 @@ jobs:
         env:
           UV_VERSION: ${{ steps.get_uv_version.outputs.uv_version }}
           PYTHON_VERSION: ${{ steps.get_python_version.outputs.python_version }}
+      # jscpd:ignore-start
       # 修正PRの操作はforkからでないpull_requestとpushでのみ行う。それ以外では差分の検証のみを行うため、書き込み用のトークンを発行しない
       # forkからのPRでは、本Actionsが修正PRを操作せずに差分を検証する
       - name: Generate a token
@@ -88,6 +89,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
           permission-workflows: write
+      # jscpd:ignore-end
       - uses: dev-hato/actions-diff-pr-management@a3c6f1d6cb3f46d2f48ac3856ef603ef2e508061 # v2.4.0
         if: success()
         with:
