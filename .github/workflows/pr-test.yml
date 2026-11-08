@@ -4,9 +4,7 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - main
+  merge_group:
 permissions: {}
 jobs:
   # unittestを行う
