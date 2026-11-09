@@ -139,8 +139,8 @@ dependencies:
         uses:
             - 'dev-hato/actions-diff-pr-management@474e401b8a7df75f1c804a60aa987140c1e0548c'
     'dev-hato/github-actions-cache-cleaner@88d68a261462dd5f6f6632adec3fa5cf5466c865':
-            ref: 'v0.0.97'
-            commit: 'sha1-88d68a261462dd5f6f6632adec3fa5cf5466c865'
+        ref: 'v0.0.97'
+        commit: 'sha1-88d68a261462dd5f6f6632adec3fa5cf5466c865'
         owner_id: 68012105
         repo_id: 575637822
         uses:
