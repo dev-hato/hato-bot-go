@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS base-builder
+FROM --platform=$BUILDPLATFORM golang:1.27.4-bookworm@sha256:4fa7c968ba93f1635670522dbb01a2c78150443e1385746924566079f36570ea AS base-builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -38,7 +38,7 @@ FROM base-builder AS air-builder
 RUN go build -o /air github.com/air-verse/air
 
 # 開発用イメージ
-FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS dev
+FROM golang:1.27.4-bookworm@sha256:4fa7c968ba93f1635670522dbb01a2c78150443e1385746924566079f36570ea AS dev
 
 # ビルド済みの対象アーキテクチャ向けairをコピー
 COPY --from=air-builder /air /go/bin/air
