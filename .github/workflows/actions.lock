@@ -97,16 +97,16 @@ dependencies:
         commit: 'sha1-6d4fd22b20465ccc0f7354476588e8df7c9ca0e0'
         owner_id: 44036562
         repo_id: 192625525
-    'astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2':
-        ref: 'v10.3.3'
-        commit: 'sha1-68559e99cc807c1eb7e9238fd43a15bba460eec2'
-        owner_id: 115962839
-        repo_id: 846733598
     'aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461':
         ref: 'v4.1.1'
         commit: 'sha1-611554c6f0137ba41c8dd15aca8bee82504ea461'
         owner_id: 95116411
         repo_id: 400140776
+    'astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2':
+        ref: 'v10.3.3'
+        commit: 'sha1-68559e99cc807c1eb7e9238fd43a15bba460eec2'
+        owner_id: 115962839
+        repo_id: 846733598
     'dev-hato/actions-add-to-projects@3f6870416d1ebf4eae418af990a83780bdd45f1f':
         ref: 'v1.0.15'
         commit: 'sha1-3f6870416d1ebf4eae418af990a83780bdd45f1f'
