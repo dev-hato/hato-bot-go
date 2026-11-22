@@ -22,7 +22,8 @@ workflows:
         - 'dev-hato/actions-format-json-yml@6b0c6a884f1d2653ae3502c32317e8a412845acc'
     '.github/workflows/ghalint.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461'
+        - 'actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e'
+        - 'flatt-security/setup-takumi-guard-golang@02545d3425218766aac4dca114dcc3f6eaa0df4a'
     '.github/workflows/github-actions-cache-cleaner.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'dev-hato/github-actions-cache-cleaner@88d68a261462dd5f6f6632adec3fa5cf5466c865'
@@ -55,11 +56,6 @@ workflows:
     '.github/workflows/update-actions-lock.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
-        - 'dev-hato/actions-diff-pr-management@474e401b8a7df75f1c804a60aa987140c1e0548c'
-    '.github/workflows/update-aqua-checksum.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
-        - 'aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461'
         - 'dev-hato/actions-diff-pr-management@474e401b8a7df75f1c804a60aa987140c1e0548c'
 dependencies:
     'actions/add-to-project@f2c1f1fa649a891be84948ea89b5dfba1526ef05':
@@ -97,11 +93,6 @@ dependencies:
         commit: 'sha1-6d4fd22b20465ccc0f7354476588e8df7c9ca0e0'
         owner_id: 44036562
         repo_id: 192625525
-    'aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461':
-        ref: 'v4.1.1'
-        commit: 'sha1-611554c6f0137ba41c8dd15aca8bee82504ea461'
-        owner_id: 95116411
-        repo_id: 400140776
     'astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2':
         ref: 'v10.3.3'
         commit: 'sha1-68559e99cc807c1eb7e9238fd43a15bba460eec2'
