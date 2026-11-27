@@ -33,7 +33,7 @@ workflows:
         - 'actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
         - 'actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0'
-        - 'astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2'
+        - 'astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d'
         - 'dev-hato/actions-diff-pr-management@474e401b8a7df75f1c804a60aa987140c1e0548c'
         - 'flatt-security/setup-takumi-guard-golang@02545d3425218766aac4dca114dcc3f6eaa0df4a'
         - 'flatt-security/setup-takumi-guard-npm@14f07d0cbc739b42a1b7c70a04c2b84cd1318ddd'
@@ -93,9 +93,9 @@ dependencies:
         commit: 'sha1-6d4fd22b20465ccc0f7354476588e8df7c9ca0e0'
         owner_id: 44036562
         repo_id: 192625525
-    'astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2':
-        ref: 'v10.3.3'
-        commit: 'sha1-68559e99cc807c1eb7e9238fd43a15bba460eec2'
+    'astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d':
+        ref: 'v10.4.0'
+        commit: 'sha1-1db35dd8eee11c5894872e0b383ae6c406cf738d'
         owner_id: 115962839
         repo_id: 846733598
     'dev-hato/actions-add-to-projects@3f6870416d1ebf4eae418af990a83780bdd45f1f':
